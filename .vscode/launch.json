@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Iniciar consulta de estoque",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/servidor.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Gerar o app uma vez",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/build.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}

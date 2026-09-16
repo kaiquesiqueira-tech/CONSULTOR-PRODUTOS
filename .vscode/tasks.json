@@ -1,0 +1,36 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Iniciar consulta de estoque",
+      "detail": "Gera o app, fica vigiando a pasta 'dados' e publica na rede",
+      "type": "shell",
+      "command": "python3",
+      "args": ["servidor.py"],
+      "windows": { "command": "python", "args": ["servidor.py"] },
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Gerar o app uma vez",
+      "detail": "So regera dist/index.html e encerra",
+      "type": "shell",
+      "command": "python3",
+      "args": ["build.py"],
+      "windows": { "command": "python", "args": ["build.py"] },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Instalar as bibliotecas",
+      "detail": "Roda uma vez, na primeira instalacao",
+      "type": "shell",
+      "command": "python3",
+      "args": ["-m", "pip", "install", "-r", "requirements.txt"],
+      "windows": { "command": "python", "args": ["-m", "pip", "install", "-r", "requirements.txt"] },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    }
+  ]
+}

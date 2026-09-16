@@ -1,0 +1,6 @@
+# Bibliotecas usadas pelo projeto.
+# Instale com:  pip install -r requirements.txt
+
+pandas>=2.0
+openpyxl>=3.1
+python-calamine>=0.2   # opcional: deixa a leitura dos .xlsx cerca de 4x mais rapida

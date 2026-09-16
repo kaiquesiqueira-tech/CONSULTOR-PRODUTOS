@@ -1,0 +1,9 @@
+Coloque nesta pasta as planilhas exportadas do sistema:
+
+  - SALDO FISICO        (a tela que tem Produto, Nome Cientif, Saldo Atual...)
+  - SALDO POR ENDERECO  (a tela que tem Produto, Endereco, Quantidade...)
+
+Pode ser mais de um arquivo de cada tipo, um por filial, por exemplo.
+O nome do arquivo nao importa: o programa descobre o tipo pelas colunas.
+
+Assim que voce salvar um arquivo novo aqui, o app se atualiza sozinho.
