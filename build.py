@@ -45,6 +45,8 @@ def ler_excel(caminho, **extras):
     return pd.read_excel(caminho, **extras)
 
 
+AVISOS = []
+
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 PASTA_DADOS = os.path.join(RAIZ, "dados")
 PASTA_APP = os.path.join(RAIZ, "app")
@@ -59,7 +61,8 @@ def achar_planilhas():
     arquivos = []
     for ext in ("*.xlsx", "*.xlsm", "*.xls"):
         arquivos += glob.glob(os.path.join(PASTA_DADOS, ext))
-    return sorted(a for a in arquivos if not os.path.basename(a).startswith("~$"))
+    arquivos = [a for a in arquivos if not os.path.basename(a).startswith("~$")]
+    return sorted(arquivos, key=lambda a: (os.path.getmtime(a), a))
 
 
 def ler_planilha(caminho):
@@ -140,8 +143,24 @@ def montar(sb2, sbf):
 
     if sb2 is not None and not sb2.empty:
         sb2 = sb2[sb2["P"] != ""]
+        repetidas = sb2.duplicated(subset=["F", "P", "A"], keep="last").sum()
+        if repetidas:
+            sb2 = sb2[~sb2.duplicated(subset=["F", "P", "A"], keep="last")]
+            AVISOS.append(
+                "%d linhas repetidas no saldo fisico foram descartadas. Isso acontece\n"
+                "  quando ha exportacoes sobrepostas na pasta 'dados'. Valeu a do arquivo\n"
+                "  mais recente. Apague as antigas para nao correr risco." % repetidas)
+
     if sbf is not None and not sbf.empty:
         sbf = sbf[sbf["P"] != ""]
+        chave_sbf = [c for c in ["F", "P", "A", "Endereco", "Lote", "Sub-Lote", "Num de Serie"]
+                     if c in sbf.columns]
+        repetidas = sbf.duplicated(subset=chave_sbf, keep="last").sum()
+        if repetidas:
+            sbf = sbf[~sbf.duplicated(subset=chave_sbf, keep="last")]
+            AVISOS.append(
+                "%d linhas repetidas no saldo por endereco foram descartadas.\n"
+                "  Apague as exportacoes antigas da pasta 'dados'." % repetidas)
 
     # enderecos agrupados por filial + produto + armazem
     mapa_end = {}
@@ -258,19 +277,21 @@ def principal():
         print("Coloque ali o SALDO FISICO e o SALDO POR ENDERECO em .xlsx e rode de novo.")
         return 1
 
+    del AVISOS[:]
     partes_sb2, partes_sbf = [], []
     print("Lendo planilhas de 'dados':")
     for caminho in arquivos:
         nome = os.path.basename(caminho)
         tipo, df, erro = ler_planilha(caminho)
+        quando = datetime.datetime.fromtimestamp(os.path.getmtime(caminho)).strftime("%d/%m/%Y %H:%M")
         if tipo == "SB2":
             partes_sb2.append(df)
-            print("  [saldo fisico]   %-42s %6d linhas" % (nome, len(df)))
+            print("  [saldo fisico]   %-34s %6d linhas   %s" % (nome[:34], len(df), quando))
         elif tipo == "SBF":
             partes_sbf.append(df)
-            print("  [por endereco]   %-42s %6d linhas" % (nome, len(df)))
+            print("  [por endereco]   %-34s %6d linhas   %s" % (nome[:34], len(df), quando))
         else:
-            print("  [ignorado]       %-42s %s" % (nome, erro))
+            print("  [ignorado]       %-34s %s" % (nome[:34], erro))
 
     if not partes_sb2 and not partes_sbf:
         print("\nNenhum arquivo reconhecido. Exporte de novo o SALDO FISICO e o SALDO POR ENDERECO.")
@@ -328,6 +349,17 @@ def principal():
         print("  custos ............. FORA da base (config.txt: incluir_custos = nao)")
     if base["semSB2"]:
         print("  sem saldo fisico ... filial %s (so tem enderecamento)" % ", ".join(base["semSB2"]))
+
+    for aviso in AVISOS:
+        print("")
+        print("  ATENCAO: %s" % aviso)
+
+    antigo = os.path.join(RAIZ, "dist")
+    if os.path.isdir(antigo):
+        print("")
+        print("  ATENCAO: existe uma pasta 'dist' antiga aqui. O app agora e gerado em")
+        print("  'docs'. Se voce abrir algo de dentro de 'dist', vai ver dados velhos.")
+        print("  Pode apagar a pasta 'dist' sem medo.")
     return 0
 
 

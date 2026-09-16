@@ -90,6 +90,7 @@ iniciar.bat         atalho para ligar tudo no Windows
 publicar.bat        gera o app e envia para o GitHub num clique
 area-de-trabalho.bat  poe o app na sua area de trabalho
 automatico.bat      liga e desliga a publicacao sozinha
+diagnostico.bat     diz por que o app nao esta como voce espera
 vigia.py            fica de olho nas pastas e publica sem janela
 config.txt          suas preferencias (gerado no primeiro uso)
 vigia.log           o que o vigia fez (gerado no primeiro uso)
@@ -180,6 +181,40 @@ No celular é o mesmo caminho: abra pelo IP e use `Adicionar à tela de início`
 | Computador sem Python instalado | Cópia solta |
 | Levar para outro lugar, mandar para alguém | Cópia solta |
 | Quer o ícone mas prefere abrir no navegador | Atalho do app |
+
+---
+
+## Quando o app não mostra o que você espera
+
+Duplo clique em **`diagnostico.bat`**. Ele olha tudo e diz o que está fora do
+lugar: quais planilhas estão na pasta e de quando são, quando o app foi
+gerado pela última vez, qual a marca da versão, o que está pendente de envio
+e as últimas linhas do log do vigia.
+
+As causas, em ordem de frequência:
+
+**Trocou as planilhas mas nada gerou o app.** Colocar o arquivo na pasta não
+basta por si só — alguém tem que rodar o build. Isso acontece sozinho se o
+`iniciar.bat` estiver aberto ou se o vigia estiver ligado. Senão, é no
+`publicar.bat` ou no `iniciar.bat`. O diagnóstico avisa quando as planilhas
+são mais novas que o app.
+
+**Sobrou exportação antiga na pasta `dados`.** Se você acrescentou os arquivos
+novos sem apagar os velhos, os dois entram. O build agora percebe isso,
+descarta as linhas repetidas mantendo as do arquivo mais recente e avisa —
+mas o certo é apagar as antigas.
+
+**Você está abrindo o arquivo errado.** Se ainda existe uma pasta `dist` de
+uma versão anterior do projeto, o que está lá dentro nunca mais muda. O app
+hoje é gerado em `docs`. Apague a `dist`.
+
+**Cache do navegador.** Compare a marca da versão que o diagnóstico mostra com
+a que aparece no canto de cima do app. Diferentes, é cache: recarregue
+segurando Ctrl ao clicar em recarregar. Pelo GitHub Pages pode levar até uns
+10 minutos.
+
+**Planilha aberta no Excel.** O Excel segura o arquivo e o build falha. Feche
+a planilha e rode de novo.
 
 ---
 
