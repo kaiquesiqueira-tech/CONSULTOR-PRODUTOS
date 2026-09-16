@@ -1,0 +1,17 @@
+{
+  "name": "Consulta de Estoque",
+  "short_name": "Estoque",
+  "description": "Onde está o produto, quanto tem e o que falta acertar no estoque",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#111C24",
+  "theme_color": "#111C24",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

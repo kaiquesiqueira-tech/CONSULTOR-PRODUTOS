@@ -1,4 +1,4 @@
-# Publica a pasta dist como site do GitHub Pages a cada envio.
+# Publica a pasta docs como site do GitHub Pages a cada envio.
 #
 # Para ligar: no repositorio, Settings > Pages > Source: GitHub Actions.
 #
@@ -33,6 +33,6 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: docs
       - id: deploy
         uses: actions/deploy-pages@v4

@@ -55,7 +55,8 @@ inicial`; no iPhone, botão de compartilhar `> Adicionar à Tela de Início`.
 Fica com ícone, igual a um aplicativo.
 
 **4. Para atualizar os dados**
-Exporte de novo e salve por cima dos arquivos da pasta `dados`.
+Exporte de novo e salve por cima dos arquivos da pasta `dados`. Mexer no
+`app/template.html` tem o mesmo efeito.
 Em poucos segundos o app se regenera e as páginas abertas recarregam sozinhas.
 Não precisa parar nem reiniciar nada.
 
@@ -82,12 +83,16 @@ Para desligar: `Ctrl+C` no terminal, ou feche a janela.
 ```
 dados/              as planilhas exportadas do sistema  ← você mexe aqui
 app/template.html   a aparência e o funcionamento do app
-dist/index.html     o app pronto (gerado, não edite)
+docs/index.html     o app pronto (gerado, não edite)
 build.py            lê as planilhas e monta o app
 servidor.py         vigia a pasta, regera e publica na rede
 iniciar.bat         atalho para ligar tudo no Windows
 publicar.bat        gera o app e envia para o GitHub num clique
 area-de-trabalho.bat  poe o app na sua area de trabalho
+automatico.bat      liga e desliga a publicacao sozinha
+vigia.py            fica de olho nas pastas e publica sem janela
+config.txt          suas preferencias (gerado no primeiro uso)
+vigia.log           o que o vigia fez (gerado no primeiro uso)
 ```
 
 ---
@@ -212,28 +217,134 @@ Mexeu no app ou trocou as planilhas? Duplo clique em `publicar.bat`.
 Ele mostra o que mudou, pergunta uma descrição (pode dar Enter e ele usa a
 data) e envia. Se nada tiver mudado, ele avisa e não faz nada.
 
-### Abrir o app pela internet, de qualquer lugar
+### Abrir o app pela internet
 
-Tem um `.github/workflows/publicar-site.yml` pronto. Para ligar, no
-repositório: **Settings > Pages > Source: GitHub Actions**. A cada envio o
-site se atualiza sozinho, no endereço
-`https://SEUUSUARIO.github.io/consulta-estoque/`.
-
-Duas ressalvas:
-
-- Em repositório **público**, esse endereço fica aberto para qualquer um.
-- Em repositório **privado**, o GitHub Pages exige plano pago. Confirme no
-  site do GitHub, que os planos mudam.
-
-Se quiser o app na internet sem expor custos, me peça uma versão do
-`build.py` que não inclua as colunas de custo e valor.
+Veja a seção "Abrir de qualquer lugar, fora da rede da empresa" mais abaixo.
 
 ### Sobre o tamanho do repositório
 
-Cada versão enviada guarda o `dist/index.html` inteiro, uns 700 KB depois de
+Cada versão enviada guarda o `docs/index.html` inteiro, uns 700 KB depois de
 compactado. Enviando todo dia, o repositório cresce perto de 250 MB por ano —
 funciona, mas em algum momento vale limpar. Se chegar lá, me avise que eu
 passo o procedimento.
+
+---
+
+## Abrir de qualquer lugar, fora da rede da empresa
+
+Enviar para o GitHub **não** coloca nada no ar. Para virar um endereço que
+qualquer celular abre, de qualquer lugar, é preciso ligar o GitHub Pages.
+
+### Ligando o Pages
+
+No repositório: **Settings > Pages**. Duas formas, escolha uma:
+
+- **Deploy from a branch** → branch `main`, pasta `/docs`. É por isso que a
+  saída do projeto se chama `docs`: o Pages só aceita a raiz ou essa pasta.
+- **GitHub Actions** → usa o workflow que já está em `.github/workflows/`.
+
+Em um ou dois minutos o endereço aparece na própria tela de Pages, no formato
+`https://SEUUSUARIO.github.io/NOME-DO-REPOSITORIO/`.
+
+### Conferindo se sincronizou
+
+No canto de cima do app tem a data da base e uma marca curta, tipo
+`base de 16/09/2026 · v88b9a`. Essa marca muda só quando os dados mudam de
+verdade.
+
+Abra o app no computador e no celular e compare as duas marcas. Iguais,
+estão na mesma versão. Diferentes, o aparelho de trás está com uma cópia
+velha: puxe a tela para baixo para recarregar, ou espere alguns minutos,
+porque o GitHub guarda o arquivo em cache por até 10 minutos.
+
+### O preço de deixar público
+
+Repositório público quer dizer que **qualquer pessoa na internet** baixa o
+que você enviou, mesmo sem o Pages ligado. O app carrega saldo, endereço,
+custo unitário e valor em estoque de cada item.
+
+Você tem três caminhos:
+
+**1. Deixar o repositório privado.** O app fica completo, o GitHub serve de
+backup e histórico, e o acesso continua pelo servidor local na rede da
+empresa. Pages em repositório privado exige plano pago — confirme no site do
+GitHub, que os planos mudam.
+
+**2. Público, mas sem preço.** No `automatico.bat`, opção **[8] > [2]**, ou
+no `config.txt`:
+
+```
+incluir_custos = nao
+```
+
+Os custos e valores saem da base inteira, não só da tela — nem abrindo o
+código-fonte alguém acha. Ficam o produto, o endereço e a quantidade. Continua
+sendo informação da empresa, mas sem expor preço de compra.
+
+**3. Público com tudo.** Só se a sua empresa disser que não há problema.
+
+Se você já enviou a versão com custos para um repositório público, mudar a
+configuração agora não apaga o que já foi. O histórico do Git guarda todas as
+versões anteriores. Nesse caso o caminho é apagar o repositório no GitHub e
+criar outro, ou me pedir o procedimento para limpar o histórico.
+
+---
+
+## Publicar sozinho, sem clicar em nada
+
+O `publicar.bat` continua existindo para quando você quiser enviar na hora.
+Mas dá para o envio acontecer sozinho: você salva a planilha ou mexe no app, e
+alguns segundos depois já está no GitHub.
+
+Quem faz isso é o **vigia**. Ele observa a pasta `dados` e a pasta `app`.
+Quando algo muda, ele espera os arquivos pararem de mexer, gera o app e envia.
+
+### Ligando
+
+**1. Faça um envio manual primeiro.** Rode o `publicar.bat` uma vez e faça o
+login do GitHub. É obrigatório: o envio automático nunca pergunta senha, então
+o acesso já precisa estar guardado no Windows.
+
+**2. Abra o `automatico.bat`** e escolha:
+
+- **[1] Ligar a publicação automática** — grava a preferência no `config.txt`
+- **[5] Fazer o vigia subir junto com o Windows** — a partir daí ele liga
+  sozinho toda vez que você entra no computador, sem janela nenhuma
+
+Pronto. Não tem mais clique nenhum no dia a dia.
+
+### Vendo o que ele andou fazendo
+
+Como ele roda escondido, tudo fica anotado no `vigia.log`. A opção **[7]** do
+menu mostra as últimas linhas:
+
+```
+[16/09/2026 17:25:53] Mudanca detectada.
+[16/09/2026 17:26:00] App gerado.
+[16/09/2026 17:26:00] Enviado: Enviado para o GitHub.
+```
+
+O mesmo menu mostra, no topo, se o vigia está rodando agora e se está
+instalado no início do Windows.
+
+### Detalhes que importam
+
+**Salvou três vezes seguidas?** Vira um envio só. Ele espera os arquivos
+ficarem parados por uns segundos antes de agir, então não enche o repositório
+de versões repetidas.
+
+**Nada mudou de verdade?** Ele não envia. Abrir e fechar a planilha sem
+alterar nada não gera commit.
+
+**Deu erro?** Ele anota no log e continua vigiando. Se o login do GitHub
+expirar, o log avisa e basta rodar o `publicar.bat` uma vez de novo.
+
+**O servidor também publica.** Se você deixa o `iniciar.bat` aberto, ele faz o
+mesmo assim que a publicação automática está ligada — não precisa dos dois
+rodando ao mesmo tempo.
+
+**Para desligar:** opção [2] para parar de publicar, ou [6] para tirar o vigia
+do início do Windows.
 
 ---
 

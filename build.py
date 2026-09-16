@@ -17,6 +17,7 @@ import os
 import sys
 import glob
 import json
+import hashlib
 import datetime
 
 try:
@@ -47,7 +48,7 @@ def ler_excel(caminho, **extras):
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 PASTA_DADOS = os.path.join(RAIZ, "dados")
 PASTA_APP = os.path.join(RAIZ, "app")
-PASTA_SAIDA = os.path.join(RAIZ, "dist")
+PASTA_SAIDA = os.path.join(RAIZ, "docs")
 EPOCA = datetime.date(2000, 1, 1)
 
 
@@ -217,15 +218,36 @@ def montar(sb2, sbf):
     fil_sb2 = set(sb2["F"]) if (sb2 is not None and not sb2.empty) else set()
     sem_sb2 = [f for f in filiais if f not in fil_sb2]
 
-    return {
+    if not incluir_custos():
+        for it in ativos:
+            for r in it["r"]:
+                r[3] = 0.0
+
+    base = {
         "v": 1,
         "gerado": datetime.date.today().isoformat(),
         "filiais": filiais,
         "semSB2": sem_sb2,
+        "semCustos": not incluir_custos(),
         "descs": textos,
         "ativos": ativos,
         "zerados": zerados,
     }
+    # marca curta que muda so quando os dados mudam: serve para conferir
+    # se dois aparelhos estao vendo a mesma versao
+    bruto = json.dumps(base, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    base["marca"] = hashlib.sha1(bruto).hexdigest()[:5]
+    return base
+
+
+def incluir_custos():
+    """Le a preferencia do config.txt. Sem o arquivo, inclui os custos."""
+    try:
+        sys.path.insert(0, RAIZ)
+        import publicacao
+        return publicacao.config("incluir_custos", "sim").lower() not in ("nao", "n", "no", "0", "false")
+    except Exception:
+        return True
 
 
 # --------------------------------------------------------------------------
@@ -284,6 +306,9 @@ def principal():
         if os.path.exists(origem):
             shutil.copyfile(origem, os.path.join(PASTA_SAIDA, apoio))
 
+    # o GitHub Pages ignora arquivos que comecam com _ sem este arquivo
+    open(os.path.join(PASTA_SAIDA, ".nojekyll"), "w").close()
+
     carimbo = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(os.path.join(PASTA_SAIDA, "versao.txt"), "w", encoding="utf-8") as f:
         f.write(carimbo)
@@ -293,11 +318,14 @@ def principal():
     tamanho = os.path.getsize(destino) / 1e6
 
     print("")
-    print("App gerado: dist/index.html  (%.1f MB)" % tamanho)
+    print("App gerado: %s/index.html  (%.1f MB)" % (os.path.basename(PASTA_SAIDA), tamanho))
     print("  filiais ............ %s" % ", ".join(base["filiais"]))
     print("  itens com saldo .... %d" % com_saldo)
     print("  linhas de endereco . %d" % com_end)
     print("  produtos no total .. %d" % (len(base["ativos"]) + len(base["zerados"])))
+    print("  marca da versao .... %s" % base["marca"])
+    if base.get("semCustos"):
+        print("  custos ............. FORA da base (config.txt: incluir_custos = nao)")
     if base["semSB2"]:
         print("  sem saldo fisico ... filial %s (so tem enderecamento)" % ", ".join(base["semSB2"]))
     return 0
