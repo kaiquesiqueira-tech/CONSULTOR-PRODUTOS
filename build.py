@@ -277,6 +277,13 @@ def principal():
     with open(destino, "w", encoding="utf-8") as f:
         f.write(html.replace("__DADOS__", dados))
 
+    # arquivos de apoio para instalar o app (icone, manifesto, modo sem rede)
+    import shutil
+    for apoio in ("manifest.webmanifest", "sw.js", "icone-192.png", "icone-512.png"):
+        origem = os.path.join(PASTA_APP, apoio)
+        if os.path.exists(origem):
+            shutil.copyfile(origem, os.path.join(PASTA_SAIDA, apoio))
+
     carimbo = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(os.path.join(PASTA_SAIDA, "versao.txt"), "w", encoding="utf-8") as f:
         f.write(carimbo)

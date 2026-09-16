@@ -87,6 +87,7 @@ build.py            lê as planilhas e monta o app
 servidor.py         vigia a pasta, regera e publica na rede
 iniciar.bat         atalho para ligar tudo no Windows
 publicar.bat        gera o app e envia para o GitHub num clique
+area-de-trabalho.bat  poe o app na sua area de trabalho
 ```
 
 ---
@@ -119,6 +120,61 @@ A exportação veio sem as colunas esperadas. O saldo físico precisa ter
 `Filial`, `Produto`, `Armazem`, `Nome Cientif` e `Saldo Atual`. O saldo por
 endereço precisa ter `Filial`, `Produto`, `Armazem`, `Endereco`, `Prioridade`
 e `Quantidade`.
+
+---
+
+## Colocar na área de trabalho
+
+Duplo clique em **`area-de-trabalho.bat`** e escolha uma das opções.
+
+### Opção 1 — atalho do app
+
+Cria um ícone chamado **Consulta de Estoque** na sua área de trabalho.
+Clicou, ele liga o servidor e abre o navegador já na tela certa. Os dados são
+sempre os das planilhas que estão na pasta `dados` naquele momento, e o celular
+continua funcionando pelo IP.
+
+Precisa do Python instalado e a pasta do projeto tem que continuar onde está —
+o atalho aponta para ela.
+
+### Opção 2 — cópia solta
+
+Copia o app para a área de trabalho como **Consulta de Estoque.html**, um
+arquivo único de uns 2,6 MB. Duplo clique e abre, sem Python, sem servidor e
+sem internet.
+
+Em compensação ele é uma fotografia: guarda os dados do momento em que foi
+gerado. Quando os dados mudarem, rode o `area-de-trabalho.bat` de novo para
+substituir a cópia. É a melhor opção para levar num notebook, mandar por
+e-mail ou deixar numa máquina que não tem nada instalado.
+
+### Opção 3 — instalar como aplicativo de verdade
+
+Essa é a mais confortável para o dia a dia. Com o app aberto pelo servidor
+(`http://localhost:8080`):
+
+- **Chrome**: ícone de instalar na barra de endereço, ou menu `⋮ > Transmitir,
+  salvar e compartilhar > Instalar página como app`
+- **Edge**: menu `... > Aplicativos > Instalar este site como um aplicativo`
+
+Ele vira uma janela própria, com o ícone da etiqueta amarela, sem barra de
+navegação, e aparece no menu Iniciar e na barra de tarefas. Você pode arrastar
+para a área de trabalho de lá.
+
+Instalado assim ele também **abre sem rede**: se o servidor estiver desligado
+ou o wi-fi cair, ele mostra a última versão que carregou. Quando o servidor
+volta, os dados se atualizam sozinhos.
+
+No celular é o mesmo caminho: abra pelo IP e use `Adicionar à tela de início`.
+
+### Qual usar
+
+| Situação | Melhor opção |
+|---|---|
+| Uso diário no seu computador | Instalar como aplicativo |
+| Computador sem Python instalado | Cópia solta |
+| Levar para outro lugar, mandar para alguém | Cópia solta |
+| Quer o ícone mas prefere abrir no navegador | Atalho do app |
 
 ---
 
