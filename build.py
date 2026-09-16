@@ -9,8 +9,10 @@ Coloque na pasta 'dados' os arquivos exportados do sistema:
 O tipo de cada arquivo e descoberto automaticamente pelas colunas,
 entao o nome do arquivo nao importa.
 
-Uso:  python build.py
-Saida: dist/index.html  (arquivo unico, funciona sozinho)
+Uso:  python build.py                 -> gera o index.html aqui na pasta
+      python build.py --saida site    -> gera dentro da pasta 'site'
+
+O segundo jeito e o que o GitHub usa para montar o app sozinho.
 """
 
 import os
@@ -62,7 +64,7 @@ INCLUIR_CUSTOS = True
 # na rede baixar as planilhas ou os scripts pelo navegador.
 ARQUIVOS_DO_SITE = ("index.html", "versao.txt")
 
-PASTAS_ANTIGAS = ("dist", "docs", "app", "site", "publico")
+PASTAS_ANTIGAS = ("dist", "docs", "app", "publico")
 EPOCA = datetime.date(2000, 1, 1)
 
 
@@ -275,7 +277,7 @@ def montar(sb2, sbf):
 
 
 # --------------------------------------------------------------------------
-def principal():
+def principal(saida=None):
     arquivos = achar_planilhas()
     if not arquivos:
         print("Nenhuma planilha em 'dados'.")
@@ -320,7 +322,8 @@ def principal():
     dados = json.dumps(base, ensure_ascii=False, separators=(",", ":"))
     dados = dados.replace("</", "<\\u002f")  # seguranca ao embutir no HTML
 
-    saida = RAIZ
+    saida = RAIZ if not saida else os.path.join(RAIZ, saida)
+    os.makedirs(saida, exist_ok=True)
     destino = os.path.join(saida, "index.html")
     with open(destino, "w", encoding="utf-8") as f:
         f.write(html.replace("__DADOS__", dados))
@@ -334,7 +337,8 @@ def principal():
     tamanho = os.path.getsize(destino) / 1e6
 
     print("")
-    print("App gerado: index.html  (%.1f MB)" % tamanho)
+    onde = "index.html" if saida == RAIZ else os.path.relpath(destino, RAIZ).replace("\\", "/")
+    print("App gerado: %s  (%.1f MB)" % (onde, tamanho))
     print("  filiais ............ %s" % ", ".join(base["filiais"]))
     print("  itens com saldo .... %d" % com_saldo)
     print("  linhas de endereco . %d" % com_end)
@@ -361,4 +365,13 @@ def principal():
 
 
 if __name__ == "__main__":
-    sys.exit(principal())
+    destino = None
+    argumentos = sys.argv[1:]
+    if "--saida" in argumentos:
+        posicao = argumentos.index("--saida")
+        if posicao + 1 < len(argumentos):
+            destino = argumentos[posicao + 1]
+        else:
+            print("Faltou dizer a pasta depois de --saida")
+            sys.exit(1)
+    sys.exit(principal(destino))

@@ -1,0 +1,14 @@
+# O app e gerado, nao versionado: quem monta a versao publicada e o
+# GitHub Actions, a partir das planilhas da pasta 'dados'.
+index.html
+versao.txt
+site/
+
+__pycache__/
+*.pyc
+
+# arquivo temporario que o Excel cria enquanto a planilha esta aberta
+~$*.xlsx
+
+.DS_Store
+Thumbs.db

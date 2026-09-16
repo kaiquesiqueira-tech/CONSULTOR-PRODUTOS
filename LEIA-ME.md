@@ -73,10 +73,87 @@ dados/            as planilhas exportadas do sistema  ← você mexe aqui
 template.html     a aparência e o funcionamento do app
 build.py          lê as planilhas e gera o app
 servidor.py       vigia a pasta, regera e publica na rede
-iniciar.bat       liga tudo
+iniciar.bat       liga tudo aqui no computador
+enviar.bat        manda as planilhas para o GitHub (opcional: dá para
+                  fazer tudo pelo painel do VS Code)
 index.html        o app pronto (gerado, não edite)
 versao.txt        gerado, é o sinal de "recarregue a página"
+.github/          a receita que o GitHub usa para gerar o app sozinho
 ```
+
+---
+
+## Subir para o GitHub e o app se atualizar sozinho
+
+O GitHub recebe as **planilhas**, não o app pronto. Ele mesmo lê a pasta
+`dados`, gera o app e publica o site. Assim qualquer aparelho, em qualquer
+lugar, vê a versão nova — sem precisar de Python na máquina de quem atualiza.
+
+### Ligando, uma vez só
+
+1. Instale o Git: <https://git-scm.com/download/win>, opções padrão. Feche e
+   abra o VS Code depois.
+2. No VS Code, abra o painel **Controle do Código-Fonte** (o ícone de três
+   bolinhas ligadas, na barra da esquerda, ou `Ctrl+Shift+G`).
+3. Clique em **Publicar no GitHub**. Ele pede o login pelo navegador e
+   pergunta o nome do repositório e se é **privado ou público** — leia o aviso
+   sobre isso mais abaixo antes de responder.
+4. No site do repositório: **Settings > Pages > Source: GitHub Actions**.
+
+O endereço do site aparece nessa mesma tela, no formato
+`https://SEUUSUARIO.github.io/NOME-DO-REPOSITORIO/`.
+
+### No dia a dia, pelo VS Code
+
+1. Salve as planilhas novas **por cima** das antigas, na pasta `dados`.
+2. No painel Controle do Código-Fonte, os arquivos trocados aparecem na lista.
+3. Escreva uma frase curta na caixa de cima (ex.: "estoque de 16/09") e clique
+   em **Confirmar**.
+
+Só isso. O envio para o GitHub acontece junto com a confirmação — isso está
+configurado no `.vscode/settings.json`. Em uns dois minutos o site está
+atualizado e as páginas abertas recarregam sozinhas.
+
+**Se o arquivo novo tiver nome diferente do antigo**, apague o antigo pelo
+Explorador do VS Code (botão direito, Excluir). Senão os dois ficam na pasta e
+sobem juntos. O build percebe e descarta as linhas repetidas, mas o certo é
+apagar. O arquivo apagado aparece no painel com um `D` do lado, e some do
+GitHub quando você confirma.
+
+**Para acompanhar**, a aba **Actions** do repositório mostra cada geração.
+Verde deu certo, vermelho deu erro — clicando você vê onde parou.
+
+O `enviar.bat` continua na pasta como alternativa, para quando você não
+estiver no VS Code. Se não for usar, pode apagar.
+
+### Conferindo se atualizou
+
+No canto de cima do app tem a data da base e uma marca curta, tipo
+`base de 16/09/2026 · v4395d`. Essa marca muda só quando os dados mudam.
+Compare entre os aparelhos: iguais, mesma versão. O GitHub Pages guarda o
+arquivo em cache por até uns 10 minutos.
+
+### Antes de escolher Public
+
+Agora as **planilhas** vão para o GitHub, não só o app. Elas trazem a base
+completa: 45 mil produtos, saldos, custos unitários e valores. Em repositório
+público, qualquer pessoa na internet baixa esses arquivos direto.
+
+- **Private** é o certo para este caso. O Actions gera o app normalmente. Só
+  que o GitHub Pages em repositório privado exige plano pago — confirme no
+  site do GitHub, que os planos mudam.
+- **Public** só se a sua empresa disser que não há problema. Se for por esse
+  caminho, tire ao menos os custos: no topo do `build.py`, deixe
+  `INCLUIR_CUSTOS = False`. Isso limpa o app, mas **não** limpa as planilhas,
+  que continuam inteiras no repositório.
+
+### Sobre o tamanho do repositório
+
+Um `.xlsx` já é um arquivo compactado, então o Git não consegue guardar só a
+diferença entre duas versões. Medindo com a sua base, cada exportação nova
+custa cerca de **4 a 5 MB** de histórico. Atualizando toda semana, dá uns
+250 MB por ano; todo dia, passa de 1 GB. Funciona, mas em algum momento vale
+limpar o histórico. Quando chegar lá, me peça o procedimento.
 
 ---
 
@@ -88,6 +165,10 @@ texto; sem conexão o app usa a fonte do sistema e funciona igual.
 **Dá para mandar o app para alguém?** Sim. O `index.html` é um arquivo só, com
 os dados dentro. Mande por e-mail ou copie para a área de trabalho e a pessoa
 abre com duplo clique, sem instalar nada. Só não se atualiza sozinho.
+
+**Por que o `index.html` não vai para o GitHub?** Porque lá ele é gerado a
+partir das planilhas. Mandar os dois seria guardar a mesma informação duas
+vezes e engordar o repositório à toa.
 
 **Quero esconder os custos.** No topo do `build.py`, troque para
 `INCLUIR_CUSTOS = False` e gere de novo. Os custos e valores saem da base

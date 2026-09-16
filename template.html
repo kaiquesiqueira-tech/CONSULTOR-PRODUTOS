@@ -885,8 +885,9 @@ renderFiltros(); badge(); render(); medirTopo();
 
 
 <script>
-/* Recarrega a página sozinho quando o servidor local regenerar a base.
-   Se o arquivo for aberto direto (file://) ou publicado, isso falha na 1ª tentativa e para. */
+/* Recarrega a página sozinho quando sai uma versão nova da base.
+   Funciona no servidor local e no site publicado pelo GitHub Pages.
+   Aberto direto do disco (file://), falha na 1ª tentativa e para. */
 (function(){
   var atual = null;
   function checar(){
@@ -897,7 +898,7 @@ renderFiltros(); badge(); render(); medirTopo();
         if(!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(t)) return;  // nao e o servidor local
         if(atual === null) atual = t;
         else if(t !== atual){ location.reload(); return; }
-        setTimeout(checar, 2000);
+        setTimeout(checar, 5000);
       })
       .catch(function(){});
   }
