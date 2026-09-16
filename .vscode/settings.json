@@ -1,23 +1,4 @@
 {
-  // ---------------------------------------------------------------
-  //  Ajustes para enviar as planilhas pelo painel do VS Code
-  // ---------------------------------------------------------------
-
-  // Depois de confirmar, ja envia para o GitHub sozinho.
-  // Sem isso voce teria que clicar em "Sync" ou "Push" separado.
-  "git.postCommitCommand": "push",
-
-  // Deixa confirmar sem precisar marcar os arquivos um por um.
-  "git.enableSmartCommit": true,
-
-  // Tira as caixas de "tem certeza?" no meio do caminho.
-  "git.confirmSync": false,
-  "git.confirmEmptyCommits": false,
-
-  // Avisa quando alguem enviou algo antes de voce.
-  "git.autofetch": true,
-
-  // ---------------------------------------------------------------
   "files.encoding": "utf8",
   "files.exclude": { "**/__pycache__": true },
   "files.associations": { "*.html": "html" }

@@ -21,6 +21,6 @@
 #   docs = ficam dentro de uma pasta chamada docs. Deixa a pasta do
 #          projeto mais limpa. No Pages, escolha "/docs".
 
-publicar_automatico = nao
+publicar_automatico = sim
 incluir_custos = sim
 pasta_do_site = raiz

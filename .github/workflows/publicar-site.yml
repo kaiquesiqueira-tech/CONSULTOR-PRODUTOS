@@ -1,0 +1,45 @@
+# Publica o app como site do GitHub Pages a cada envio.
+#
+# Para ligar: no repositorio, Settings > Pages > Source: GitHub Actions.
+#
+# O "path" abaixo tem que combinar com o pasta_do_site do config.txt:
+#   pasta_do_site = raiz  ->  path: .
+#   pasta_do_site = docs  ->  path: docs
+#
+# Se voce usa "Deploy from a branch" em vez de Actions, este arquivo nem
+# entra em acao: la voce escolhe a raiz ou a pasta /docs direto na tela.
+#
+# ATENCAO: em repositorio publico, o site fica aberto na internet e
+# qualquer pessoa ve os saldos e custos. Em repositorio privado, o
+# GitHub Pages exige plano pago.
+
+name: Publicar site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deploy
+        uses: actions/deploy-pages@v4

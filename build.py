@@ -9,10 +9,8 @@ Coloque na pasta 'dados' os arquivos exportados do sistema:
 O tipo de cada arquivo e descoberto automaticamente pelas colunas,
 entao o nome do arquivo nao importa.
 
-Uso:  python build.py                 -> gera o index.html aqui na pasta
-      python build.py --saida site    -> gera dentro da pasta 'site'
-
-O segundo jeito e o que o GitHub usa para montar o app sozinho.
+Uso:  python build.py
+Saida: dist/index.html  (arquivo unico, funciona sozinho)
 """
 
 import os
@@ -51,20 +49,26 @@ AVISOS = []
 
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 PASTA_DADOS = os.path.join(RAIZ, "dados")
-# ---------------------------------------------------------------------
-#  UNICA COISA QUE VOCE PODE QUERER MUDAR AQUI
-#
-#  INCLUIR_CUSTOS
-#     True  = o app mostra custo unitario e valor em estoque
-#     False = o app sai sem nenhum custo e sem nenhum valor
-# ---------------------------------------------------------------------
-INCLUIR_CUSTOS = True
+PASTA_APP = os.path.join(RAIZ, "app")
+# nomes dos arquivos que o build cria. Usados tambem pelo servidor, para
+# nao servir mais nada quando a saida e a propria pasta do projeto.
+ARQUIVOS_DO_SITE = ("index.html", "versao.txt", ".nojekyll", "manifest.webmanifest",
+                    "sw.js", "icone-192.png", "icone-512.png")
 
-# arquivos que o build cria. O servidor so entrega estes, para ninguem
-# na rede baixar as planilhas ou os scripts pelo navegador.
-ARQUIVOS_DO_SITE = ("index.html", "versao.txt")
+PASTAS_ANTIGAS = ("dist", "docs", "site", "publico")
 
-PASTAS_ANTIGAS = ("dist", "docs", "app", "publico")
+
+def pasta_saida():
+    """Onde o app e gravado. Vem do config.txt, campo pasta_do_site."""
+    try:
+        sys.path.insert(0, RAIZ)
+        import publicacao
+        valor = publicacao.config("pasta_do_site", "raiz").strip()
+    except Exception:
+        valor = "raiz"
+    if valor.lower() in ("raiz", "principal", ".", "", "root"):
+        return RAIZ
+    return os.path.join(RAIZ, valor)
 EPOCA = datetime.date(2000, 1, 1)
 
 
@@ -251,7 +255,7 @@ def montar(sb2, sbf):
     fil_sb2 = set(sb2["F"]) if (sb2 is not None and not sb2.empty) else set()
     sem_sb2 = [f for f in filiais if f not in fil_sb2]
 
-    if not INCLUIR_CUSTOS:
+    if not incluir_custos():
         for it in ativos:
             for r in it["r"]:
                 r[3] = 0.0
@@ -261,7 +265,7 @@ def montar(sb2, sbf):
         "gerado": datetime.date.today().isoformat(),
         "filiais": filiais,
         "semSB2": sem_sb2,
-        "semCustos": not INCLUIR_CUSTOS,
+        "semCustos": not incluir_custos(),
         "descs": textos,
         "ativos": ativos,
         "zerados": zerados,
@@ -273,11 +277,18 @@ def montar(sb2, sbf):
     return base
 
 
-
+def incluir_custos():
+    """Le a preferencia do config.txt. Sem o arquivo, inclui os custos."""
+    try:
+        sys.path.insert(0, RAIZ)
+        import publicacao
+        return publicacao.config("incluir_custos", "sim").lower() not in ("nao", "n", "no", "0", "false")
+    except Exception:
+        return True
 
 
 # --------------------------------------------------------------------------
-def principal(saida=None):
+def principal():
     arquivos = achar_planilhas()
     if not arquivos:
         print("Nenhuma planilha em 'dados'.")
@@ -313,20 +324,30 @@ def principal(saida=None):
 
     base = montar(sb2, sbf)
 
-    modelo = os.path.join(RAIZ, "template.html")
+    modelo = os.path.join(PASTA_APP, "template.html")
     if not os.path.exists(modelo):
-        print("\nNao achei o 'template.html'.")
+        print("\nNao achei 'app/template.html'.")
         return 1
     html = open(modelo, encoding="utf-8").read()
 
     dados = json.dumps(base, ensure_ascii=False, separators=(",", ":"))
     dados = dados.replace("</", "<\\u002f")  # seguranca ao embutir no HTML
 
-    saida = RAIZ if not saida else os.path.join(RAIZ, saida)
+    saida = pasta_saida()
     os.makedirs(saida, exist_ok=True)
     destino = os.path.join(saida, "index.html")
     with open(destino, "w", encoding="utf-8") as f:
         f.write(html.replace("__DADOS__", dados))
+
+    # arquivos de apoio para instalar o app (icone, manifesto, modo sem rede)
+    import shutil
+    for apoio in ("manifest.webmanifest", "sw.js", "icone-192.png", "icone-512.png"):
+        origem = os.path.join(PASTA_APP, apoio)
+        if os.path.exists(origem):
+            shutil.copyfile(origem, os.path.join(saida, apoio))
+
+    # o GitHub Pages ignora arquivos que comecam com _ sem este arquivo
+    open(os.path.join(saida, ".nojekyll"), "w").close()
 
     carimbo = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(os.path.join(saida, "versao.txt"), "w", encoding="utf-8") as f:
@@ -337,7 +358,8 @@ def principal(saida=None):
     tamanho = os.path.getsize(destino) / 1e6
 
     print("")
-    onde = "index.html" if saida == RAIZ else os.path.relpath(destino, RAIZ).replace("\\", "/")
+    onde = "index.html (na pasta do projeto)" if saida == RAIZ else \
+           os.path.basename(saida) + "/index.html"
     print("App gerado: %s  (%.1f MB)" % (onde, tamanho))
     print("  filiais ............ %s" % ", ".join(base["filiais"]))
     print("  itens com saldo .... %d" % com_saldo)
@@ -345,7 +367,7 @@ def principal(saida=None):
     print("  produtos no total .. %d" % (len(base["ativos"]) + len(base["zerados"])))
     print("  marca da versao .... %s" % base["marca"])
     if base.get("semCustos"):
-        print("  custos ............. FORA da base (INCLUIR_CUSTOS = False no build.py)")
+        print("  custos ............. FORA da base (config.txt: incluir_custos = nao)")
     if base["semSB2"]:
         print("  sem saldo fisico ... filial %s (so tem enderecamento)" % ", ".join(base["semSB2"]))
 
@@ -358,20 +380,12 @@ def principal(saida=None):
         if antiga != saida and os.path.isfile(os.path.join(antiga, "index.html")):
             print("")
             print("  ATENCAO: sobrou uma pasta '%s' com um app antigo dentro." % nome)
-            print("  O app agora e gerado no index.html, aqui na pasta do projeto.")
+            print("  O app agora e gerado em %s." % ("index.html, aqui na pasta do projeto"
+                                                     if saida == RAIZ else nome))
             print("  Se algum atalho ou link apontar para '%s', vai mostrar dados velhos." % nome)
             print("  Pode apagar a pasta '%s' sem medo." % nome)
     return 0
 
 
 if __name__ == "__main__":
-    destino = None
-    argumentos = sys.argv[1:]
-    if "--saida" in argumentos:
-        posicao = argumentos.index("--saida")
-        if posicao + 1 < len(argumentos):
-            destino = argumentos[posicao + 1]
-        else:
-            print("Faltou dizer a pasta depois de --saida")
-            sys.exit(1)
-    sys.exit(principal(destino))
+    sys.exit(principal())
