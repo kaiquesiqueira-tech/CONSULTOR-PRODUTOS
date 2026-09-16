@@ -370,9 +370,11 @@ main{padding:14px 14px 92px}
   .pbody{padding:13px}
   main.single .col2{
     position:fixed; inset:0; z-index:60; display:grid; place-items:center;
-    background:rgba(7,13,17,.55); visibility:hidden; opacity:0; transition:opacity .15s;
+    background:rgba(7,13,17,.55); visibility:hidden; opacity:0; pointer-events:none;
+    transition:opacity .15s;
   }
-  main.single .col2.on{visibility:visible; opacity:1}
+  main.single .col2:not(.on) .panel{visibility:hidden}
+  main.single .col2.on{visibility:visible; opacity:1; pointer-events:auto}
   main.single .panel{position:relative; top:auto; width:min(580px,92vw); max-height:86vh}
   main.single .panel .phead .iconbtn{display:grid}
   .ruas{flex-wrap:wrap; overflow:visible}
@@ -733,6 +735,8 @@ function renderProd(){
 }
 
 function renderEnd(){
+  var tira = lista.querySelector('.ruas');
+  var rolagem = tira ? tira.scrollLeft : 0;
   var q = S.q, termos = q ? q.split(/\s+/) : [];
   function casaItem(it){
     if(!termos.length) return true;
@@ -776,6 +780,8 @@ function renderEnd(){
     h += '</div>';
   });
   lista.innerHTML = h;
+  var nova = lista.querySelector('.ruas');
+  if(nova && rolagem) nova.scrollLeft = rolagem;
 }
 
 function renderSep(){
