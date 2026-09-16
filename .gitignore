@@ -1,5 +1,21 @@
-dist/
+# ---------------------------------------------------------------
+# As planilhas NAO sao enviadas para o GitHub.
+#
+# Motivo: sao arquivos grandes que mudam por inteiro a cada
+# exportacao (o repositorio cresceria rapido) e contem saldos e
+# custos da empresa.
+#
+# Se voce quiser guardar as planilhas tambem, apague as duas
+# linhas abaixo. So faca isso se o repositorio for privado.
+# ---------------------------------------------------------------
+dados/*.xlsx
+dados/*.xls
+
+# gerado a cada build, so serve para o servidor local
+dist/versao.txt
+
 __pycache__/
 *.pyc
 ~$*.xlsx
 .DS_Store
+Thumbs.db

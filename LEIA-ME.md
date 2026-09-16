@@ -86,6 +86,7 @@ dist/index.html     o app pronto (gerado, não edite)
 build.py            lê as planilhas e monta o app
 servidor.py         vigia a pasta, regera e publica na rede
 iniciar.bat         atalho para ligar tudo no Windows
+publicar.bat        gera o app e envia para o GitHub num clique
 ```
 
 ---
@@ -118,6 +119,65 @@ A exportação veio sem as colunas esperadas. O saldo físico precisa ter
 `Filial`, `Produto`, `Armazem`, `Nome Cientif` e `Saldo Atual`. O saldo por
 endereço precisa ter `Filial`, `Produto`, `Armazem`, `Endereco`, `Prioridade`
 e `Quantidade`.
+
+---
+
+## Enviar para o GitHub
+
+O `publicar.bat` faz tudo num clique: gera o app com as planilhas de agora,
+registra a versão e envia para o GitHub.
+
+### Antes de tudo: privado ou público?
+
+Essa escolha importa mais que o resto. O `dist/index.html` carrega os saldos,
+os custos unitários e o valor em estoque de cada item — na base de hoje, R$ 72
+milhões em estoque.
+
+- **Private** — só você e quem você convidar enxergam. É o recomendado.
+- **Public** — qualquer pessoa na internet vê tudo. Só escolha isso se a sua
+  empresa não se importar em expor esses números.
+
+As planilhas da pasta `dados` **não** são enviadas em nenhum dos dois casos.
+Isso está no `.gitignore`, e dá para mudar se você quiser.
+
+### Primeira vez
+
+1. Instale o Git: <https://git-scm.com/download/win>, opções padrão.
+2. No GitHub, clique em **New repository**, dê um nome, escolha **Private** e
+   **não marque nada** em "Initialize this repository". Copie o endereço que
+   termina em `.git`.
+3. Duplo clique em **`publicar.bat`** e cole o endereço quando ele pedir.
+4. Vai abrir uma janela do navegador pedindo o login da sua conta do GitHub.
+   Entre por ali. Isso acontece uma vez só — o Windows guarda o acesso.
+
+### Nos próximos dias
+
+Mexeu no app ou trocou as planilhas? Duplo clique em `publicar.bat`.
+Ele mostra o que mudou, pergunta uma descrição (pode dar Enter e ele usa a
+data) e envia. Se nada tiver mudado, ele avisa e não faz nada.
+
+### Abrir o app pela internet, de qualquer lugar
+
+Tem um `.github/workflows/publicar-site.yml` pronto. Para ligar, no
+repositório: **Settings > Pages > Source: GitHub Actions**. A cada envio o
+site se atualiza sozinho, no endereço
+`https://SEUUSUARIO.github.io/consulta-estoque/`.
+
+Duas ressalvas:
+
+- Em repositório **público**, esse endereço fica aberto para qualquer um.
+- Em repositório **privado**, o GitHub Pages exige plano pago. Confirme no
+  site do GitHub, que os planos mudam.
+
+Se quiser o app na internet sem expor custos, me peça uma versão do
+`build.py` que não inclua as colunas de custo e valor.
+
+### Sobre o tamanho do repositório
+
+Cada versão enviada guarda o `dist/index.html` inteiro, uns 700 KB depois de
+compactado. Enviando todo dia, o repositório cresce perto de 250 MB por ano —
+funciona, mas em algum momento vale limpar. Se chegar lá, me avise que eu
+passo o procedimento.
 
 ---
 
