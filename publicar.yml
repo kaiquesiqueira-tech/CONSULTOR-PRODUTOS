@@ -1,0 +1,64 @@
+# Gera o app a partir das planilhas da pasta 'dados' e publica no GitHub Pages.
+#
+# Roda sozinho toda vez que voce envia algo para o branch main.
+# Para ligar, uma vez so: Settings > Pages > Source: GitHub Actions.
+#
+# Se quiser rodar na mao, vá na aba Actions e clique em "Run workflow".
+
+name: Gerar e publicar o app
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  gerar-e-publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publicar.outputs.page_url }}
+
+    steps:
+      - name: Baixar o repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar o Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Instalar as bibliotecas
+        run: pip install -r requirements.txt
+
+      - name: Gerar o app a partir das planilhas
+        run: python build.py --saida site
+
+      - name: Conferir que o app foi gerado
+        run: |
+          test -f site/index.html
+          echo "Tamanho: $(du -h site/index.html | cut -f1)"
+          echo "Planilhas lidas:"
+          ls -la dados/ || echo "  A PASTA dados ESTA VAZIA no repositorio!"
+
+      - name: Preparar o GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Enviar so a pasta site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publicar
+        id: publicar
+        uses: actions/deploy-pages@v4

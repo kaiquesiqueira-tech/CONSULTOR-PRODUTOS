@@ -76,6 +76,7 @@ servidor.py       vigia a pasta, regera e publica na rede
 iniciar.bat       liga tudo aqui no computador
 enviar.bat        manda as planilhas para o GitHub (opcional: dá para
                   fazer tudo pelo painel do VS Code)
+verificar.bat     diz por que o GitHub não está gerando o app
 index.html        o app pronto (gerado, não edite)
 versao.txt        gerado, é o sinal de "recarregue a página"
 .github/          a receita que o GitHub usa para gerar o app sozinho
@@ -154,6 +155,50 @@ diferença entre duas versões. Medindo com a sua base, cada exportação nova
 custa cerca de **4 a 5 MB** de histórico. Atualizando toda semana, dá uns
 250 MB por ano; todo dia, passa de 1 GB. Funciona, mas em algum momento vale
 limpar o histórico. Quando chegar lá, me peça o procedimento.
+
+---
+
+## Subi para o GitHub e o app não mudou
+
+Duplo clique em **`verificar.bat`**. Ele olha o repositório e aponta o que
+falta. Se do lado de cá estiver tudo certo, ele diz o que conferir no site do
+GitHub, na ordem.
+
+As causas, da mais comum para a menos:
+
+**O `index.html` ficou versionado de antes.** Nas versões anteriores deste
+projeto o app ia junto para o GitHub. Agora quem gera é o GitHub, então ele
+não deve mais subir — mas colocar no `.gitignore` não desfaz o que já estava
+lá dentro. Resultado: o repositório continua carregando um `index.html` velho
+e o site mostra ele. O `verificar.bat` detecta e corrige, tirando o arquivo do
+repositório sem apagar da sua pasta.
+
+**A pasta `.github` não foi copiada.** Ela começa com ponto e o Windows a
+esconde. Quando se arrastam os arquivos de uma pasta para outra, ela fica para
+trás — e sem ela o GitHub não tem a receita, então nada acontece. Mesma coisa
+com o `.gitignore` e o `.vscode`.
+
+**O Pages está na fonte errada.** Em *Settings > Pages > Source* tem que estar
+**GitHub Actions**. Se estiver em *Deploy from a branch*, o site serve os
+arquivos crus do repositório, e como o `index.html` não vai mais para lá, você
+vê a versão antiga ou um erro 404.
+
+**O branch tem outro nome.** A receita roda em `main` e `master`. Em qualquer
+outro nome ela não dispara.
+
+**O repositório é privado sem plano pago.** O Actions gera o app normalmente,
+mas a publicação falha. Aparece vermelho na aba Actions.
+
+### A aba Actions responde quase tudo
+
+No seu repositório, aba **Actions**. Cada envio vira uma linha ali.
+
+- **Nenhuma linha** — a receita não chegou ao GitHub, ou o branch é outro.
+- **Bolinha amarela** — está rodando, espere os dois minutos.
+- **Bolinha verde** — gerou e publicou. Se o site ainda mostra o antigo, é
+  cache: recarregue segurando Ctrl. Pode levar uns 10 minutos.
+- **Bolinha vermelha** — clique nela e depois no passo vermelho. A mensagem
+  de erro é a mesma que apareceria aqui no seu computador.
 
 ---
 
