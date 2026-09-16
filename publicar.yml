@@ -53,6 +53,10 @@ jobs:
 
       - name: Preparar o GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          # tenta ligar o Pages no modo "GitHub Actions" sozinho, caso
+          # ele esteja desligado ou apontando para uma branch
+          enablement: true
 
       - name: Enviar so a pasta site
         uses: actions/upload-pages-artifact@v3
