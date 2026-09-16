@@ -1,0 +1,26 @@
+# Configuracao da Consulta de Estoque
+#
+# publicar_automatico
+#   sim = toda vez que as planilhas ou o app mudarem, envia para o GitHub
+#         sozinho, sem perguntar nada
+#   nao = nao envia nada (use o publicar.bat quando quiser)
+#
+# Antes de ligar, rode o publicar.bat UMA vez e faca o login do GitHub.
+# Sem isso o envio automatico nao tem como entrar na sua conta.
+
+# incluir_custos
+#   sim = o app mostra custo unitario e valor em estoque
+#   nao = o app sai sem nenhum custo e sem nenhum valor. Use isso se o
+#         repositorio do GitHub for PUBLICO, para nao expor os precos
+#         da empresa na internet.
+
+# pasta_do_site
+#   raiz = o index.html e os arquivos do app ficam soltos aqui, na pasta
+#          do projeto. E o que o GitHub Pages espera quando voce escolhe
+#          "Deploy from a branch" com a pasta "/ (root)".
+#   docs = ficam dentro de uma pasta chamada docs. Deixa a pasta do
+#          projeto mais limpa. No Pages, escolha "/docs".
+
+publicar_automatico = nao
+incluir_custos = sim
+pasta_do_site = raiz
