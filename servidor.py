@@ -20,10 +20,11 @@ import threading
 import webbrowser
 import http.server
 import socketserver
+import urllib.parse
 
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 PASTA_DADOS = os.path.join(RAIZ, "dados")
-PASTA_SAIDA = os.path.join(RAIZ, "docs")
+PASTA_SAIDA = RAIZ   # definida de verdade no inicio, pelo config.txt
 PORTA = int(os.environ.get("PORTA", "8080"))
 INTERVALO = 2  # segundos entre cada checagem da pasta
 
@@ -105,6 +106,29 @@ class Servidor(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=PASTA_SAIDA, **kwargs)
 
+    def _liberado(self):
+        """Quando o app e gerado na propria pasta do projeto, so os arquivos
+        do site sao servidos. Sem isso qualquer um na rede baixaria as
+        planilhas e o config.txt."""
+        if PASTA_SAIDA != RAIZ:
+            return True
+        alvo = urllib.parse.unquote(self.path.split("?")[0].split("#")[0]).strip("/")
+        if alvo in ("", "index.html"):
+            return True
+        return alvo in build.ARQUIVOS_DO_SITE
+
+    def do_GET(self):
+        if not self._liberado():
+            self.send_error(404, "Nao disponivel")
+            return
+        super().do_GET()
+
+    def do_HEAD(self):
+        if not self._liberado():
+            self.send_error(404, "Nao disponivel")
+            return
+        super().do_HEAD()
+
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
@@ -119,8 +143,10 @@ class ServidorTCP(socketserver.ThreadingTCPServer):
 
 
 def principal():
+    global PASTA_SAIDA
     os.makedirs(PASTA_DADOS, exist_ok=True)
     gerar("Gerando o app pela primeira vez...")
+    PASTA_SAIDA = build.pasta_saida()
 
     if not os.path.exists(os.path.join(PASTA_SAIDA, "index.html")):
         print("\nColoque as planilhas na pasta 'dados' e rode de novo.")

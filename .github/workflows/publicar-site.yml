@@ -1,6 +1,13 @@
-# Publica a pasta docs como site do GitHub Pages a cada envio.
+# Publica o app como site do GitHub Pages a cada envio.
 #
 # Para ligar: no repositorio, Settings > Pages > Source: GitHub Actions.
+#
+# O "path" abaixo tem que combinar com o pasta_do_site do config.txt:
+#   pasta_do_site = raiz  ->  path: .
+#   pasta_do_site = docs  ->  path: docs
+#
+# Se voce usa "Deploy from a branch" em vez de Actions, este arquivo nem
+# entra em acao: la voce escolhe a raiz ou a pasta /docs direto na tela.
 #
 # ATENCAO: em repositorio publico, o site fica aberto na internet e
 # qualquer pessoa ve os saldos e custos. Em repositorio privado, o
@@ -33,6 +40,6 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: .
       - id: deploy
         uses: actions/deploy-pages@v4

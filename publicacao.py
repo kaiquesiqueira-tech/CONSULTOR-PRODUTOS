@@ -30,8 +30,16 @@ PADRAO = """# Configuracao da Consulta de Estoque
 #         repositorio do GitHub for PUBLICO, para nao expor os precos
 #         da empresa na internet.
 
+# pasta_do_site
+#   raiz = o index.html e os arquivos do app ficam soltos aqui, na pasta
+#          do projeto. E o que o GitHub Pages espera quando voce escolhe
+#          "Deploy from a branch" com a pasta "/ (root)".
+#   docs = ficam dentro de uma pasta chamada docs. Deixa a pasta do
+#          projeto mais limpa. No Pages, escolha "/docs".
+
 publicar_automatico = nao
 incluir_custos = sim
+pasta_do_site = raiz
 """
 
 

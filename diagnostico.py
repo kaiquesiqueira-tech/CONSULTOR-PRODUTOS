@@ -111,12 +111,18 @@ def principal():
 
     # ---------------- app gerado ----------------
     titulo("2. App gerado")
-    gerado = os.path.join(RAIZ, "docs", "index.html")
+    try:
+        saida = build.pasta_saida()
+    except Exception:
+        saida = RAIZ
+    gerado = os.path.join(saida, "index.html")
+    rotulo = "index.html (na pasta do projeto)" if saida == RAIZ else \
+             os.path.basename(saida) + "/index.html"
     if not os.path.exists(gerado):
-        print("  docs/index.html NAO EXISTE.")
+        print("  %s NAO EXISTE." % rotulo)
         problemas.append("O app nunca foi gerado. Rode o iniciar.bat ou 'python build.py'.")
     else:
-        print("  docs/index.html   %s   gerado em %s" % (tamanho(gerado), quando(gerado)))
+        print("  %s   %s   gerado em %s" % (rotulo, tamanho(gerado), quando(gerado)))
         info = ler_base(gerado)
         if info and "erro" not in info:
             print("  marca da versao ... %s" % info["marca"])
@@ -136,17 +142,17 @@ def principal():
                                  "  Rode o iniciar.bat, ou clique em publicar.bat, ou ligue o vigia.")
 
     # ---------------- pasta antiga ----------------
-    antigo = os.path.join(RAIZ, "dist")
-    if os.path.isdir(antigo):
-        titulo("3. Pasta antiga 'dist'")
-        alvo = os.path.join(antigo, "index.html")
-        if os.path.exists(alvo):
+    for nome in ("dist", "docs", "site", "publico"):
+        antiga = os.path.join(RAIZ, nome)
+        alvo = os.path.join(antiga, "index.html")
+        if antiga != saida and os.path.isfile(alvo):
+            titulo("3. Sobra de versao antiga")
             info = ler_base(alvo)
-            print("  dist/index.html existe, de %s, marca %s"
-                  % (quando(alvo), (info or {}).get("marca", "?")))
-        problemas.append("Existe uma pasta 'dist' antiga. O app agora e gerado em 'docs'.\n"
-                         "  Se o seu atalho, o site ou a copia apontam para 'dist', voce esta\n"
-                         "  vendo dados velhos. Apague a pasta 'dist'.")
+            print("  %s/index.html existe, de %s, marca %s"
+                  % (nome, quando(alvo), (info or {}).get("marca", "?")))
+            problemas.append("Sobrou uma pasta '%s' com um app antigo dentro. Se algum\n"
+                             "  atalho, link ou o GitHub Pages apontar para ela, voce ve dados\n"
+                             "  velhos. Pode apagar a pasta '%s'." % (nome, nome))
 
     # ---------------- configuracao ----------------
     titulo("4. Configuracao")
@@ -154,6 +160,7 @@ def principal():
         import publicacao
         print("  publicar_automatico ... %s" % publicacao.config("publicar_automatico", "nao"))
         print("  incluir_custos ........ %s" % publicacao.config("incluir_custos", "sim"))
+        print("  pasta_do_site ......... %s" % publicacao.config("pasta_do_site", "raiz"))
     except Exception as erro:
         print("  nao consegui ler o config.txt: %s" % erro)
 

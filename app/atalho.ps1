@@ -29,8 +29,12 @@ if ($Modo -eq "atalho" -or $Modo -eq "ambos") {
 }
 
 if ($Modo -eq "copia" -or $Modo -eq "ambos") {
-  $origem = Join-Path $raiz 'docs\index.html'
-  if (-not (Test-Path $origem)) {
+  $origem = $null
+  foreach ($lugar in @('index.html','docs\index.html','dist\index.html')) {
+    $tentativa = Join-Path $raiz $lugar
+    if (Test-Path $tentativa) { $origem = $tentativa; break }
+  }
+  if (-not $origem) {
     Write-Host "  O app ainda nao foi gerado. Rode o build antes."
     exit 1
   }

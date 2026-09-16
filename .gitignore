@@ -12,6 +12,7 @@ dados/*.xlsx
 dados/*.xls
 
 # gerado a cada build, so serve para o servidor local
+versao.txt
 docs/versao.txt
 
 # coisas desta maquina, nao do projeto

@@ -50,7 +50,25 @@ AVISOS = []
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 PASTA_DADOS = os.path.join(RAIZ, "dados")
 PASTA_APP = os.path.join(RAIZ, "app")
-PASTA_SAIDA = os.path.join(RAIZ, "docs")
+# nomes dos arquivos que o build cria. Usados tambem pelo servidor, para
+# nao servir mais nada quando a saida e a propria pasta do projeto.
+ARQUIVOS_DO_SITE = ("index.html", "versao.txt", ".nojekyll", "manifest.webmanifest",
+                    "sw.js", "icone-192.png", "icone-512.png")
+
+PASTAS_ANTIGAS = ("dist", "docs", "site", "publico")
+
+
+def pasta_saida():
+    """Onde o app e gravado. Vem do config.txt, campo pasta_do_site."""
+    try:
+        sys.path.insert(0, RAIZ)
+        import publicacao
+        valor = publicacao.config("pasta_do_site", "raiz").strip()
+    except Exception:
+        valor = "raiz"
+    if valor.lower() in ("raiz", "principal", ".", "", "root"):
+        return RAIZ
+    return os.path.join(RAIZ, valor)
 EPOCA = datetime.date(2000, 1, 1)
 
 
@@ -315,8 +333,9 @@ def principal():
     dados = json.dumps(base, ensure_ascii=False, separators=(",", ":"))
     dados = dados.replace("</", "<\\u002f")  # seguranca ao embutir no HTML
 
-    os.makedirs(PASTA_SAIDA, exist_ok=True)
-    destino = os.path.join(PASTA_SAIDA, "index.html")
+    saida = pasta_saida()
+    os.makedirs(saida, exist_ok=True)
+    destino = os.path.join(saida, "index.html")
     with open(destino, "w", encoding="utf-8") as f:
         f.write(html.replace("__DADOS__", dados))
 
@@ -325,13 +344,13 @@ def principal():
     for apoio in ("manifest.webmanifest", "sw.js", "icone-192.png", "icone-512.png"):
         origem = os.path.join(PASTA_APP, apoio)
         if os.path.exists(origem):
-            shutil.copyfile(origem, os.path.join(PASTA_SAIDA, apoio))
+            shutil.copyfile(origem, os.path.join(saida, apoio))
 
     # o GitHub Pages ignora arquivos que comecam com _ sem este arquivo
-    open(os.path.join(PASTA_SAIDA, ".nojekyll"), "w").close()
+    open(os.path.join(saida, ".nojekyll"), "w").close()
 
     carimbo = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(os.path.join(PASTA_SAIDA, "versao.txt"), "w", encoding="utf-8") as f:
+    with open(os.path.join(saida, "versao.txt"), "w", encoding="utf-8") as f:
         f.write(carimbo)
 
     com_saldo = sum(1 for a in base["ativos"] for r in a["r"] if r[1] > 0)
@@ -339,7 +358,9 @@ def principal():
     tamanho = os.path.getsize(destino) / 1e6
 
     print("")
-    print("App gerado: %s/index.html  (%.1f MB)" % (os.path.basename(PASTA_SAIDA), tamanho))
+    onde = "index.html (na pasta do projeto)" if saida == RAIZ else \
+           os.path.basename(saida) + "/index.html"
+    print("App gerado: %s  (%.1f MB)" % (onde, tamanho))
     print("  filiais ............ %s" % ", ".join(base["filiais"]))
     print("  itens com saldo .... %d" % com_saldo)
     print("  linhas de endereco . %d" % com_end)
@@ -354,12 +375,15 @@ def principal():
         print("")
         print("  ATENCAO: %s" % aviso)
 
-    antigo = os.path.join(RAIZ, "dist")
-    if os.path.isdir(antigo):
-        print("")
-        print("  ATENCAO: existe uma pasta 'dist' antiga aqui. O app agora e gerado em")
-        print("  'docs'. Se voce abrir algo de dentro de 'dist', vai ver dados velhos.")
-        print("  Pode apagar a pasta 'dist' sem medo.")
+    for nome in PASTAS_ANTIGAS:
+        antiga = os.path.join(RAIZ, nome)
+        if antiga != saida and os.path.isfile(os.path.join(antiga, "index.html")):
+            print("")
+            print("  ATENCAO: sobrou uma pasta '%s' com um app antigo dentro." % nome)
+            print("  O app agora e gerado em %s." % ("index.html, aqui na pasta do projeto"
+                                                     if saida == RAIZ else nome))
+            print("  Se algum atalho ou link apontar para '%s', vai mostrar dados velhos." % nome)
+            print("  Pode apagar a pasta '%s' sem medo." % nome)
     return 0
 
 

@@ -83,7 +83,7 @@ Para desligar: `Ctrl+C` no terminal, ou feche a janela.
 ```
 dados/              as planilhas exportadas do sistema  ← você mexe aqui
 app/template.html   a aparência e o funcionamento do app
-docs/index.html     o app pronto (gerado, não edite)
+index.html          o app pronto (gerado, não edite)
 build.py            lê as planilhas e monta o app
 servidor.py         vigia a pasta, regera e publica na rede
 iniciar.bat         atalho para ligar tudo no Windows
@@ -184,6 +184,31 @@ No celular é o mesmo caminho: abra pelo IP e use `Adicionar à tela de início`
 
 ---
 
+## Onde o app é gravado
+
+Por padrão o `index.html` e os arquivos do app ficam soltos na pasta do
+projeto, junto com o `build.py` e os `.bat`. É o que o GitHub Pages espera
+quando você escolhe **`/ (root)`**.
+
+Se preferir a pasta principal limpa, abra o `config.txt` e troque:
+
+```
+pasta_do_site = docs
+```
+
+Aí tudo passa a ser gravado numa pasta `docs`, e no Pages você escolhe
+`/docs` em vez de `/ (root)`. As duas funcionam; muda só a arrumação.
+
+Se você trocar depois de já ter gerado, sobra a pasta antiga com um app
+velho dentro. O build avisa e o `diagnostico.bat` também. Pode apagar.
+
+**Uma coisa que o servidor local cuida sozinho:** com o app na raiz, o
+servidor entrega só os arquivos do site. As planilhas da pasta `dados`, o
+`config.txt` e os scripts não são servidos — ninguém na rede consegue baixar
+a base bruta pelo navegador.
+
+---
+
 ## Quando o app não mostra o que você espera
 
 Duplo clique em **`diagnostico.bat`**. Ele olha tudo e diz o que está fora do
@@ -274,8 +299,9 @@ qualquer celular abre, de qualquer lugar, é preciso ligar o GitHub Pages.
 
 No repositório: **Settings > Pages**. Duas formas, escolha uma:
 
-- **Deploy from a branch** → branch `main`, pasta `/docs`. É por isso que a
-  saída do projeto se chama `docs`: o Pages só aceita a raiz ou essa pasta.
+- **Deploy from a branch** → branch `main`, pasta **`/ (root)`**. É o padrão
+  do projeto: o `index.html` fica solto na pasta principal, que é um dos dois
+  lugares que o Pages aceita.
 - **GitHub Actions** → usa o workflow que já está em `.github/workflows/`.
 
 Em um ou dois minutos o endereço aparece na própria tela de Pages, no formato
