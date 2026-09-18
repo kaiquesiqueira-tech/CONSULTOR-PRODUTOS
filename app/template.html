@@ -311,6 +311,15 @@ main{padding:14px 14px 92px}
 .qtyin:focus{border-color:var(--act); outline:none}
 
 /* ============ conferencia ============ */
+.ordem{display:flex; align-items:center; gap:9px; margin:0 2px 12px; font-size:12.5px; color:var(--muted)}
+.ordem label{font-weight:600; white-space:nowrap}
+.ordem select{
+  flex:1; max-width:270px; padding:8px 10px; border:1px solid var(--line); border-radius:7px;
+  background:var(--surface); color:var(--ink); font-size:13.5px; font-weight:600;
+  font-family:var(--sans); cursor:pointer;
+}
+.ordem select:hover{border-color:var(--line-2)}
+.ordem select:focus{border-color:var(--act); outline:none}
 .seg{display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; scrollbar-width:none}
 .seg::-webkit-scrollbar{display:none}
 .seg .chip{
@@ -518,10 +527,24 @@ var RUAKEYS = Object.keys(RUAS).sort(function(a,b){
   return ca!==cb ? ca-cb : (a<b?-1:a>b?1:0);
 });
 
+/* ---------- ordens da conferência ---------- */
+var ORDENS = {
+  valor:  {t:'Maior valor em estoque', f:function(a,b){ return b.valor-a.valor; }},
+  saldo:  {t:'Maior quantidade',       f:function(a,b){ return b.saldo-a.saldo; }},
+  parado: {t:'Parado há mais tempo',   f:function(a,b){ return (a.ultS||0)-(b.ultS||0); }},
+  recente:{t:'Movimentado há menos tempo', f:function(a,b){ return (b.ultM||0)-(a.ultM||0); }},
+  codigo: {t:'Código do produto',      f:function(a,b){ return a.c<b.c?-1:a.c>b.c?1:0; }},
+  desc:   {t:'Descrição (A a Z)',      f:function(a,b){ return a.d.localeCompare(b.d,'pt-BR'); }},
+  local:  {t:'Endereço',               f:function(a,b){
+            var x=a.ends.length?a.ends[0].e:'ZZZZ', y=b.ends.length?b.ends[0].e:'ZZZZ';
+            return x<y?-1:x>y?1:0; }},
+  filial: {t:'Filial',                 f:function(a,b){ return a.f-b.f || (a.c<b.c?-1:1); }}
+};
+
 /* ---------- estado ---------- */
 var S = {
   tab:'prod', q:'', fil: store('fil') || '', comSaldo: store('comSaldo')!==false,
-  sel:null, rua:null, conf:'semend', sep: store('sep') || []
+  sel:null, rua:null, conf:'semend', ord: null, sep: store('sep') || []
 };
 
 /* ---------- filtros ---------- */
@@ -843,8 +866,18 @@ function renderConf(){
          grupos[k].t+'<b>'+n+'</b></button>';
   });
   h += '</div>';
+  if(!S.ord) S.ord = SEM_CUSTOS ? 'saldo' : 'valor';
+  if(SEM_CUSTOS && S.ord==='valor') S.ord = 'saldo';
+
+  h += '<div class="ordem"><label for="ord">Ordenar por</label><select id="ord">';
+  Object.keys(ORDENS).forEach(function(k){
+    if(k==='valor' && SEM_CUSTOS) return;
+    h += '<option value="'+k+'"'+(S.ord===k?' selected':'')+'>'+ORDENS[k].t+'</option>';
+  });
+  h += '</select></div>';
+
   var g = grupos[S.conf], r = base.filter(g.f);
-  r.sort(function(a,b){ return SEM_CUSTOS ? b.saldo-a.saldo : b.valor-a.valor; });
+  r.sort(ORDENS[S.ord].f);
   var valor = r.reduce(function(s,it){ return s+it.valor; },0);
   h += '<div class="tot"><span>'+g.d+'</span>'+(SEM_CUSTOS?'':'<b>'+nm(valor)+'</b>')+'</div>';
   cont.innerHTML = '<span>'+g.t+(S.q?' · filtrado':'')+'</span><span>'+r.length+' '+
@@ -869,6 +902,7 @@ lista.addEventListener('click', function(e){
   if(rm){ S.sep.splice(+rm.dataset.rm,1); store('sep',S.sep); badge(); render(); return; }
 });
 lista.addEventListener('change', function(e){
+  if(e.target.id==='ord'){ S.ord = e.target.value; render(); return; }
   if(e.target.matches('[data-i]')){ S.sep[+e.target.dataset.i].ok = e.target.checked; store('sep',S.sep); render(); }
   if(e.target.matches('[data-q]')){ S.sep[+e.target.dataset.q].qtd = e.target.value; store('sep',S.sep); }
 });
