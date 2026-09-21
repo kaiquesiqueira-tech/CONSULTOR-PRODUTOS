@@ -120,7 +120,7 @@ button{cursor:pointer}
 /* ============ abas ============ */
 .tabs{
   position:fixed; left:0; right:0; bottom:0; z-index:45; display:grid;
-  grid-template-columns:repeat(4,1fr); background:var(--steel);
+  grid-template-columns:repeat(3,1fr); background:var(--steel);
   border-top:1px solid rgba(255,255,255,.1); padding-bottom:env(safe-area-inset-bottom);
 }
 .tab{
@@ -310,34 +310,6 @@ main{padding:14px 14px 92px}
 }
 .qtyin:focus{border-color:var(--act); outline:none}
 
-/* ============ conferencia ============ */
-.ordem{display:flex; align-items:center; gap:9px; margin:0 2px 12px; font-size:12.5px; color:var(--muted)}
-.ordem label{font-weight:600; white-space:nowrap}
-.ordem select{
-  flex:1; max-width:270px; padding:8px 10px; border:1px solid var(--line); border-radius:7px;
-  background:var(--surface); color:var(--ink); font-size:13.5px; font-weight:600;
-  font-family:var(--sans); cursor:pointer;
-}
-.ordem select:hover{border-color:var(--line-2)}
-.ordem select:focus{border-color:var(--act); outline:none}
-.seg{display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; scrollbar-width:none}
-.seg::-webkit-scrollbar{display:none}
-.seg .chip{
-  flex:none; border:1px solid var(--line); background:var(--surface); color:var(--muted);
-  padding:7px 11px; border-radius:7px; font-size:12.5px; font-weight:600; white-space:nowrap;
-  transition:all .12s;
-}
-.seg .chip:hover{border-color:var(--line-2); color:var(--ink)}
-.seg .chip[aria-pressed="true"]{background:var(--steel); border-color:var(--steel); color:var(--steel-ink)}
-.seg .chip b{font-family:var(--mono); font-weight:600; margin-left:5px; opacity:.75}
-.tot{
-  background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--alert);
-  border-radius:10px; padding:12px 13px; margin-bottom:12px; display:flex;
-  justify-content:space-between; align-items:center; gap:12px; font-size:13px; color:var(--muted);
-  box-shadow:var(--shadow);
-}
-.tot b{font-family:var(--mono); font-size:16px; color:var(--ink); font-weight:600; white-space:nowrap}
-
 .empty{
   text-align:center; color:var(--muted); padding:44px 20px; font-size:13.5px; line-height:1.6;
   border:1px dashed var(--line-2); border-radius:11px; margin:0;
@@ -429,9 +401,6 @@ main{padding:14px 14px 92px}
       <button class="tab" role="tab" aria-selected="false" data-tab="sep">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Separação<span class="n" id="sepn" hidden>0</span></button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="conf">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-        Conferência</button>
     </nav>
     <button class="iconbtn" id="theme" title="Alternar tema" aria-label="Alternar tema">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
@@ -527,24 +496,10 @@ var RUAKEYS = Object.keys(RUAS).sort(function(a,b){
   return ca!==cb ? ca-cb : (a<b?-1:a>b?1:0);
 });
 
-/* ---------- ordens da conferência ---------- */
-var ORDENS = {
-  valor:  {t:'Maior valor em estoque', f:function(a,b){ return b.valor-a.valor; }},
-  saldo:  {t:'Maior quantidade',       f:function(a,b){ return b.saldo-a.saldo; }},
-  parado: {t:'Parado há mais tempo',   f:function(a,b){ return (a.ultS||0)-(b.ultS||0); }},
-  recente:{t:'Movimentado há menos tempo', f:function(a,b){ return (b.ultM||0)-(a.ultM||0); }},
-  codigo: {t:'Código do produto',      f:function(a,b){ return a.c<b.c?-1:a.c>b.c?1:0; }},
-  desc:   {t:'Descrição (A a Z)',      f:function(a,b){ return a.d.localeCompare(b.d,'pt-BR'); }},
-  local:  {t:'Endereço',               f:function(a,b){
-            var x=a.ends.length?a.ends[0].e:'ZZZZ', y=b.ends.length?b.ends[0].e:'ZZZZ';
-            return x<y?-1:x>y?1:0; }},
-  filial: {t:'Filial',                 f:function(a,b){ return a.f-b.f || (a.c<b.c?-1:1); }}
-};
-
 /* ---------- estado ---------- */
 var S = {
   tab:'prod', q:'', fil: store('fil') || '', comSaldo: store('comSaldo')!==false,
-  sel:null, rua:null, conf:'semend', ord: null, sep: store('sep') || []
+  sel:null, rua:null, sep: store('sep') || []
 };
 
 /* ---------- filtros ---------- */
@@ -731,7 +686,6 @@ tabs.forEach(function(t){
     S.tab = t.dataset.tab; S.rua = null; fechar();
     elQ.value=''; S.q=''; elClear.classList.remove('on');
     elQ.placeholder = S.tab==='end' ? 'Endereço ou produto (ex.: A03 ou filtro)'
-      : S.tab==='conf' ? 'Filtrar por código ou descrição'
       : 'Código, descrição ou endereço';
     renderFiltros(); render();
   });
@@ -744,8 +698,7 @@ function render(){
   document.getElementById('sw').style.display = S.tab==='sep' ? 'none' : '';
   if(S.tab==='prod') renderProd();
   else if(S.tab==='end') renderEnd();
-  else if(S.tab==='sep') renderSep();
-  else renderConf();
+  else renderSep();
 }
 
 function renderProd(){
@@ -845,64 +798,16 @@ function renderSep(){
   });
 }
 
-function renderConf(){
-  var termos = S.q ? S.q.split(/\s+/) : [];
-  var base = ITENS.filter(function(it){
-    if(S.fil && FIL[it.f]!==S.fil) return false;
-    for(var i=0;i<termos.length;i++) if(it.idx.indexOf(termos[i])<0) return false;
-    return true;
-  });
-  var grupos = {
-    semend: {t:'Sem endereço', f:function(it){ return it.semEnd; }, d:'Tem saldo físico mas nenhum endereço cadastrado.'},
-    div:    {t:'Divergência', f:function(it){ return it.div; }, d:'A soma dos endereços não bate com o saldo físico.'},
-    aend:   {t:'A endereçar', f:function(it){ return it.aend>0; }, d:'Quantidade recebida aguardando endereçamento.'},
-    parado: {t:'Sem saída há 1 ano', f:function(it){ return it.saldo>0 && (!it.ultS || HOJE-it.ultS>365); }, d:'Capital parado no almoxarifado.'},
-    prev:   {t:'A receber', f:function(it){ return it.prev>0; }, d:'Pedido em aberto para este item.'}
-  };
-  var h = '<div class="seg">';
-  Object.keys(grupos).forEach(function(k){
-    var n = base.filter(grupos[k].f).length;
-    h += '<button class="chip" data-conf="'+k+'" aria-pressed="'+(S.conf===k?'true':'false')+'">'+
-         grupos[k].t+'<b>'+n+'</b></button>';
-  });
-  h += '</div>';
-  if(!S.ord) S.ord = SEM_CUSTOS ? 'saldo' : 'valor';
-  if(SEM_CUSTOS && S.ord==='valor') S.ord = 'saldo';
-
-  h += '<div class="ordem"><label for="ord">Ordenar por</label><select id="ord">';
-  Object.keys(ORDENS).forEach(function(k){
-    if(k==='valor' && SEM_CUSTOS) return;
-    h += '<option value="'+k+'"'+(S.ord===k?' selected':'')+'>'+ORDENS[k].t+'</option>';
-  });
-  h += '</select></div>';
-
-  var g = grupos[S.conf], r = base.filter(g.f);
-  r.sort(ORDENS[S.ord].f);
-  var valor = r.reduce(function(s,it){ return s+it.valor; },0);
-  h += '<div class="tot"><span>'+g.d+'</span>'+(SEM_CUSTOS?'':'<b>'+nm(valor)+'</b>')+'</div>';
-  cont.innerHTML = '<span>'+g.t+(S.q?' · filtrado':'')+'</span><span>'+r.length+' '+
-    plural(r.length,'item','itens')+(r.length>150?' · mostrando 150':'')+'</span>';
-  h += r.length ? r.slice(0,150).map(cardHTML).join('')
-    : (S.q
-        ? '<p class="empty"><b>Nada encontrado nesta situação</b>Nenhum item com “'+esc(elQ.value.trim())+
-          '” está em <b style="display:inline">'+esc(g.t.toLowerCase())+'</b>.<br>Limpe a busca ou tente outra situação acima.</p>'
-        : '<p class="empty"><b>Nada nesta situação</b>Tudo certo por aqui.</p>');
-  lista.innerHTML = h;
-}
-
 /* ---------- eventos da lista ---------- */
 lista.addEventListener('click', function(e){
   var c = e.target.closest('[data-id]');
   if(c){ abrir(+c.dataset.id); return; }
   var r = e.target.closest('[data-rua]');
   if(r){ S.rua = r.dataset.rua || null; render(); return; }
-  var k = e.target.closest('[data-conf]');
-  if(k){ S.conf = k.dataset.conf; render(); return; }
   var rm = e.target.closest('[data-rm]');
   if(rm){ S.sep.splice(+rm.dataset.rm,1); store('sep',S.sep); badge(); render(); return; }
 });
 lista.addEventListener('change', function(e){
-  if(e.target.id==='ord'){ S.ord = e.target.value; render(); return; }
   if(e.target.matches('[data-i]')){ S.sep[+e.target.dataset.i].ok = e.target.checked; store('sep',S.sep); render(); }
   if(e.target.matches('[data-q]')){ S.sep[+e.target.dataset.q].qtd = e.target.value; store('sep',S.sep); }
 });
