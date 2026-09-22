@@ -453,6 +453,29 @@ function nm(n){ return (n||0).toLocaleString('pt-BR',{style:'currency',currency:
 function data(n){ if(!n) return '—'; var d=new Date(EPOCH+n*864e5);
   return String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0')+'/'+d.getUTCFullYear(); }
 function plural(n,s,p){ return n===1 ? s : p; }
+function copiarTexto(texto){
+  /* A área de transferência moderna só funciona em https ou localhost.
+     Pelo IP da rede o navegador bloqueia, então cai no plano B. */
+  if(navigator.clipboard && window.isSecureContext){
+    try{ return navigator.clipboard.writeText(texto); }catch(e){}
+  }
+  return new Promise(function(deuCerto, falhou){
+    try{
+      var area = document.createElement('textarea');
+      area.value = texto;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.top = '0';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      area.setSelectionRange(0, texto.length);
+      var foi = document.execCommand('copy');
+      document.body.removeChild(area);
+      foi ? deuCerto() : falhou();
+    }catch(erro){ falhou(erro); }
+  });
+}
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function el(h){ var t=document.createElement('template'); t.innerHTML=h.trim(); return t.content.firstChild; }
 function store(k,v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem('estq_'+k)); localStorage.setItem('estq_'+k, JSON.stringify(v)); }catch(e){ return null; } }
@@ -594,7 +617,7 @@ function abrir(id){
 
   h += '<div class="btnrow">'+
     '<button class="btn" id="addsep">Separar</button>'+
-    '<button class="btn ghost" id="copiar">Copiar dados</button></div>';
+    '<button class="btn ghost" id="copiar">Copiar código</button></div>';
 
   if(it.ends.length){
     h += '<div class="block"><h3>Onde está</h3>';
@@ -643,10 +666,14 @@ function abrir(id){
   if(window.innerWidth < 860) document.body.classList.add('locked');
   document.getElementById('addsep').addEventListener('click', function(){ addSep(it); });
   document.getElementById('copiar').addEventListener('click', function(e){
-    var t = it.c+' - '+it.d+'\nFilial '+FIL[it.f]+' | Saldo '+nq(it.saldo)+' | Disponível '+nq(it.disp)+
-      '\nEndereço: '+(it.ends.length? it.ends.map(function(x){return x.e+' ('+nq(x.q)+')';}).join(', ') : 'sem endereço');
-    try{ navigator.clipboard.writeText(t); e.target.textContent='Copiado'; setTimeout(function(){e.target.textContent='Copiar';},1400); }
-    catch(err){ e.target.textContent='Copie manualmente'; }
+    var botao = e.currentTarget;
+    copiarTexto(it.c).then(function(){
+      botao.textContent = 'Copiado';
+      setTimeout(function(){ botao.textContent = 'Copiar código'; }, 1400);
+    }, function(){
+      botao.textContent = 'Não consegui copiar';
+      setTimeout(function(){ botao.textContent = 'Copiar código'; }, 2200);
+    });
   });
 }
 function fechar(){ panel.classList.remove('open'); document.body.classList.remove('locked');
