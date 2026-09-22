@@ -310,6 +310,10 @@ main{padding:14px 14px 92px}
 }
 .qtyin:focus{border-color:var(--act); outline:none}
 
+.rodape{
+  text-align:center; color:var(--muted); font-size:11px; font-family:var(--mono);
+  margin:18px 2px 4px; letter-spacing:.02em; opacity:.8;
+}
 .empty{
   text-align:center; color:var(--muted); padding:44px 20px; font-size:13.5px; line-height:1.6;
   border:1px dashed var(--line-2); border-radius:11px; margin:0;
@@ -419,6 +423,7 @@ main{padding:14px 14px 92px}
   <div class="col1">
     <div class="count" id="count"></div>
     <div class="list" id="lista"></div>
+    <p class="rodape" id="rodape"></p>
   </div>
   <div class="col2">
     <section class="panel" id="panel" aria-live="polite">
@@ -850,8 +855,10 @@ th.addEventListener('click', function(){
 });
 
 /* ---------- início ---------- */
-document.getElementById('dtger').textContent = '· base de ' + D.gerado.split('-').reverse().join('/') +
-  (D.marca ? ' · v' + D.marca : '');
+var carimbo = 'base de ' + D.gerado.split('-').reverse().join('/') +
+  (D.marca ? ' · dados v' + D.marca : '') + (D.appv ? ' · app v' + D.appv : '');
+document.getElementById('dtger').textContent = '· ' + carimbo;
+document.getElementById('rodape').textContent = carimbo;
 function medirTopo(){
   document.documentElement.style.setProperty('--top-h', document.querySelector('.top').offsetHeight+'px');
 }
