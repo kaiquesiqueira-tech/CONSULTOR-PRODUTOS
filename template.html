@@ -288,6 +288,15 @@ main{padding:14px 14px 92px}
   align-items:center;
 }
 .locgroup > h3 span{font-family:var(--sans); font-size:11px; font-weight:500; color:var(--steel-muted); letter-spacing:0}
+.locgroup > h3 .dir{display:flex; align-items:center; gap:9px}
+.imp1{
+  border:1px solid rgba(255,255,255,.2); background:transparent; color:var(--steel-muted);
+  border-radius:6px; width:30px; height:27px; display:grid; place-items:center; padding:0;
+  transition:color .12s, border-color .12s;
+}
+.imp1:hover{color:var(--loc); border-color:var(--loc)}
+.btn svg{vertical-align:-2px; margin-right:7px}
+#area-impressao{display:none}
 .locgroup .list,.locgroup .card{margin-bottom:6px}
 
 /* ============ separacao ============ */
@@ -389,6 +398,28 @@ main{padding:14px 14px 92px}
     font-weight:700; font-size:13pt; border:1.5px solid #000; padding:2px 10px}
   .so-imprime.obs{margin-top:6px; font-size:11pt; padding-left:9px; border-left:3px solid #000}
   .so-imprime.obs:empty{display:none}
+
+  /* folha de enderecos: so ela aparece */
+  body.imprimindo > *:not(#area-impressao){display:none !important}
+  body.imprimindo #area-impressao{display:block}
+  #area-impressao .ph{display:flex; justify-content:space-between; align-items:baseline;
+    border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:5px; font-size:13pt}
+  #area-impressao .ph span{font-size:10pt}
+  #area-impressao .pinfo{margin:0 0 16px; font-size:9.5pt; color:#333}
+  #area-impressao .pg{break-inside:avoid; margin-bottom:18px}
+  #area-impressao h2{font-family:var(--mono); font-size:15pt; margin:0 0 6px; padding:3px 10px;
+    border:2px solid #000; display:inline-block; letter-spacing:.06em}
+  #area-impressao table{width:100%; border-collapse:collapse; font-size:9.5pt; table-layout:fixed}
+  #area-impressao th:nth-child(1){width:14%}
+  #area-impressao th:nth-child(3){width:11%}
+  #area-impressao th:nth-child(4){width:7%}
+  #area-impressao th:nth-child(5){width:10%}
+  #area-impressao th:nth-child(6){width:15%}
+  #area-impressao th{text-align:left; font-size:8pt; border-bottom:1.5px solid #000; padding:4px 6px}
+  #area-impressao td{border-bottom:1px solid #bbb; padding:7px 6px; vertical-align:top}
+  #area-impressao .m{font-family:var(--mono); white-space:nowrap}
+  #area-impressao .n{text-align:right}
+  #area-impressao .conta{display:inline-block; width:64px; border-bottom:1px solid #000; height:13px}
   body{background:#fff; color:#000; font-size:11pt}
   main{padding:0; display:block}
   .panel{display:none}
@@ -454,6 +485,8 @@ main{padding:14px 14px 92px}
     </section>
   </div>
 </main>
+
+<div id="area-impressao"></div>
 
 <script type="application/json" id="dados">__DADOS__</script>
 <script>
@@ -731,6 +764,7 @@ tabs.forEach(function(t){
   t.addEventListener('click', function(){
     tabs.forEach(function(x){ x.setAttribute('aria-selected', x===t?'true':'false'); });
     S.tab = t.dataset.tab; S.rua = null; fechar();
+    document.body.classList.remove('imprimindo');
     elQ.value=''; S.q=''; elClear.classList.remove('on');
     elQ.placeholder = S.tab==='end' ? 'Endereço ou produto (ex.: A03 ou filtro)'
       : 'Código, descrição ou endereço';
@@ -789,13 +823,22 @@ function renderEnd(){
   });
   h += '</div>';
 
+  ULTIMOS_GRUPOS = grupos;
   cont.innerHTML = '<span>'+grupos.length+' '+plural(grupos.length,'endereço','endereços')+' com material'+
     (grupos.length>120?' · mostrando 120':'')+'</span>';
+  if(grupos.length){
+    h += '<div class="btnrow"><button class="btn ghost" id="imp-end"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>'+
+      (grupos.length===1 ? 'Imprimir este endereço' : 'Imprimir estes '+grupos.length+' endereços')+
+      '</button></div>';
+  }
   if(!grupos.length){
     h += '<p class="empty"><b>Nenhum endereço aqui</b>Escolha outra rua, limpe a busca ou troque a filial.</p>';
   }
   grupos.slice(0,120).forEach(function(g){
-    h += '<div class="locgroup"><h3>'+esc(g.L)+'<span>'+g.its.length+' '+plural(g.its.length,'item','itens')+'</span></h3>';
+    h += '<div class="locgroup"><h3>'+esc(g.L)+'<span class="dir">'+g.its.length+' '+
+      plural(g.its.length,'item','itens')+
+      '<button class="imp1" data-imp="'+esc(g.L)+'" title="Imprimir este endereço" '+
+      'aria-label="Imprimir o endereço '+esc(g.L)+'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button></span></h3>';
     g.its.forEach(function(x){
       h += '<button class="card" data-id="'+x.it.id+'"><div class="l1"><span class="code">'+x.it.c+
         '</span><span class="fil">'+FIL[x.it.f]+'</span></div><p class="desc">'+esc(x.it.d)+
@@ -809,6 +852,49 @@ function renderEnd(){
   var nova = lista.querySelector('.ruas');
   if(nova && rolagem) nova.scrollLeft = rolagem;
 }
+
+var ULTIMOS_GRUPOS = [];
+
+function tituloDosEnderecos(grupos){
+  if(grupos.length===1) return 'Endereço ' + grupos[0].L;
+  if(S.rua) return 'Endereços da rua ' + S.rua;
+  if(S.q) return 'Endereços com “' + elQ.value.trim() + '”';
+  return 'Todos os endereços';
+}
+
+function imprimirEnderecos(grupos){
+  if(!grupos.length) return;
+  var itens = grupos.reduce(function(s,g){ return s + g.its.length; }, 0);
+  if(grupos.length > 60 && !confirm('Vão sair ' + grupos.length + ' endereços, com ' + itens +
+     ' itens. São várias páginas. Continuar?')) return;
+
+  var h = '<div class="ph"><b>' + esc(tituloDosEnderecos(grupos)) + '</b><span>' +
+          new Date().toLocaleString('pt-BR') + '</span></div>';
+  h += '<p class="pinfo">Filial ' + (S.fil || 'todas') + ' · ' + grupos.length + ' ' +
+       plural(grupos.length,'endereço','endereços') + ' · ' + itens + ' ' +
+       plural(itens,'item','itens') + ' · base de ' + D.gerado.split('-').reverse().join('/') + '</p>';
+
+  grupos.forEach(function(g){
+    h += '<section class="pg"><h2>' + esc(g.L) + '</h2><table><thead><tr>' +
+         '<th>Código</th><th>Descrição</th><th>Filial</th><th>Arm</th>' +
+         '<th class="n">Saldo</th><th class="n">Contado</th></tr></thead><tbody>';
+    g.its.forEach(function(x){
+      h += '<tr><td class="m">' + x.it.c + '</td><td>' + esc(x.it.d) + '</td>' +
+           '<td class="m">' + FIL[x.it.f] + '</td><td class="m">' + x.arm + '</td>' +
+           '<td class="n m">' + nq(x.q) + '</td><td class="n"><span class="conta"></span></td></tr>';
+    });
+    h += '</tbody></table></section>';
+  });
+
+  document.getElementById('area-impressao').innerHTML = h;
+  document.body.classList.add('imprimindo');
+  window.print();
+}
+
+window.addEventListener('afterprint', function(){
+  // espera um pouco: no celular o afterprint as vezes chega antes da folha ser montada
+  setTimeout(function(){ document.body.classList.remove('imprimindo'); }, 1500);
+});
 
 function renderSep(){
   cont.innerHTML = '<span>Lista de separação</span><span>'+S.sep.length+' '+plural(S.sep.length,'item','itens')+'</span>';
@@ -844,7 +930,10 @@ function renderSep(){
       '<button class="x" data-rm="'+L.i+'" aria-label="Remover">✕</button></div>';
   });
   lista.innerHTML = h;
-  document.getElementById('imprimir').addEventListener('click', function(){ window.print(); });
+  document.getElementById('imprimir').addEventListener('click', function(){
+    document.body.classList.remove('imprimindo');
+    window.print();
+  });
   document.getElementById('limpar').addEventListener('click', function(){
     if(confirm('Apagar todos os itens da lista?')){ S.sep=[]; store('sep',S.sep); badge(); render(); }
   });
@@ -852,6 +941,13 @@ function renderSep(){
 
 /* ---------- eventos da lista ---------- */
 lista.addEventListener('click', function(e){
+  var um = e.target.closest('[data-imp]');
+  if(um){
+    var alvo = ULTIMOS_GRUPOS.filter(function(g){ return g.L === um.dataset.imp; });
+    imprimirEnderecos(alvo);
+    return;
+  }
+  if(e.target.closest('#imp-end')){ imprimirEnderecos(ULTIMOS_GRUPOS); return; }
   var c = e.target.closest('[data-id]');
   if(c){ abrir(+c.dataset.id); return; }
   var r = e.target.closest('[data-rua]');
