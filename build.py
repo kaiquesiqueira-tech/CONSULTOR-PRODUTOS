@@ -16,6 +16,7 @@ O segundo jeito e o que o GitHub usa para montar o app sozinho.
 """
 
 import os
+import re
 import sys
 import glob
 import json
@@ -103,6 +104,8 @@ def ler_planilha(caminho):
         return "SBF", df, None
     if {"Saldo Atual", "Nome Cientif"} <= colunas:
         return "SB2", df, None
+    if {"Qtd Original", "Saldo", "Documento"} <= colunas:
+        return "SDA", df, None
     return None, None, "colunas nao reconhecidas"
 
 
@@ -118,10 +121,25 @@ def chave(valor, largura):
 
 
 def numero(valor):
-    try:
+    """Converte para numero aceitando o formato brasileiro.
+
+    O Protheus as vezes exporta quantidade como texto ('7,9', '1.234,50').
+    Sem isso, float() falha nesses casos e o valor viraria zero calado."""
+    if valor is None:
+        return 0.0
+    if isinstance(valor, (int, float, np.integer, np.floating)):
         f = float(valor)
         return 0.0 if np.isnan(f) else round(f, 3)
-    except Exception:
+    texto = str(valor).strip().replace("\u00a0", "")
+    if not texto or texto.lower() == "nan":
+        return 0.0
+    if "," in texto:                                   # 1.234,50 -> 1234.50
+        texto = texto.replace(".", "").replace(",", ".")
+    elif re.fullmatch(r"-?\d{1,3}(\.\d{3})+", texto):  # 1.234 -> 1234
+        texto = texto.replace(".", "")
+    try:
+        return round(float(texto), 3)
+    except ValueError:
         return 0.0
 
 
@@ -147,8 +165,8 @@ def coluna(df, nome):
 # --------------------------------------------------------------------------
 # montagem da base
 # --------------------------------------------------------------------------
-def montar(sb2, sbf):
-    for df in (sb2, sbf):
+def montar(sb2, sbf, sda=None):
+    for df in (sb2, sbf, sda):
         if df is None or df.empty:
             continue
         df["F"] = df["Filial"].apply(lambda v: chave(v, 6))
@@ -194,6 +212,8 @@ def montar(sb2, sbf):
         filiais |= set(sb2["F"])
     if sbf is not None and not sbf.empty:
         filiais |= set(sbf["F"])
+    if sda is not None and not sda.empty:
+        filiais |= set(sda["F"])
     filiais = sorted(f for f in filiais if f)
     idx_filial = {f: i for i, f in enumerate(filiais)}
 
@@ -256,6 +276,36 @@ def montar(sb2, sbf):
             for r in it["r"]:
                 r[3] = 0.0
 
+    pendentes = []
+    if sda is not None and not sda.empty:
+        sda = sda[sda["P"] != ""].copy()
+        sda["_doc"] = sda["Documento"].apply(lambda v: chave(v, 9))
+        sda["_saldo"] = sda["Saldo"].apply(numero)
+        sda["_ori"] = sda["Qtd Original"].apply(numero)
+        sda["_dia"] = sda["Data"].apply(dia) if "Data" in sda.columns else 0
+
+        # a mesma linha repetida por inteiro e colagem duplicada, nao duas linhas da nota
+        chave_sda = ["F", "P", "A", "_doc", "_saldo", "_ori", "_dia"]
+        repetidas = sda.duplicated(subset=chave_sda, keep="first").sum()
+        if repetidas:
+            sda = sda[~sda.duplicated(subset=chave_sda, keep="first")]
+            AVISOS.append(
+                "%d linhas repetidas por inteiro nos pendentes foram descartadas.\n"
+                "  Parece a mesma lista colada duas vezes. Confira a exportacao." % repetidas)
+
+        for _, r in sda.iterrows():
+            if r["_saldo"] <= 0:
+                continue
+            desc = "" if pd.isna(r.get("Descricao")) else str(r.get("Descricao")).strip()
+            if not desc:
+                it = itens.get((r["F"], r["P"]))
+                if it is not None and isinstance(it.get("d"), str):
+                    desc = it["d"]
+            origem = "" if pd.isna(r.get("Origem Mov")) else str(r.get("Origem Mov")).strip()
+            pendentes.append([idx_filial[r["F"]], r["P"], ref(desc), r["A"],
+                              r["_saldo"], r["_ori"], r["_doc"], r["_dia"], origem])
+        pendentes.sort(key=lambda x: (x[7] or 99999, x[6], x[1]))
+
     base = {
         "v": 1,
         "gerado": datetime.date.today().isoformat(),
@@ -265,6 +315,7 @@ def montar(sb2, sbf):
         "descs": textos,
         "ativos": ativos,
         "zerados": zerados,
+        "pendentes": pendentes,
     }
     # marca curta que muda so quando os dados mudam: serve para conferir
     # se dois aparelhos estao vendo a mesma versao
@@ -285,7 +336,7 @@ def principal(saida=None):
         return 1
 
     del AVISOS[:]
-    partes_sb2, partes_sbf = [], []
+    partes_sb2, partes_sbf, partes_sda = [], [], []
     print("Lendo planilhas de 'dados':")
     for caminho in arquivos:
         nome = os.path.basename(caminho)
@@ -297,6 +348,9 @@ def principal(saida=None):
         elif tipo == "SBF":
             partes_sbf.append(df)
             print("  [por endereco]   %-34s %6d linhas   %s" % (nome[:34], len(df), quando))
+        elif tipo == "SDA":
+            partes_sda.append(df)
+            print("  [a enderecar]    %-34s %6d linhas   %s" % (nome[:34], len(df), quando))
         else:
             print("  [ignorado]       %-34s %s" % (nome[:34], erro))
 
@@ -310,8 +364,9 @@ def principal(saida=None):
 
     sb2 = pd.concat(partes_sb2, ignore_index=True) if partes_sb2 else None
     sbf = pd.concat(partes_sbf, ignore_index=True) if partes_sbf else None
+    sda = pd.concat(partes_sda, ignore_index=True) if partes_sda else None
 
-    base = montar(sb2, sbf)
+    base = montar(sb2, sbf, sda)
 
     modelo = os.path.join(RAIZ, "template.html")
     if not os.path.exists(modelo):
@@ -347,6 +402,9 @@ def principal(saida=None):
     print("  itens com saldo .... %d" % com_saldo)
     print("  linhas de endereco . %d" % com_end)
     print("  produtos no total .. %d" % (len(base["ativos"]) + len(base["zerados"])))
+    if base["pendentes"]:
+        notas = len(set((p[0], p[6]) for p in base["pendentes"]))
+        print("  a enderecar ........ %d linhas em %d notas" % (len(base["pendentes"]), notas))
     print("  marca dos dados .... %s" % base["marca"])
     print("  marca do app ....... %s   (template.html de %s)" % (marca_app, quando_modelo))
     if base.get("semCustos"):

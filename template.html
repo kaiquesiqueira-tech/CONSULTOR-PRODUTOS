@@ -120,7 +120,7 @@ button{cursor:pointer}
 /* ============ abas ============ */
 .tabs{
   position:fixed; left:0; right:0; bottom:0; z-index:45; display:grid;
-  grid-template-columns:repeat(3,1fr); background:var(--steel);
+  grid-template-columns:repeat(4,1fr); background:var(--steel);
   border-top:1px solid rgba(255,255,255,.1); padding-bottom:env(safe-area-inset-bottom);
 }
 .tab{
@@ -297,6 +297,17 @@ main{padding:14px 14px 92px}
 .imp1:hover{color:var(--loc); border-color:var(--loc)}
 .btn svg{vertical-align:-2px; margin-right:7px}
 #area-impressao{display:none}
+.nfgroup{margin-bottom:14px}
+.nfgroup > h3{
+  margin:0 0 7px; display:flex; justify-content:space-between; align-items:center; gap:10px;
+  background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--act);
+  border-radius:0 7px 7px 0; padding:8px 11px; font-size:13px; font-weight:600;
+}
+.nfgroup.velho > h3{border-left-color:var(--alert)}
+.nfgroup > h3 .nf{font-family:var(--mono); letter-spacing:.03em; white-space:nowrap}
+.nfgroup > h3 .dir{font-size:11.5px; font-weight:500; color:var(--muted); text-align:right; line-height:1.35}
+.nfgroup > h3 .dir b{color:var(--alert); font-weight:700}
+.nfgroup .card{margin-bottom:6px}
 .locgroup .list,.locgroup .card{margin-bottom:6px}
 
 /* ============ separacao ============ */
@@ -420,6 +431,12 @@ main{padding:14px 14px 92px}
   #area-impressao .m{font-family:var(--mono); white-space:nowrap}
   #area-impressao .n{text-align:right}
   #area-impressao .conta{display:inline-block; width:64px; border-bottom:1px solid #000; height:13px}
+  #area-impressao .conta.larga{width:100%}
+  #area-impressao .pnf{font-size:9.5pt; margin-left:10px; color:#333}
+  #area-impressao .t-pend th:nth-child(1){width:14%}
+  #area-impressao .t-pend th:nth-child(3){width:8%}
+  #area-impressao .t-pend th:nth-child(4){width:13%}
+  #area-impressao .t-pend th:nth-child(5){width:18%}
   body{background:#fff; color:#000; font-size:11pt}
   main{padding:0; display:block}
   .panel{display:none}
@@ -448,6 +465,9 @@ main{padding:14px 14px 92px}
       <button class="tab" role="tab" aria-selected="false" data-tab="end">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
         Endereços</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="pend">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        A endereçar<span class="n" id="pendn" hidden>0</span></button>
       <button class="tab" role="tab" aria-selected="false" data-tab="sep">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Separação<span class="n" id="sepn" hidden>0</span></button>
@@ -563,6 +583,8 @@ D.zerados.forEach(function(z){
   var it = addItem(z[0], z[1], DESCS[z[2]]||'(sem descrição)', []);
   it.ultS = z[3]; it.zero = true;
 });
+var MAPA = {};
+ITENS.forEach(function(it){ MAPA[it.f + '|' + it.c] = it; });
 var LOCS = Object.keys(PORLOC).sort();
 LOCS.forEach(function(L){ PORLOC[L].sort(function(a,b){ return b.q-a.q; }); });
 var RUAS = {};
@@ -753,10 +775,7 @@ function badge(){
   var n = document.getElementById('sepn');
   n.textContent = S.sep.length; n.hidden = S.sep.length===0;
 }
-function itemDe(f,c){
-  for(var i=0;i<ITENS.length;i++) if(ITENS[i].f===f && ITENS[i].c===c) return ITENS[i];
-  return null;
-}
+function itemDe(f,c){ return MAPA[f + '|' + c] || null; }
 
 /* ---------- abas ---------- */
 var tabs = document.querySelectorAll('.tab');
@@ -767,6 +786,7 @@ tabs.forEach(function(t){
     document.body.classList.remove('imprimindo');
     elQ.value=''; S.q=''; elClear.classList.remove('on');
     elQ.placeholder = S.tab==='end' ? 'Endereço ou produto (ex.: A03 ou filtro)'
+      : S.tab==='pend' ? 'Código, descrição ou número da nota'
       : 'Código, descrição ou endereço';
     renderFiltros(); render();
   });
@@ -779,6 +799,7 @@ function render(){
   document.getElementById('sw').style.display = S.tab==='sep' ? 'none' : '';
   if(S.tab==='prod') renderProd();
   else if(S.tab==='end') renderEnd();
+  else if(S.tab==='pend') renderPend();
   else renderSep();
 }
 
@@ -896,6 +917,109 @@ window.addEventListener('afterprint', function(){
   setTimeout(function(){ document.body.classList.remove('imprimindo'); }, 1500);
 });
 
+var ULTIMOS_PEND = [];
+
+function haQuanto(dia){
+  if(!dia) return 'sem data';
+  var n = HOJE - dia;
+  if(n <= 0) return 'hoje';
+  if(n === 1) return 'ontem';
+  return 'há ' + n + ' dias';
+}
+
+function montarPendentes(){
+  var P = D.pendentes || [], termos = S.q ? S.q.split(/\s+/) : [];
+  var grupos = [], porNota = {};
+  P.forEach(function(p){
+    if(S.fil && FIL[p[0]] !== S.fil) return;
+    var desc = DESCS[p[2]] || '';
+    if(termos.length){
+      var alvo = p[1] + ' ' + p[6] + ' ' + norm(desc);
+      for(var i=0;i<termos.length;i++) if(alvo.indexOf(termos[i]) < 0) return;
+    }
+    var it = itemDe(p[0], p[1]);
+    var l = {f:p[0], c:p[1], d:desc, a:p[3], saldo:p[4], ori:p[5], doc:p[6], dia:p[7], it:it,
+             sug: it && it.ends.length ? it.ends[0].e : '', mais: it ? Math.max(0, it.ends.length-1) : 0};
+    var k = l.f + '|' + l.doc;
+    if(!porNota[k]){ porNota[k] = {f:l.f, doc:l.doc, dia:l.dia, its:[]}; grupos.push(porNota[k]); }
+    porNota[k].its.push(l);
+    if(l.dia && (!porNota[k].dia || l.dia < porNota[k].dia)) porNota[k].dia = l.dia;
+  });
+  grupos.sort(function(a,b){ return (a.dia||99999) - (b.dia||99999) || (a.doc < b.doc ? -1 : 1); });
+  return grupos;
+}
+
+function renderPend(){
+  if(!(D.pendentes || []).length){
+    ULTIMOS_PEND = [];
+    cont.innerHTML = '<span>A endereçar</span>';
+    lista.innerHTML = '<p class="empty"><b>Nenhuma lista de pendentes na base</b>' +
+      'Coloque na pasta dados a exportação dos produtos a endereçar e gere o app de novo.</p>';
+    return;
+  }
+  var grupos = montarPendentes();
+  ULTIMOS_PEND = grupos;
+  var itens = grupos.reduce(function(s,g){ return s + g.its.length; }, 0);
+  var maisVelha = grupos.length && grupos[0].dia ? HOJE - grupos[0].dia : 0;
+
+  cont.innerHTML = '<span>' + itens + ' ' + plural(itens,'item','itens') + ' em ' + grupos.length + ' ' +
+    plural(grupos.length,'nota','notas') + '</span>' +
+    (maisVelha > 0 ? '<span>mais antiga ' + haQuanto(grupos[0].dia) + '</span>' : '');
+
+  if(!grupos.length){
+    lista.innerHTML = '<p class="empty"><b>Nada encontrado</b>Nenhum pendente com esse filtro. ' +
+      'Limpe a busca ou troque a filial.</p>';
+    return;
+  }
+
+  var h = '<div class="btnrow"><button class="btn ghost" id="imp-pend"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' +
+          'Imprimir esta lista</button></div>';
+  grupos.forEach(function(g){
+    var velho = g.dia && HOJE - g.dia > 7;
+    h += '<div class="nfgroup' + (velho ? ' velho' : '') + '"><h3><span class="nf">NF ' + esc(g.doc) + '</span>' +
+         '<span class="dir">' + data(g.dia) + ' · ' + (velho ? '<b>' + haQuanto(g.dia) + '</b>' : haQuanto(g.dia)) +
+         '<br>filial ' + FIL[g.f] + ' · ' + g.its.length + ' ' + plural(g.its.length,'item','itens') + '</span></h3>';
+    g.its.forEach(function(l){
+      var sug = l.sug
+        ? '<span class="loc">' + esc(l.sug) + '</span><span class="flag ok">onde já tem' +
+          (l.mais ? ' · +' + l.mais : '') + '</span>'
+        : '<span class="loc none">sem endereço anterior</span>';
+      h += '<button class="card"' + (l.it ? ' data-id="' + l.it.id + '"' : '') + '>' +
+           '<div class="l1"><span class="code">' + l.c + '</span><span class="fil">' + FIL[l.f] + '</span></div>' +
+           '<p class="desc">' + esc(l.d) + '</p>' +
+           '<div class="l3">' + sug +
+           '<span class="qty"><b>' + nq(l.saldo) + '</b><small>' +
+           (l.saldo < l.ori ? 'de ' + nq(l.ori) + ' a endereçar' : 'a endereçar') + '</small></span>' +
+           '</div></button>';
+    });
+    h += '</div>';
+  });
+  lista.innerHTML = h;
+}
+
+function imprimirPendentes(grupos){
+  if(!grupos.length) return;
+  var itens = grupos.reduce(function(s,g){ return s + g.its.length; }, 0);
+  var h = '<div class="ph"><b>Produtos a endereçar</b><span>' + new Date().toLocaleString('pt-BR') + '</span></div>';
+  h += '<p class="pinfo">Filial ' + (S.fil || 'todas') + ' · ' + itens + ' ' + plural(itens,'item','itens') +
+       ' · ' + grupos.length + ' ' + plural(grupos.length,'nota','notas') +
+       (S.q ? ' · filtro “' + esc(elQ.value.trim()) + '”' : '') + '</p>';
+  grupos.forEach(function(g){
+    h += '<section class="pg"><h2>NF ' + esc(g.doc) + '</h2><span class="pnf">' + data(g.dia) + ' · ' +
+         haQuanto(g.dia) + ' · filial ' + FIL[g.f] + '</span>' +
+         '<table class="t-pend"><thead><tr><th>Código</th><th>Descrição</th><th class="n">Qtd</th>' +
+         '<th>Sugestão</th><th>Endereçado em</th></tr></thead><tbody>';
+    g.its.forEach(function(l){
+      h += '<tr><td class="m">' + l.c + '</td><td>' + esc(l.d) + '</td><td class="n m">' + nq(l.saldo) + '</td>' +
+           '<td class="m">' + (l.sug ? esc(l.sug) : '—') + '</td><td><span class="conta larga"></span></td></tr>';
+    });
+    h += '</tbody></table></section>';
+  });
+  document.getElementById('area-impressao').innerHTML = h;
+  document.body.classList.add('imprimindo');
+  window.print();
+}
+
 function renderSep(){
   cont.innerHTML = '<span>Lista de separação</span><span>'+S.sep.length+' '+plural(S.sep.length,'item','itens')+'</span>';
   if(!S.sep.length){
@@ -948,6 +1072,7 @@ lista.addEventListener('click', function(e){
     return;
   }
   if(e.target.closest('#imp-end')){ imprimirEnderecos(ULTIMOS_GRUPOS); return; }
+  if(e.target.closest('#imp-pend')){ imprimirPendentes(ULTIMOS_PEND); return; }
   var c = e.target.closest('[data-id]');
   if(c){ abrir(+c.dataset.id); return; }
   var r = e.target.closest('[data-rua]');
@@ -995,6 +1120,10 @@ function medirTopo(){
   document.documentElement.style.setProperty('--top-h', document.querySelector('.top').offsetHeight+'px');
 }
 window.addEventListener('resize', medirTopo);
+(function(){
+  var n = (D.pendentes || []).length, b = document.getElementById('pendn');
+  if(b){ b.textContent = n; b.hidden = n === 0; }
+})();
 renderFiltros(); badge(); render(); medirTopo();
 })();
 </script>
