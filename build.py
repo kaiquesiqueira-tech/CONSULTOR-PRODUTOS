@@ -106,8 +106,10 @@ def ler_planilha(caminho):
         return "SB2", df, None
     if {"Qtd Original", "Saldo", "Documento"} <= colunas:
         return "SDA", df, None
-    if {"TP Movimento", "Qtd. Saida"} <= colunas or {"TP Movimento", "Quantidade", "DT Emissao"} <= colunas:
+    if {"TP Movimento", "Endereco", "Quantidade"} <= colunas:
         return "SD3", df, None
+    if {"TP Movimento", "Qtd. Saida"} <= colunas:
+        return "SD3R", df, None
     return None, None, "colunas nao reconhecidas"
 
 
@@ -310,24 +312,51 @@ def montar(sb2, sbf, sda=None, sd3=None):
                               r["_saldo"], r["_ori"], r["_doc"], r["_dia"], origem])
         pendentes.sort(key=lambda x: (x[7] or 99999, x[6], x[1]))
 
+    def desc_do_item(f, p):
+        it = itens.get((f, p))
+        if not it:
+            return ""
+        d = it.get("d")
+        return textos[d] if isinstance(d, int) else (d or "")
+
+    def texto(r, *nomes):
+        for n in nomes:
+            if n in r.index and not pd.isna(r[n]):
+                v = str(r[n]).strip()
+                if v and v.lower() != "nan":
+                    return v
+        return ""
+
     movimentos = []
     if sd3 is not None and not sd3.empty:
         sd3 = sd3[sd3["P"] != ""]
-        col_qtd = "Qtd. Saida" if "Qtd. Saida" in sd3.columns else "Quantidade"
+        estornadas = 0
         for _, r in sd3.iterrows():
-            qtd = numero(r.get(col_qtd))
-            if qtd == 0:
-                qtd = numero(r.get("Quantidade"))
-            if qtd == 0:
+            if texto(r, "Estornado").lower() in ("sim", "s"):
+                estornadas += 1
                 continue
-            desc = "" if pd.isna(r.get("Descricao")) else str(r.get("Descricao")).strip()
-            tm = "" if pd.isna(r.get("TP Movimento")) else str(r.get("TP Movimento")).strip()
+            qtd = numero(r.get("Qtd. Saida")) if "Qtd. Saida" in r.index else 0
+            if not qtd:
+                qtd = numero(r.get("Quantidade"))
+            if not qtd:
+                continue
+            tm = texto(r, "TP Movimento")
             if tm.endswith(".0"):
                 tm = tm[:-2]
-            cc = "" if pd.isna(r.get("Centro Custo")) else str(r.get("Centro Custo")).strip()
-            doc = "" if pd.isna(r.get("Documento")) else str(r.get("Documento")).strip()
-            movimentos.append([idx_filial[r["F"]], r["P"], ref(desc), qtd, tm, cc, doc,
-                               dia(r.get("DT Emissao"))])
+            desc = texto(r, "Descr. Prod", "Descricao", "Descrição") or desc_do_item(r["F"], r["P"])
+            tipo = texto(r, "Tipo Produto", "Tp. Produto", "Tipo Prod", "Tp Produto")
+            if not tipo:
+                bruto = texto(r, "Tipo")
+                if bruto and len(bruto) <= 3 and bruto.isalpha():   # so aceita se parecer codigo de tipo
+                    tipo = bruto.upper()
+            arm = r["A"] if isinstance(r["A"], str) else ""
+            movimentos.append([
+                idx_filial[r["F"]], r["P"], ref(desc), qtd, tm,
+                texto(r, "Centro Custo"), texto(r, "Documento"), dia(r.get("DT Emissao")),
+                arm, texto(r, "Endereco"), tipo, texto(r, "Unidade"), texto(r, "Desc Clas Vl"),
+            ])
+        if estornadas:
+            AVISOS.append("%d movimentacao(oes) estornada(s) ficaram de fora do inventario." % estornadas)
         movimentos.sort(key=lambda x: (-x[7], x[0], x[1]))
 
     base = {
@@ -361,7 +390,7 @@ def principal(saida=None):
         return 1
 
     del AVISOS[:]
-    partes_sb2, partes_sbf, partes_sda, partes_sd3 = [], [], [], []
+    partes_sb2, partes_sbf, partes_sda, partes_sd3, partes_sd3r = [], [], [], [], []
     print("Lendo planilhas de 'dados':")
     for caminho in arquivos:
         nome = os.path.basename(caminho)
@@ -379,6 +408,8 @@ def principal(saida=None):
         elif tipo == "SD3":
             partes_sd3.append(df)
             print("  [movimentos]     %-34s %6d linhas   %s" % (nome[:34], len(df), quando))
+        elif tipo == "SD3R":
+            partes_sd3r.append((nome, df, quando))
         else:
             print("  [ignorado]       %-34s %s" % (nome[:34], erro))
 
@@ -393,6 +424,12 @@ def principal(saida=None):
     sb2 = pd.concat(partes_sb2, ignore_index=True) if partes_sb2 else None
     sbf = pd.concat(partes_sbf, ignore_index=True) if partes_sbf else None
     sda = pd.concat(partes_sda, ignore_index=True) if partes_sda else None
+    for nome, df, quando in partes_sd3r:
+        if partes_sd3:
+            print("  [ignorado]       %-34s a SD3 com endereco substitui" % nome[:34])
+        else:
+            partes_sd3.append(df)
+            print("  [movimentos]     %-34s %6d linhas   %s  (sem endereco)" % (nome[:34], len(df), quando))
     sd3 = pd.concat(partes_sd3, ignore_index=True) if partes_sd3 else None
 
     base = montar(sb2, sbf, sda, sd3)
@@ -439,6 +476,9 @@ def principal(saida=None):
         quando_mov = ", ".join((EPOCA + datetime.timedelta(days=d)).strftime("%d/%m") for d in dias)
         prods = len(set((m[0], m[1]) for m in base["movimentos"]))
         print("  movimentos ......... %d linhas, %d produtos (%s)" % (len(base["movimentos"]), prods, quando_mov))
+        tipos = sorted(set(m[10] for m in base["movimentos"] if m[10]))
+        print("  tipos de produto ... %s" % (", ".join(tipos) if tipos else
+              "nenhum (a coluna de tipo veio vazia na exportacao)"))
     print("  marca dos dados .... %s" % base["marca"])
     print("  marca do app ....... %s   (template.html de %s)" % (marca_app, quando_modelo))
     if base.get("semCustos"):

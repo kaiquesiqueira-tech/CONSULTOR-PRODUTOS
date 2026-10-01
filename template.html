@@ -450,6 +450,7 @@ main{padding:14px 14px 92px}
   #area-impressao .t-inv th:nth-child(n){width:auto}
   #area-impressao .t-inv th.c-cod{width:14%}
   #area-impressao .t-inv th.c-arm{width:6%}
+  #area-impressao .t-inv th.c-un{width:6%}
   #area-impressao .t-inv th.c-saiu{width:8%}
   #area-impressao .t-inv th.c-sis{width:10%}
   #area-impressao .t-inv th.c-cont{width:15%}
@@ -618,7 +619,7 @@ var RUAKEYS = Object.keys(RUAS).sort(function(a,b){
 /* ---------- estado ---------- */
 var S = {
   tab:'prod', q:'', fil: store('fil') || '', comSaldo: store('comSaldo')!==false,
-  sel:null, rua:null, invDia:null, cega:false, sep: store('sep') || []
+  sel:null, rua:null, invDia:null, invTipo:null, cega:false, sep: store('sep') || []
 };
 
 /* ---------- filtros ---------- */
@@ -808,7 +809,7 @@ tabs.forEach(function(t){
     elQ.value=''; S.q=''; elClear.classList.remove('on');
     elQ.placeholder = S.tab==='end' ? 'Endereço ou produto (ex.: A03 ou filtro)'
       : S.tab==='pend' ? 'Código, descrição ou número da nota'
-      : S.tab==='inv' ? 'Código, descrição ou endereço'
+      : S.tab==='inv' ? 'Código, descrição, endereço ou equipamento'
       : 'Código, descrição ou endereço';
     renderFiltros(); render();
   });
@@ -1060,46 +1061,60 @@ function montarInventario(){
   dias.sort(function(a,b){ return b-a; });
   if(S.invDia === null) S.invDia = dias.length ? dias[0] : 'todos';
 
-  // 1. junta as saidas por produto
-  var porProd = {}, ordem = [];
+  var termos = S.q ? S.q.split(/\s+/) : [];
+  var linhas = {}, ordem = [], tipos = {};
   M.forEach(function(m){
     if(S.invDia !== 'todos' && m[7] !== S.invDia) return;
     if(S.fil && FIL[m[0]] !== S.fil) return;
-    var k = m[0] + '|' + m[1];
-    if(!porProd[k]){
-      porProd[k] = {f:m[0], c:m[1], d:DESCS[m[2]] || '', saiu:0, entrou:0, it:itemDe(m[0], m[1])};
-      ordem.push(k);
-    }
-    var tm = parseInt(m[4], 10);
-    if(isNaN(tm) || tm > 500) porProd[k].saiu += m[3]; else porProd[k].entrou += m[3];
-  });
+    if(m[10]) (tipos[m[10]] = tipos[m[10]] || {})[m[0] + '|' + m[1]] = 1;
+    if(S.invTipo && m[10] !== S.invTipo) return;
 
-  // 2. cada endereco do produto vira uma linha de contagem
-  var termos = S.q ? S.q.split(/\s+/) : [];
-  var grupos = {}, chaves = [], produtos = 0;
-  ordem.forEach(function(k){
-    var p = porProd[k], ends = p.it ? p.it.ends : [];
-    var linhas = ends.length
-      ? ends.map(function(e){ return {L:e.e, q:e.q, arm:e.arm, p:p, n:ends.length}; })
-      : [{L:CHAVE_SEM, q:p.it ? p.it.saldo : 0, arm:'', p:p, n:0}];
+    var it = itemDe(m[0], m[1]);
+    var desc = DESCS[m[2]] || (it ? it.d : '');
+    // a SD3 traz o endereco de onde saiu; sem ele (relacao antiga), usa os enderecos do saldo
+    var locais = m[9] ? [{e:m[9], arm:m[8] || ''}]
+      : (it && it.ends.length ? it.ends.map(function(x){ return {e:x.e, arm:x.arm}; })
+                              : [{e:CHAVE_SEM, arm:m[8] || ''}]);
     if(termos.length){
-      var alvo = p.c + ' ' + norm(p.d) + ' ' + ends.map(function(e){ return e.e; }).join(' ');
+      var alvo = m[1] + ' ' + norm(desc) + ' ' + norm(m[12] || '') + ' ' + norm(m[6] || '') + ' ' +
+                 locais.map(function(x){ return x.e; }).join(' ');
       for(var i=0;i<termos.length;i++) if(alvo.indexOf(termos[i]) < 0) return;
     }
-    produtos++;
-    linhas.forEach(function(l){
-      // o mesmo nome de endereco em filiais diferentes e outra prateleira, em outro almoxarifado
-      var k = p.f + '|' + l.L;
-      if(!grupos[k]){ grupos[k] = {k:k, f:p.f, L:l.L, its:[]}; chaves.push(k); }
-      grupos[k].its.push(l);
+    var tm = parseInt(m[4], 10), saida = isNaN(tm) || tm > 500;
+    locais.forEach(function(x){
+      var k = m[0] + '|' + x.arm + '|' + x.e + '|' + m[1];
+      if(!linhas[k]){
+        var sis = null;
+        if(it && x.e !== CHAVE_SEM){
+          it.ends.forEach(function(en){
+            if(en.e === x.e && (!x.arm || en.arm === x.arm)) sis = (sis || 0) + en.q;
+          });
+        }
+        linhas[k] = {f:m[0], arm:x.arm, L:x.e, p:{c:m[1], d:desc, it:it}, saiu:0, entrou:0,
+                     un:m[11] || '', destinos:[], sis:sis, n:locais.length};
+        ordem.push(k);
+      }
+      var l = linhas[k];
+      if(saida) l.saiu += m[3]; else l.entrou += m[3];
+      if(m[12] && l.destinos.indexOf(m[12]) < 0) l.destinos.push(m[12]);
     });
   });
-  var lista_g = chaves.map(function(k){ return grupos[k]; });
+
+  var grupos = {}, lista_g = [], prods = {};
+  ordem.forEach(function(k){
+    var l = linhas[k], gk = l.f + '|' + l.arm + '|' + l.L;
+    if(!grupos[gk]){ grupos[gk] = {k:gk, f:l.f, arm:l.arm, L:l.L, its:[]}; lista_g.push(grupos[gk]); }
+    grupos[gk].its.push(l);
+    prods[l.f + '|' + l.p.c] = 1;
+  });
   lista_g.sort(function(a,b){
     var sa = a.L === CHAVE_SEM ? 1 : 0, sb = b.L === CHAVE_SEM ? 1 : 0;
-    return sa - sb || a.f - b.f || (a.L < b.L ? -1 : a.L > b.L ? 1 : 0);
+    return sa - sb || a.f - b.f || (a.arm < b.arm ? -1 : a.arm > b.arm ? 1 : 0) ||
+           (a.L < b.L ? -1 : a.L > b.L ? 1 : 0);
   });
-  return {dias:dias, produtos:produtos, grupos:lista_g};
+  var contTipos = {};
+  Object.keys(tipos).forEach(function(t){ contTipos[t] = Object.keys(tipos[t]).length; });
+  return {dias:dias, tipos:contTipos, produtos:Object.keys(prods).length, grupos:lista_g};
 }
 
 function renderInv(){
@@ -1107,34 +1122,47 @@ function renderInv(){
     ULTIMOS_INV = [];
     cont.innerHTML = '<span>Inventário rotativo</span>';
     lista.innerHTML = '<p class="empty"><b>Nenhuma movimentação na base</b>' +
-      'Coloque na pasta dados a Relação das Movimentações Internas e gere o app de novo.</p>';
+      'Coloque na pasta dados a exportação da SD3 e gere o app de novo.</p>';
     return;
   }
   var r = montarInventario(), grupos = r.grupos;
   ULTIMOS_INV = grupos;
-  var enderecos = grupos.filter(function(g){ return g.L !== CHAVE_SEM; }).length;  // ja separado por filial
-  var cont_por_dia = {};
-  (D.movimentos || []).forEach(function(m){
-    if(S.fil && FIL[m[0]] !== S.fil) return;
-    cont_por_dia[m[7]] = cont_por_dia[m[7]] || {};
-    cont_por_dia[m[7]][m[0]+'|'+m[1]] = 1;
-  });
+  var enderecos = grupos.filter(function(g){ return g.L !== CHAVE_SEM; }).length;
 
   cont.innerHTML = '<span>' + r.produtos + ' ' + plural(r.produtos,'produto','produtos') + ' para contar</span>' +
     '<span>' + enderecos + ' ' + plural(enderecos,'endereço','endereços') + '</span>';
 
+  // dias
+  var porDia = {};
+  (D.movimentos || []).forEach(function(m){
+    if(S.fil && FIL[m[0]] !== S.fil) return;
+    (porDia[m[7]] = porDia[m[7]] || {})[m[0] + '|' + m[1]] = 1;
+  });
   var h = '<div class="ruas">';
   r.dias.forEach(function(d){
-    var n = Object.keys(cont_por_dia[d] || {}).length;
     h += '<button class="rua" data-dia="' + d + '" aria-pressed="' + (S.invDia === d ? 'true' : 'false') + '">' +
-         diaCurto(d) + '<i>' + n + '</i></button>';
+         diaCurto(d) + '<i>' + Object.keys(porDia[d] || {}).length + '</i></button>';
   });
   if(r.dias.length > 1)
     h += '<button class="rua" data-dia="todos" aria-pressed="' + (S.invDia === 'todos' ? 'true' : 'false') + '">Todos os dias</button>';
   h += '</div>';
 
-  h += '<p class="dica">Produtos que saíram ' + (S.invDia === 'todos' ? 'nos dias da lista' : 'em ' + data(S.invDia)) +
-       ', em ordem de endereço para fazer o percurso. O saldo mostrado é o do sistema na última exportação do saldo por endereço.</p>';
+  // tipos de produto
+  var listaTipos = Object.keys(r.tipos).sort();
+  if(listaTipos.length){
+    h += '<div class="ruas">';
+    h += '<button class="rua" data-tipo="" aria-pressed="' + (S.invTipo ? 'false' : 'true') + '">Todos os tipos</button>';
+    listaTipos.forEach(function(t){
+      h += '<button class="rua" data-tipo="' + esc(t) + '" aria-pressed="' + (S.invTipo === t ? 'true' : 'false') + '">' +
+           esc(t) + '<i>' + r.tipos[t] + '</i></button>';
+    });
+    h += '</div>';
+  } else {
+    h += '<p class="dica">Filtro por tipo de produto (EP, MC...) indisponível: a exportação da SD3 veio com o tipo em branco.</p>';
+  }
+
+  h += '<p class="dica">Endereço de onde cada produto foi retirado, em ordem para fazer o percurso. ' +
+       '“No sistema” é o saldo daquele endereço na última exportação do saldo por endereço.</p>';
 
   if(!grupos.length){
     lista.innerHTML = h + '<p class="empty"><b>Nada para contar</b>Nenhuma saída com esse filtro.</p>';
@@ -1147,19 +1175,25 @@ function renderInv(){
   grupos.forEach(function(g){
     var sem = g.L === CHAVE_SEM;
     h += '<div class="locgroup' + (sem ? ' semloc' : '') + '"><h3>' + (sem ? 'Sem endereço cadastrado' : esc(g.L)) +
-         '<span class="dir">filial ' + FIL[g.f] + ' · ' + g.its.length + ' ' + plural(g.its.length,'item','itens') +
+         '<span class="dir">filial ' + FIL[g.f] + (g.arm ? ' · arm ' + esc(g.arm) : '') + ' · ' +
+         g.its.length + ' ' + plural(g.its.length,'item','itens') +
          (sem ? '' : '<button class="imp1" data-impinv="' + esc(g.k) + '" title="Imprimir este endereço" ' +
            'aria-label="Imprimir a contagem do endereço ' + esc(g.L) + '"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>') + '</span></h3>';
     g.its.forEach(function(l){
-      var p = l.p;
-      var mov = (p.saiu ? '<span class="flag">saiu ' + nq(p.saiu) + '</span>' : '') +
-                (p.entrou ? '<span class="flag ok">entrou ' + nq(p.entrou) + '</span>' : '');
-      h += '<button class="card' + (sem ? ' aviso' : '') + '"' + (p.it ? ' data-id="' + p.it.id + '"' : '') + '>' +
-           '<div class="l1"><span class="code">' + p.c + '</span><span class="fil">' + FIL[p.f] + '</span></div>' +
-           '<p class="desc">' + esc(p.d) + '</p>' +
-           '<div class="l3">' + (l.arm ? '<span class="arm">arm ' + l.arm + '</span>' : '') + mov +
-           (l.n > 1 ? '<span class="flag ok">em ' + l.n + ' endereços</span>' : '') +
-           '<span class="qty"><b>' + nq(l.q) + '</b><small>' + (sem ? 'saldo total' : 'no sistema aqui') + '</small></span>' +
+      var un = l.un ? ' ' + esc(l.un) : '';
+      var dest = l.destinos.length
+        ? '<span class="arm">para ' + esc(l.destinos[0]) + (l.destinos.length > 1 ? ' +' + (l.destinos.length-1) : '') + '</span>' : '';
+      var fora = (!sem && l.sis === null) ? '<span class="flag">não consta no endereço</span>' : '';
+      h += '<button class="card' + (sem || l.sis === null ? ' aviso' : '') + '"' +
+           (l.p.it ? ' data-id="' + l.p.it.id + '"' : '') + '>' +
+           '<div class="l1"><span class="code">' + l.p.c + '</span><span class="fil">' + FIL[l.f] + '</span></div>' +
+           '<p class="desc">' + esc(l.p.d || '(sem descrição)') + '</p>' +
+           '<div class="l3">' +
+           (l.saiu ? '<span class="flag">saiu ' + nq(l.saiu) + un + '</span>' : '') +
+           (l.entrou ? '<span class="flag ok">entrou ' + nq(l.entrou) + un + '</span>' : '') +
+           dest + fora + (l.n > 1 ? '<span class="flag ok">em ' + l.n + ' endereços</span>' : '') +
+           '<span class="qty"' + (l.sis === null ? ' style="opacity:.55"' : '') + '><b>' +
+           (l.sis === null ? '—' : nq(l.sis)) + '</b><small>no sistema aqui</small></span>' +
            '</div></button>';
     });
     h += '</div>';
@@ -1172,21 +1206,24 @@ function imprimirInventario(grupos){
   var cega = S.cega, itens = grupos.reduce(function(s,g){ return s + g.its.length; }, 0);
   var quando = S.invDia === 'todos' ? 'saídas de todos os dias da lista' : 'saídas de ' + data(S.invDia);
   var titulo = grupos.length === 1 && grupos[0].L !== CHAVE_SEM
-    ? 'Inventário rotativo · ' + grupos[0].L + ' · filial ' + FIL[grupos[0].f] : 'Inventário rotativo';
+    ? 'Inventário rotativo · ' + grupos[0].L : 'Inventário rotativo';
   var h = '<div class="ph"><b>' + esc(titulo) + '</b><span>' + new Date().toLocaleString('pt-BR') + '</span></div>';
-  h += '<p class="pinfo">' + quando + ' · filial ' + (S.fil || 'todas') + ' · ' + itens + ' ' +
+  h += '<p class="pinfo">' + quando + ' · filial ' + (S.fil || 'todas') +
+       (S.invTipo ? ' · tipo ' + esc(S.invTipo) : '') + ' · ' + itens + ' ' +
        plural(itens,'linha','linhas') + ' de contagem' + (cega ? ' · contagem cega' : '') + '</p>';
   grupos.forEach(function(g){
     var sem = g.L === CHAVE_SEM;
     h += '<section class="pg"><h2>' + (sem ? 'SEM ENDEREÇO' : esc(g.L)) + '</h2>' +
-         '<span class="pnf">filial ' + FIL[g.f] + (sem ? ' · localizar no almoxarifado' : '') + '</span>' +
+         '<span class="pnf">filial ' + FIL[g.f] + (g.arm ? ' · armazém ' + esc(g.arm) : '') +
+         (sem ? ' · localizar no almoxarifado' : '') + '</span>' +
          '<table class="t-inv"><thead><tr><th class="c-cod">Código</th><th>Descrição</th>' +
-         '<th class="c-arm">Arm</th><th class="c-saiu n">Saiu</th>' +
+         '<th class="c-un">Un</th><th class="c-saiu n">Saiu</th>' +
          (cega ? '' : '<th class="c-sis n">Sistema</th>') + '<th class="c-cont n">Contado</th></tr></thead><tbody>';
     g.its.forEach(function(l){
-      h += '<tr><td class="m">' + l.p.c + '</td><td>' + esc(l.p.d) + '</td><td class="m">' + (l.arm || '—') + '</td>' +
-           '<td class="n m">' + nq(l.p.saiu) + '</td>' +
-           (cega ? '' : '<td class="n m">' + nq(l.q) + '</td>') +
+      h += '<tr><td class="m">' + l.p.c + '</td><td>' + esc(l.p.d || '') +
+           (l.destinos.length ? '<br><small>para ' + esc(l.destinos.join(', ')) + '</small>' : '') + '</td>' +
+           '<td class="m">' + esc(l.un || '') + '</td><td class="n m">' + nq(l.saiu) + '</td>' +
+           (cega ? '' : '<td class="n m">' + (l.sis === null ? '—' : nq(l.sis)) + '</td>') +
            '<td class="n"><span class="conta"></span></td></tr>';
     });
     h += '</tbody></table></section>';
@@ -1253,6 +1290,8 @@ lista.addEventListener('click', function(e){
   if(e.target.closest('#imp-inv')){ imprimirInventario(ULTIMOS_INV); return; }
   var ui = e.target.closest('[data-impinv]');
   if(ui){ imprimirInventario(ULTIMOS_INV.filter(function(g){ return g.k === ui.dataset.impinv; })); return; }
+  var tp = e.target.closest('[data-tipo]');
+  if(tp){ S.invTipo = tp.dataset.tipo || null; render(); return; }
   var dd = e.target.closest('[data-dia]');
   if(dd){ S.invDia = dd.dataset.dia === 'todos' ? 'todos' : +dd.dataset.dia; render(); return; }
   var c = e.target.closest('[data-id]');
