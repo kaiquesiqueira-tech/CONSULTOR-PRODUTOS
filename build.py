@@ -106,6 +106,8 @@ def ler_planilha(caminho):
         return "SB2", df, None
     if {"Qtd Original", "Saldo", "Documento"} <= colunas:
         return "SDA", df, None
+    if {"TP Movimento", "Qtd. Saida"} <= colunas or {"TP Movimento", "Quantidade", "DT Emissao"} <= colunas:
+        return "SD3", df, None
     return None, None, "colunas nao reconhecidas"
 
 
@@ -165,13 +167,13 @@ def coluna(df, nome):
 # --------------------------------------------------------------------------
 # montagem da base
 # --------------------------------------------------------------------------
-def montar(sb2, sbf, sda=None):
-    for df in (sb2, sbf, sda):
+def montar(sb2, sbf, sda=None, sd3=None):
+    for df in (sb2, sbf, sda, sd3):
         if df is None or df.empty:
             continue
         df["F"] = df["Filial"].apply(lambda v: chave(v, 6))
         df["P"] = df["Produto"].apply(lambda v: chave(v, 9))
-        df["A"] = df["Armazem"].apply(lambda v: chave(v, 2))
+        df["A"] = df["Armazem"].apply(lambda v: chave(v, 2)) if "Armazem" in df.columns else ""
 
     if sb2 is not None and not sb2.empty:
         sb2 = sb2[sb2["P"] != ""]
@@ -214,6 +216,8 @@ def montar(sb2, sbf, sda=None):
         filiais |= set(sbf["F"])
     if sda is not None and not sda.empty:
         filiais |= set(sda["F"])
+    if sd3 is not None and not sd3.empty:
+        filiais |= set(sd3["F"])
     filiais = sorted(f for f in filiais if f)
     idx_filial = {f: i for i, f in enumerate(filiais)}
 
@@ -306,6 +310,26 @@ def montar(sb2, sbf, sda=None):
                               r["_saldo"], r["_ori"], r["_doc"], r["_dia"], origem])
         pendentes.sort(key=lambda x: (x[7] or 99999, x[6], x[1]))
 
+    movimentos = []
+    if sd3 is not None and not sd3.empty:
+        sd3 = sd3[sd3["P"] != ""]
+        col_qtd = "Qtd. Saida" if "Qtd. Saida" in sd3.columns else "Quantidade"
+        for _, r in sd3.iterrows():
+            qtd = numero(r.get(col_qtd))
+            if qtd == 0:
+                qtd = numero(r.get("Quantidade"))
+            if qtd == 0:
+                continue
+            desc = "" if pd.isna(r.get("Descricao")) else str(r.get("Descricao")).strip()
+            tm = "" if pd.isna(r.get("TP Movimento")) else str(r.get("TP Movimento")).strip()
+            if tm.endswith(".0"):
+                tm = tm[:-2]
+            cc = "" if pd.isna(r.get("Centro Custo")) else str(r.get("Centro Custo")).strip()
+            doc = "" if pd.isna(r.get("Documento")) else str(r.get("Documento")).strip()
+            movimentos.append([idx_filial[r["F"]], r["P"], ref(desc), qtd, tm, cc, doc,
+                               dia(r.get("DT Emissao"))])
+        movimentos.sort(key=lambda x: (-x[7], x[0], x[1]))
+
     base = {
         "v": 1,
         "gerado": datetime.date.today().isoformat(),
@@ -316,6 +340,7 @@ def montar(sb2, sbf, sda=None):
         "ativos": ativos,
         "zerados": zerados,
         "pendentes": pendentes,
+        "movimentos": movimentos,
     }
     # marca curta que muda so quando os dados mudam: serve para conferir
     # se dois aparelhos estao vendo a mesma versao
@@ -336,7 +361,7 @@ def principal(saida=None):
         return 1
 
     del AVISOS[:]
-    partes_sb2, partes_sbf, partes_sda = [], [], []
+    partes_sb2, partes_sbf, partes_sda, partes_sd3 = [], [], [], []
     print("Lendo planilhas de 'dados':")
     for caminho in arquivos:
         nome = os.path.basename(caminho)
@@ -351,6 +376,9 @@ def principal(saida=None):
         elif tipo == "SDA":
             partes_sda.append(df)
             print("  [a enderecar]    %-34s %6d linhas   %s" % (nome[:34], len(df), quando))
+        elif tipo == "SD3":
+            partes_sd3.append(df)
+            print("  [movimentos]     %-34s %6d linhas   %s" % (nome[:34], len(df), quando))
         else:
             print("  [ignorado]       %-34s %s" % (nome[:34], erro))
 
@@ -365,8 +393,9 @@ def principal(saida=None):
     sb2 = pd.concat(partes_sb2, ignore_index=True) if partes_sb2 else None
     sbf = pd.concat(partes_sbf, ignore_index=True) if partes_sbf else None
     sda = pd.concat(partes_sda, ignore_index=True) if partes_sda else None
+    sd3 = pd.concat(partes_sd3, ignore_index=True) if partes_sd3 else None
 
-    base = montar(sb2, sbf, sda)
+    base = montar(sb2, sbf, sda, sd3)
 
     modelo = os.path.join(RAIZ, "template.html")
     if not os.path.exists(modelo):
@@ -405,6 +434,11 @@ def principal(saida=None):
     if base["pendentes"]:
         notas = len(set((p[0], p[6]) for p in base["pendentes"]))
         print("  a enderecar ........ %d linhas em %d notas" % (len(base["pendentes"]), notas))
+    if base["movimentos"]:
+        dias = sorted(set(m[7] for m in base["movimentos"] if m[7]))
+        quando_mov = ", ".join((EPOCA + datetime.timedelta(days=d)).strftime("%d/%m") for d in dias)
+        prods = len(set((m[0], m[1]) for m in base["movimentos"]))
+        print("  movimentos ......... %d linhas, %d produtos (%s)" % (len(base["movimentos"]), prods, quando_mov))
     print("  marca dos dados .... %s" % base["marca"])
     print("  marca do app ....... %s   (template.html de %s)" % (marca_app, quando_modelo))
     if base.get("semCustos"):

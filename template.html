@@ -120,7 +120,7 @@ button{cursor:pointer}
 /* ============ abas ============ */
 .tabs{
   position:fixed; left:0; right:0; bottom:0; z-index:45; display:grid;
-  grid-template-columns:repeat(4,1fr); background:var(--steel);
+  grid-template-columns:repeat(5,1fr); background:var(--steel);
   border-top:1px solid rgba(255,255,255,.1); padding-bottom:env(safe-area-inset-bottom);
 }
 .tab{
@@ -133,6 +133,8 @@ button{cursor:pointer}
   background:var(--loc); opacity:0; transition:opacity .15s;
 }
 .tab[aria-selected="true"]{color:var(--loc)}
+.tab{white-space:nowrap}
+@media (max-width:420px){ .tab{font-size:10.5px; padding-left:0; padding-right:0} }
 .tab[aria-selected="true"]::before{opacity:1}
 .tab .n{
   font-size:10px; font-weight:700; background:var(--loc); color:var(--loc-ink); border-radius:99px;
@@ -297,6 +299,14 @@ main{padding:14px 14px 92px}
 .imp1:hover{color:var(--loc); border-color:var(--loc)}
 .btn svg{vertical-align:-2px; margin-right:7px}
 #area-impressao{display:none}
+.inv-op{display:flex; align-items:center; gap:14px; margin-bottom:12px; flex-wrap:wrap}
+.inv-op .btn{flex:1 1 220px}
+.inv-op label{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted);
+  font-weight:600; cursor:pointer; user-select:none}
+.inv-op input{width:19px; height:19px; accent-color:var(--act); cursor:pointer}
+.dica{font-size:12.5px; color:var(--muted); margin:-4px 2px 12px; line-height:1.45}
+.locgroup.semloc > h3{background:var(--alert-soft); color:var(--alert); border-left-color:var(--alert)}
+.locgroup.semloc > h3 span{color:var(--alert)}
 .nfgroup{margin-bottom:14px}
 .nfgroup > h3{
   margin:0 0 7px; display:flex; justify-content:space-between; align-items:center; gap:10px;
@@ -437,6 +447,14 @@ main{padding:14px 14px 92px}
   #area-impressao .t-pend th:nth-child(3){width:8%}
   #area-impressao .t-pend th:nth-child(4){width:13%}
   #area-impressao .t-pend th:nth-child(5){width:18%}
+  #area-impressao .t-inv th:nth-child(n){width:auto}
+  #area-impressao .t-inv th.c-cod{width:14%}
+  #area-impressao .t-inv th.c-arm{width:6%}
+  #area-impressao .t-inv th.c-saiu{width:8%}
+  #area-impressao .t-inv th.c-sis{width:10%}
+  #area-impressao .t-inv th.c-cont{width:15%}
+  #area-impressao .assina{margin-top:28px; display:flex; gap:40px; font-size:10pt; break-inside:avoid}
+  #area-impressao .assina span{flex:1; border-top:1px solid #000; padding-top:4px}
   body{background:#fff; color:#000; font-size:11pt}
   main{padding:0; display:block}
   .panel{display:none}
@@ -467,7 +485,10 @@ main{padding:14px 14px 92px}
         Endereços</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="pend">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
-        A endereçar<span class="n" id="pendn" hidden>0</span></button>
+        Pendentes<span class="n" id="pendn" hidden>0</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="inv">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>
+        Inventário</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="sep">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Separação<span class="n" id="sepn" hidden>0</span></button>
@@ -597,7 +618,7 @@ var RUAKEYS = Object.keys(RUAS).sort(function(a,b){
 /* ---------- estado ---------- */
 var S = {
   tab:'prod', q:'', fil: store('fil') || '', comSaldo: store('comSaldo')!==false,
-  sel:null, rua:null, sep: store('sep') || []
+  sel:null, rua:null, invDia:null, cega:false, sep: store('sep') || []
 };
 
 /* ---------- filtros ---------- */
@@ -787,6 +808,7 @@ tabs.forEach(function(t){
     elQ.value=''; S.q=''; elClear.classList.remove('on');
     elQ.placeholder = S.tab==='end' ? 'Endereço ou produto (ex.: A03 ou filtro)'
       : S.tab==='pend' ? 'Código, descrição ou número da nota'
+      : S.tab==='inv' ? 'Código, descrição ou endereço'
       : 'Código, descrição ou endereço';
     renderFiltros(); render();
   });
@@ -800,6 +822,7 @@ function render(){
   if(S.tab==='prod') renderProd();
   else if(S.tab==='end') renderEnd();
   else if(S.tab==='pend') renderPend();
+  else if(S.tab==='inv') renderInv();
   else renderSep();
 }
 
@@ -1020,6 +1043,160 @@ function imprimirPendentes(grupos){
   window.print();
 }
 
+var ULTIMOS_INV = [], CHAVE_SEM = '\u0000sem';
+
+function diaCurto(n){
+  if(!n) return 'sem data';
+  if(n === HOJE) return 'hoje';
+  if(n === HOJE - 1) return 'ontem';
+  var d = new Date(EPOCH + n*864e5);
+  return String(d.getUTCDate()).padStart(2,'0') + '/' + String(d.getUTCMonth()+1).padStart(2,'0');
+}
+
+function montarInventario(){
+  var M = D.movimentos || [];
+  var dias = [];
+  M.forEach(function(m){ if(dias.indexOf(m[7]) < 0) dias.push(m[7]); });
+  dias.sort(function(a,b){ return b-a; });
+  if(S.invDia === null) S.invDia = dias.length ? dias[0] : 'todos';
+
+  // 1. junta as saidas por produto
+  var porProd = {}, ordem = [];
+  M.forEach(function(m){
+    if(S.invDia !== 'todos' && m[7] !== S.invDia) return;
+    if(S.fil && FIL[m[0]] !== S.fil) return;
+    var k = m[0] + '|' + m[1];
+    if(!porProd[k]){
+      porProd[k] = {f:m[0], c:m[1], d:DESCS[m[2]] || '', saiu:0, entrou:0, it:itemDe(m[0], m[1])};
+      ordem.push(k);
+    }
+    var tm = parseInt(m[4], 10);
+    if(isNaN(tm) || tm > 500) porProd[k].saiu += m[3]; else porProd[k].entrou += m[3];
+  });
+
+  // 2. cada endereco do produto vira uma linha de contagem
+  var termos = S.q ? S.q.split(/\s+/) : [];
+  var grupos = {}, chaves = [], produtos = 0;
+  ordem.forEach(function(k){
+    var p = porProd[k], ends = p.it ? p.it.ends : [];
+    var linhas = ends.length
+      ? ends.map(function(e){ return {L:e.e, q:e.q, arm:e.arm, p:p, n:ends.length}; })
+      : [{L:CHAVE_SEM, q:p.it ? p.it.saldo : 0, arm:'', p:p, n:0}];
+    if(termos.length){
+      var alvo = p.c + ' ' + norm(p.d) + ' ' + ends.map(function(e){ return e.e; }).join(' ');
+      for(var i=0;i<termos.length;i++) if(alvo.indexOf(termos[i]) < 0) return;
+    }
+    produtos++;
+    linhas.forEach(function(l){
+      // o mesmo nome de endereco em filiais diferentes e outra prateleira, em outro almoxarifado
+      var k = p.f + '|' + l.L;
+      if(!grupos[k]){ grupos[k] = {k:k, f:p.f, L:l.L, its:[]}; chaves.push(k); }
+      grupos[k].its.push(l);
+    });
+  });
+  var lista_g = chaves.map(function(k){ return grupos[k]; });
+  lista_g.sort(function(a,b){
+    var sa = a.L === CHAVE_SEM ? 1 : 0, sb = b.L === CHAVE_SEM ? 1 : 0;
+    return sa - sb || a.f - b.f || (a.L < b.L ? -1 : a.L > b.L ? 1 : 0);
+  });
+  return {dias:dias, produtos:produtos, grupos:lista_g};
+}
+
+function renderInv(){
+  if(!(D.movimentos || []).length){
+    ULTIMOS_INV = [];
+    cont.innerHTML = '<span>Inventário rotativo</span>';
+    lista.innerHTML = '<p class="empty"><b>Nenhuma movimentação na base</b>' +
+      'Coloque na pasta dados a Relação das Movimentações Internas e gere o app de novo.</p>';
+    return;
+  }
+  var r = montarInventario(), grupos = r.grupos;
+  ULTIMOS_INV = grupos;
+  var enderecos = grupos.filter(function(g){ return g.L !== CHAVE_SEM; }).length;  // ja separado por filial
+  var cont_por_dia = {};
+  (D.movimentos || []).forEach(function(m){
+    if(S.fil && FIL[m[0]] !== S.fil) return;
+    cont_por_dia[m[7]] = cont_por_dia[m[7]] || {};
+    cont_por_dia[m[7]][m[0]+'|'+m[1]] = 1;
+  });
+
+  cont.innerHTML = '<span>' + r.produtos + ' ' + plural(r.produtos,'produto','produtos') + ' para contar</span>' +
+    '<span>' + enderecos + ' ' + plural(enderecos,'endereço','endereços') + '</span>';
+
+  var h = '<div class="ruas">';
+  r.dias.forEach(function(d){
+    var n = Object.keys(cont_por_dia[d] || {}).length;
+    h += '<button class="rua" data-dia="' + d + '" aria-pressed="' + (S.invDia === d ? 'true' : 'false') + '">' +
+         diaCurto(d) + '<i>' + n + '</i></button>';
+  });
+  if(r.dias.length > 1)
+    h += '<button class="rua" data-dia="todos" aria-pressed="' + (S.invDia === 'todos' ? 'true' : 'false') + '">Todos os dias</button>';
+  h += '</div>';
+
+  h += '<p class="dica">Produtos que saíram ' + (S.invDia === 'todos' ? 'nos dias da lista' : 'em ' + data(S.invDia)) +
+       ', em ordem de endereço para fazer o percurso. O saldo mostrado é o do sistema na última exportação do saldo por endereço.</p>';
+
+  if(!grupos.length){
+    lista.innerHTML = h + '<p class="empty"><b>Nada para contar</b>Nenhuma saída com esse filtro.</p>';
+    return;
+  }
+
+  h += '<div class="inv-op"><button class="btn ghost" id="imp-inv"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir contagem</button>' +
+       '<label><input type="checkbox" id="cega"' + (S.cega ? ' checked' : '') + '> Contagem cega</label></div>';
+
+  grupos.forEach(function(g){
+    var sem = g.L === CHAVE_SEM;
+    h += '<div class="locgroup' + (sem ? ' semloc' : '') + '"><h3>' + (sem ? 'Sem endereço cadastrado' : esc(g.L)) +
+         '<span class="dir">filial ' + FIL[g.f] + ' · ' + g.its.length + ' ' + plural(g.its.length,'item','itens') +
+         (sem ? '' : '<button class="imp1" data-impinv="' + esc(g.k) + '" title="Imprimir este endereço" ' +
+           'aria-label="Imprimir a contagem do endereço ' + esc(g.L) + '"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>') + '</span></h3>';
+    g.its.forEach(function(l){
+      var p = l.p;
+      var mov = (p.saiu ? '<span class="flag">saiu ' + nq(p.saiu) + '</span>' : '') +
+                (p.entrou ? '<span class="flag ok">entrou ' + nq(p.entrou) + '</span>' : '');
+      h += '<button class="card' + (sem ? ' aviso' : '') + '"' + (p.it ? ' data-id="' + p.it.id + '"' : '') + '>' +
+           '<div class="l1"><span class="code">' + p.c + '</span><span class="fil">' + FIL[p.f] + '</span></div>' +
+           '<p class="desc">' + esc(p.d) + '</p>' +
+           '<div class="l3">' + (l.arm ? '<span class="arm">arm ' + l.arm + '</span>' : '') + mov +
+           (l.n > 1 ? '<span class="flag ok">em ' + l.n + ' endereços</span>' : '') +
+           '<span class="qty"><b>' + nq(l.q) + '</b><small>' + (sem ? 'saldo total' : 'no sistema aqui') + '</small></span>' +
+           '</div></button>';
+    });
+    h += '</div>';
+  });
+  lista.innerHTML = h;
+}
+
+function imprimirInventario(grupos){
+  if(!grupos.length) return;
+  var cega = S.cega, itens = grupos.reduce(function(s,g){ return s + g.its.length; }, 0);
+  var quando = S.invDia === 'todos' ? 'saídas de todos os dias da lista' : 'saídas de ' + data(S.invDia);
+  var titulo = grupos.length === 1 && grupos[0].L !== CHAVE_SEM
+    ? 'Inventário rotativo · ' + grupos[0].L + ' · filial ' + FIL[grupos[0].f] : 'Inventário rotativo';
+  var h = '<div class="ph"><b>' + esc(titulo) + '</b><span>' + new Date().toLocaleString('pt-BR') + '</span></div>';
+  h += '<p class="pinfo">' + quando + ' · filial ' + (S.fil || 'todas') + ' · ' + itens + ' ' +
+       plural(itens,'linha','linhas') + ' de contagem' + (cega ? ' · contagem cega' : '') + '</p>';
+  grupos.forEach(function(g){
+    var sem = g.L === CHAVE_SEM;
+    h += '<section class="pg"><h2>' + (sem ? 'SEM ENDEREÇO' : esc(g.L)) + '</h2>' +
+         '<span class="pnf">filial ' + FIL[g.f] + (sem ? ' · localizar no almoxarifado' : '') + '</span>' +
+         '<table class="t-inv"><thead><tr><th class="c-cod">Código</th><th>Descrição</th>' +
+         '<th class="c-arm">Arm</th><th class="c-saiu n">Saiu</th>' +
+         (cega ? '' : '<th class="c-sis n">Sistema</th>') + '<th class="c-cont n">Contado</th></tr></thead><tbody>';
+    g.its.forEach(function(l){
+      h += '<tr><td class="m">' + l.p.c + '</td><td>' + esc(l.p.d) + '</td><td class="m">' + (l.arm || '—') + '</td>' +
+           '<td class="n m">' + nq(l.p.saiu) + '</td>' +
+           (cega ? '' : '<td class="n m">' + nq(l.q) + '</td>') +
+           '<td class="n"><span class="conta"></span></td></tr>';
+    });
+    h += '</tbody></table></section>';
+  });
+  h += '<div class="assina"><span>Contado por</span><span>Conferido por</span><span>Data</span></div>';
+  document.getElementById('area-impressao').innerHTML = h;
+  document.body.classList.add('imprimindo');
+  window.print();
+}
+
 function renderSep(){
   cont.innerHTML = '<span>Lista de separação</span><span>'+S.sep.length+' '+plural(S.sep.length,'item','itens')+'</span>';
   if(!S.sep.length){
@@ -1073,6 +1250,11 @@ lista.addEventListener('click', function(e){
   }
   if(e.target.closest('#imp-end')){ imprimirEnderecos(ULTIMOS_GRUPOS); return; }
   if(e.target.closest('#imp-pend')){ imprimirPendentes(ULTIMOS_PEND); return; }
+  if(e.target.closest('#imp-inv')){ imprimirInventario(ULTIMOS_INV); return; }
+  var ui = e.target.closest('[data-impinv]');
+  if(ui){ imprimirInventario(ULTIMOS_INV.filter(function(g){ return g.k === ui.dataset.impinv; })); return; }
+  var dd = e.target.closest('[data-dia]');
+  if(dd){ S.invDia = dd.dataset.dia === 'todos' ? 'todos' : +dd.dataset.dia; render(); return; }
   var c = e.target.closest('[data-id]');
   if(c){ abrir(+c.dataset.id); return; }
   var r = e.target.closest('[data-rua]');
@@ -1097,6 +1279,7 @@ lista.addEventListener('input', function(e){
   }
 });
 lista.addEventListener('change', function(e){
+  if(e.target.id === 'cega'){ S.cega = e.target.checked; return; }
   if(e.target.matches('[data-i]')){ S.sep[+e.target.dataset.i].ok = e.target.checked; store('sep',S.sep); render(); }
   if(e.target.matches('[data-q]')){ S.sep[+e.target.dataset.q].qtd = e.target.value; store('sep',S.sep); }
 });
