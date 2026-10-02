@@ -907,16 +907,13 @@ function renderEnd(){
     for(var i=0;i<termos.length;i++) if(it.idx.indexOf(termos[i])<0) return false;
     return true;
   }
-  var grupos = [], vistos = {sim:{}, nao:{}, sem:{}};
+  var grupos = [];
   LOCS.forEach(function(L){
     if(S.rua && L.split('-')[0]!==S.rua) return;
     var porEndereco = q && L.indexOf(q)>=0;
     var its = PORLOC[L].filter(function(x){
       if(S.fil && FIL[x.it.f]!==S.fil) return false;
-      if(!(porEndereco || casaItem(x.it))) return false;
-      var cat = catControle(x.it);
-      vistos[cat][x.it.id] = 1;
-      return !S.ctrl || cat === S.ctrl;
+      return porEndereco || casaItem(x.it);
     });
     if(its.length) grupos.push({L:L, its:its, pref: q && L.indexOf(q)===0 ? 0 : 1});
   });
@@ -929,8 +926,6 @@ function renderEnd(){
          '<i>'+RUAS[r].length+'</i></button>';
   });
   h += '</div>';
-  h += chipsControle({sim:Object.keys(vistos.sim).length, nao:Object.keys(vistos.nao).length,
-                      sem:Object.keys(vistos.sem).length});
 
   ULTIMOS_GRUPOS = grupos;
   cont.innerHTML = '<span>'+grupos.length+' '+plural(grupos.length,'endereço','endereços')+' com material'+
@@ -941,12 +936,7 @@ function renderEnd(){
       '</button></div>';
   }
   if(!grupos.length){
-    h += S.ctrl === 'nao'
-      ? '<p class="empty"><b>Nenhum produto endereçado tem Contr. Endereço = Nao</b>' +
-        'Todo produto que está num endereço aqui tem Contr. Endereço = Sim na SBZ. ' +
-        'Os que têm Nao ficam no armazém sem posição — veja na aba Produtos.</p>'
-      : '<p class="empty"><b>Nenhum endereço aqui</b>Escolha outra rua, limpe a busca, troque a filial' +
-        (S.ctrl ? ' ou o filtro de controle de endereço' : '') + '.</p>';
+    h += '<p class="empty"><b>Nenhum endereço aqui</b>Escolha outra rua, limpe a busca ou troque a filial.</p>';
   }
   grupos.slice(0,120).forEach(function(g){
     h += '<div class="locgroup"><h3>'+esc(g.L)+'<span class="dir">'+g.its.length+' '+
@@ -956,7 +946,7 @@ function renderEnd(){
     g.its.forEach(function(x){
       h += '<button class="card" data-id="'+x.it.id+'"><div class="l1"><span class="code">'+x.it.c+
         '</span><span class="fil">'+FIL[x.it.f]+'</span></div><p class="desc">'+esc(x.it.d)+
-        '</p><div class="l3"><span class="arm">arm '+x.arm+'</span>'+ etiquetaControle(x.it) +
+        '</p><div class="l3"><span class="arm">arm '+x.arm+'</span>'+
         (x.it.ends.length>1?'<span class="flag ok">também em outros '+(x.it.ends.length-1)+'</span>':'')+
         '<span class="qty"><b>'+nq(x.q)+'</b><small>neste endereço</small></span></div></button>';
     });
@@ -965,7 +955,6 @@ function renderEnd(){
   lista.innerHTML = h;
   var nova = lista.querySelector('.ruas');
   if(nova && rolagem) nova.scrollLeft = rolagem;
-  mostrarEscolhido();
 }
 
 var ULTIMOS_GRUPOS = [];
