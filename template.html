@@ -196,6 +196,9 @@ main{padding:14px 14px 92px}
   background:var(--alert-soft); color:var(--alert);
 }
 .flag.ok{background:var(--act-soft); color:var(--act)}
+.flag.ctrl{background:transparent; color:var(--act); border:1px solid var(--act); padding:2px 6px}
+.flag.nctrl{background:var(--surface-2); color:var(--muted); border:1px solid var(--line-2); padding:2px 6px}
+.flag.sctrl{background:transparent; color:var(--muted); border:1px dashed var(--line-2); padding:2px 6px; font-weight:500}
 .arm{
   font-family:var(--mono); font-size:11px; font-weight:500; color:var(--muted);
   background:var(--surface-2); border:1px solid var(--line); border-radius:4px; padding:2px 6px;
@@ -600,10 +603,17 @@ function addItem(f, c, d, rows){
   }
   return it;
 }
-D.ativos.forEach(function(a){ addItem(a.f, a.c, DESCS[a.d]||'(sem descrição)', a.r); });
+function lerControle(v){ return v === 1 ? true : v === 0 ? false : null; }
+D.ativos.forEach(function(a){
+  var it = addItem(a.f, a.c, DESCS[a.d]||'(sem descrição)', a.r);
+  it.ctrl = lerControle(a.e);
+});
 D.zerados.forEach(function(z){
   var it = addItem(z[0], z[1], DESCS[z[2]]||'(sem descrição)', []);
-  it.ultS = z[3]; it.zero = true;
+  it.ultS = z[3]; it.zero = true; it.ctrl = lerControle(z[4]);
+});
+ITENS.forEach(function(it){
+  if(it.ctrl === false && it.semEnd){ it.semEnd = false; it.naoCtrl = true; }
 });
 var MAPA = {};
 ITENS.forEach(function(it){ MAPA[it.f + '|' + it.c] = it; });
@@ -676,9 +686,17 @@ function buscar(){
 }
 
 /* ---------- cartões ---------- */
+function etiquetaControle(it){
+  if(it.ctrl === true)  return '<span class="flag ctrl" title="Indicador da SBZ">controla endereço</span>';
+  if(it.ctrl === false) return '<span class="flag nctrl" title="Indicador da SBZ">não controla endereço</span>';
+  return '<span class="flag sctrl" title="Produto sem registro na SBZ">sem indicador</span>';
+}
+
 function cardHTML(it){
   var loc;
-  if(it.ends.length===0) loc = it.saldo>0 ? '<span class="loc none">sem endereço</span>' : '';
+  if(it.ends.length===0) loc = it.saldo<=0 ? ''
+    : it.naoCtrl ? '<span class="flag nctrl">não controla endereço</span>'
+    : '<span class="loc none">sem endereço</span>';
   else{
     loc = '<span class="loc">'+esc(it.ends[0].e)+'</span>';
     if(it.ends.length>1) loc += '<span class="flag ok">+'+(it.ends.length-1)+' '+plural(it.ends.length-1,'local','locais')+'</span>';
@@ -716,8 +734,10 @@ function abrir(id){
     '<button class="btn" id="addsep">Separar</button>'+
     '<button class="btn ghost" id="copiar">Copiar código</button></div>';
 
+  var linhaCtrl = '<div class="locrow"><span style="color:var(--muted);font-size:13px">Controle de endereço</span>' +
+    '<span style="margin-left:auto">' + etiquetaControle(it) + '</span></div>';
   if(it.ends.length){
-    h += '<div class="block"><h3>Onde está</h3>';
+    h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl;
     it.ends.forEach(function(e){
       h += '<div class="locrow"><span class="loc">'+esc(e.e)+'</span>'+
            '<span class="arm">arm '+e.arm+'</span>'+
@@ -730,11 +750,18 @@ function abrir(id){
            ' ('+(dif>0?'+':'')+nq(dif)+'). Confira antes de separar.</em></div>';
     }
     h += '</div>';
+  } else if(it.saldo>0 && it.naoCtrl){
+    h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl +
+         '<div class="locrow"><span class="arm">armazém</span><span class="qn">'+nq(it.saldo)+'</span></div>'+
+         '<div class="locrow"><span style="font-size:12.5px;color:var(--muted)">Este produto não controla endereço, '+
+         'então fica no armazém sem posição definida. Não é pendência.</span></div></div>';
   } else if(it.saldo>0){
-    h += '<div class="block"><h3>Onde está</h3><div class="locrow">'+
+    h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl + '<div class="locrow">'+
          '<span class="loc none">sem endereço cadastrado</span>'+
          '<span class="qn">'+nq(it.saldo)+'</span></div>'+
          '<div class="locrow"><em>Tem saldo físico, mas nenhum endereço. Localize e enderece no sistema.</em></div></div>';
+  } else {
+    h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl + '</div>';
   }
 
   h += '<div class="block"><h3>Por armazém</h3><dl class="kv">';
@@ -887,7 +914,7 @@ function renderEnd(){
     g.its.forEach(function(x){
       h += '<button class="card" data-id="'+x.it.id+'"><div class="l1"><span class="code">'+x.it.c+
         '</span><span class="fil">'+FIL[x.it.f]+'</span></div><p class="desc">'+esc(x.it.d)+
-        '</p><div class="l3"><span class="arm">arm '+x.arm+'</span>'+
+        '</p><div class="l3"><span class="arm">arm '+x.arm+'</span>'+ etiquetaControle(x.it) +
         (x.it.ends.length>1?'<span class="flag ok">também em outros '+(x.it.ends.length-1)+'</span>':'')+
         '<span class="qty"><b>'+nq(x.q)+'</b><small>neste endereço</small></span></div></button>';
     });

@@ -90,7 +90,7 @@ def ler_planilha(caminho):
     linha_cab = None
     for i in range(len(topo)):
         valores = [str(v).strip() for v in topo.iloc[i].tolist() if not pd.isna(v)]
-        if "Filial" in valores and "Produto" in valores:
+        if "Filial" in valores and ("Produto" in valores or "Codigo" in valores):
             linha_cab = i
             break
     if linha_cab is None:
@@ -106,6 +106,8 @@ def ler_planilha(caminho):
         return "SB2", df, None
     if {"Qtd Original", "Saldo", "Documento"} <= colunas:
         return "SDA", df, None
+    if {"Contr.Endere", "Codigo"} <= colunas:
+        return "SBZ", df.rename(columns={"Codigo": "Produto"}), None
     if {"TP Movimento", "Endereco", "Quantidade"} <= colunas:
         return "SD3", df, None
     if {"TP Movimento", "Qtd. Saida"} <= colunas:
@@ -169,8 +171,8 @@ def coluna(df, nome):
 # --------------------------------------------------------------------------
 # montagem da base
 # --------------------------------------------------------------------------
-def montar(sb2, sbf, sda=None, sd3=None):
-    for df in (sb2, sbf, sda, sd3):
+def montar(sb2, sbf, sda=None, sd3=None, sbz=None):
+    for df in (sb2, sbf, sda, sd3, sbz):
         if df is None or df.empty:
             continue
         df["F"] = df["Filial"].apply(lambda v: chave(v, 6))
@@ -260,6 +262,20 @@ def montar(sb2, sbf, sda=None, sd3=None):
         it["r"].append([a, 0, 0, 0, 0, 0, 0, 0, 0,
                         [[e, round(v[0], 3), round(v[1], 3)] for e, v in sorted(ends.items())]])
 
+    # SBZ: indicador por filial. 1 = controla endereco, 0 = nao controla.
+    # Produto fora da SBZ fica sem a chave: o indicador dele mora no SB1.
+    controla = {}
+    if sbz is not None and not sbz.empty:
+        for _, r in sbz[sbz["P"] != ""].iterrows():
+            v = "" if pd.isna(r.get("Contr.Endere")) else str(r.get("Contr.Endere")).strip().lower()
+            if v in ("sim", "s"):
+                controla[(r["F"], r["P"])] = 1
+            elif v in ("nao", "não", "n"):
+                controla[(r["F"], r["P"])] = 0
+    for (f, p), it in itens.items():
+        if (f, p) in controla:
+            it["e"] = controla[(f, p)]
+
     ativos, zerados = [], []
     for it in itens.values():
         linhas = [r for r in it["r"] if r[1] or r[2] or r[4] or r[5] or r[9]]
@@ -269,7 +285,10 @@ def montar(sb2, sbf, sda=None, sd3=None):
             ativos.append(it)
         else:
             ultima = max([r[6] for r in it["r"]] + [0]) or max([r[7] for r in it["r"]] + [0])
-            zerados.append([it["f"], it["c"], ref(it["d"]), ultima])
+            z = [it["f"], it["c"], ref(it["d"]), ultima]
+            if "e" in it:
+                z.append(it["e"])
+            zerados.append(z)
 
     ativos.sort(key=lambda x: (x["f"], x["c"]))
     zerados.sort(key=lambda x: (x[0], x[1]))
@@ -390,7 +409,7 @@ def principal(saida=None):
         return 1
 
     del AVISOS[:]
-    partes_sb2, partes_sbf, partes_sda, partes_sd3, partes_sd3r = [], [], [], [], []
+    partes_sb2, partes_sbf, partes_sda, partes_sd3, partes_sd3r, partes_sbz = [], [], [], [], [], []
     print("Lendo planilhas de 'dados':")
     for caminho in arquivos:
         nome = os.path.basename(caminho)
@@ -408,6 +427,9 @@ def principal(saida=None):
         elif tipo == "SD3":
             partes_sd3.append(df)
             print("  [movimentos]     %-34s %6d linhas   %s" % (nome[:34], len(df), quando))
+        elif tipo == "SBZ":
+            partes_sbz.append(df)
+            print("  [indicadores]     %-33s %6d linhas   %s" % (nome[:33], len(df), quando))
         elif tipo == "SD3R":
             partes_sd3r.append((nome, df, quando))
         else:
@@ -432,7 +454,9 @@ def principal(saida=None):
             print("  [movimentos]     %-34s %6d linhas   %s  (sem endereco)" % (nome[:34], len(df), quando))
     sd3 = pd.concat(partes_sd3, ignore_index=True) if partes_sd3 else None
 
-    base = montar(sb2, sbf, sda, sd3)
+    sbz = pd.concat(partes_sbz, ignore_index=True) if partes_sbz else None
+
+    base = montar(sb2, sbf, sda, sd3, sbz)
 
     modelo = os.path.join(RAIZ, "template.html")
     if not os.path.exists(modelo):
@@ -479,6 +503,11 @@ def principal(saida=None):
         tipos = sorted(set(m[10] for m in base["movimentos"] if m[10]))
         print("  tipos de produto ... %s" % (", ".join(tipos) if tipos else
               "nenhum (a coluna de tipo veio vazia na exportacao)"))
+    if partes_sbz:
+        sim = sum(1 for a in base["ativos"] if a.get("e") == 1)
+        nao = sum(1 for a in base["ativos"] if a.get("e") == 0)
+        sem = sum(1 for a in base["ativos"] if "e" not in a)
+        print("  controla endereco .. %d sim, %d nao, %d sem indicador (itens ativos)" % (sim, nao, sem))
     print("  marca dos dados .... %s" % base["marca"])
     print("  marca do app ....... %s   (template.html de %s)" % (marca_app, quando_modelo))
     if base.get("semCustos"):
