@@ -285,6 +285,35 @@ main{padding:14px 14px 92px}
 .rua[aria-pressed="true"]{background:var(--steel); border-color:var(--steel); color:var(--loc)}
 .rua i{font-style:normal; font-weight:400; color:var(--muted); font-size:11px; margin-left:5px}
 .rua.txt{font-family:var(--sans); letter-spacing:0}
+/* selecao de produtos para separar */
+.barra-sel{
+  position:sticky; top:var(--top-h,0px); z-index:20; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  background:var(--bg); padding:8px 2px 10px; border-bottom:1px solid var(--line);
+}
+.selall{display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:600; color:var(--ink);
+  cursor:pointer; user-select:none}
+.selall i{font-style:normal; color:var(--muted); font-weight:500; font-family:var(--mono); font-size:12px}
+.selall input,.marca input{width:21px; height:21px; accent-color:var(--act); cursor:pointer; margin:0}
+.barra-sel .acoes{margin-left:auto; display:flex; align-items:center; gap:8px}
+.barra-sel .nsel{font-size:12.5px; font-weight:700; color:var(--act)}
+.btn.mini{flex:none; padding:8px 14px; font-size:13px}
+.dica-sel{margin-left:auto; font-size:12px; color:var(--muted)}
+.linha-sel{display:flex; gap:7px; align-items:stretch}
+.linha-sel .card{flex:1; min-width:0}
+.marca{flex:none; width:42px; display:grid; place-items:center; border-radius:10px; cursor:pointer;
+  background:var(--surface); border:1px solid var(--line); transition:background .12s, border-color .12s}
+.marca:hover{border-color:var(--act)}
+.marca.vazia{background:transparent; border-color:transparent; cursor:default}
+.linha-sel.on .marca{background:var(--act-soft); border-color:var(--act)}
+.linha-sel.on .card{border-color:var(--act); box-shadow:0 0 0 1px var(--act)}
+.toast{
+  position:fixed; left:50%; bottom:calc(78px + env(safe-area-inset-bottom)); transform:translateX(-50%);
+  background:var(--steel); color:var(--steel-ink); padding:11px 16px; border-radius:10px; font-size:13.5px;
+  font-weight:600; box-shadow:0 10px 30px -10px rgba(0,0,0,.6); z-index:70; opacity:0; transition:opacity .2s;
+  pointer-events:none; max-width:92vw; text-align:center; border-left:3px solid var(--loc);
+}
+.toast.on{opacity:1}
+@media (min-width:860px){ .toast{bottom:28px} }
 .ctrlrow{margin-top:-4px; align-items:center}
 .ctrlrot{flex:none; font-size:12px; font-weight:700; color:var(--muted); margin-right:2px; white-space:nowrap}
 .rua[aria-pressed="true"] i{color:var(--steel-muted)}
@@ -632,7 +661,7 @@ var RUAKEYS = Object.keys(RUAS).sort(function(a,b){
 /* ---------- estado ---------- */
 var S = {
   tab:'prod', q:'', fil: store('fil') || '', comSaldo: store('comSaldo')!==false,
-  sel:null, rua:null, ctrl:null, invDia:null, invTipo:null, cega:false, sep: store('sep') || []
+  sel:null, rua:null, ctrl:null, selec:{}, invDia:null, invTipo:null, cega:false, sep: store('sep') || []
 };
 
 /* ---------- filtros ---------- */
@@ -879,6 +908,80 @@ function render(){
   else renderSep();
 }
 
+var ULTIMOS_PROD = [];
+
+function selecionavel(it){ return it.saldo > 0; }
+
+function barraSelecao(){
+  var total = ULTIMOS_PROD.length;
+  var noRes = ULTIMOS_PROD.filter(function(id){ return S.selec[id]; }).length;
+  var qtd = Object.keys(S.selec).length;
+  return '<div class="barra-sel" id="barra-sel">' +
+    '<label class="selall"><input type="checkbox" id="selall"' +
+      (total && noRes === total ? ' checked' : '') + (total ? '' : ' disabled') +
+      ' data-parcial="' + (noRes > 0 && noRes < total ? 1 : 0) + '"> Selecionar todos <i>' +
+      total.toLocaleString('pt-BR') + '</i></label>' +
+    (qtd
+      ? '<span class="acoes"><span class="nsel">' + qtd + ' ' + plural(qtd,'selecionado','selecionados') + '</span>' +
+        '<button class="btn ghost mini" id="sel-limpar">Limpar</button>' +
+        '<button class="btn mini" id="sel-separar">Separar</button></span>'
+      : '<span class="dica-sel">marque os produtos para separar</span>') +
+    '</div>';
+}
+
+function ajustarParcial(){
+  var c = document.getElementById('selall');
+  if(c) c.indeterminate = c.dataset.parcial === '1';
+}
+
+function atualizarBarra(){
+  var b = document.getElementById('barra-sel');
+  if(!b) return;
+  var tmp = document.createElement('div');
+  tmp.innerHTML = barraSelecao();
+  b.parentNode.replaceChild(tmp.firstChild, b);
+  ajustarParcial();
+}
+
+function linhaProduto(it){
+  var pode = selecionavel(it), on = pode && S.selec[it.id];
+  return '<div class="linha-sel' + (on ? ' on' : '') + '">' +
+    (pode
+      ? '<label class="marca" title="Selecionar para separar"><input type="checkbox" data-sel="' + it.id + '"' +
+        (on ? ' checked' : '') + ' aria-label="Selecionar ' + esc(it.c) + ' para separar"></label>'
+      : '<span class="marca vazia" title="Sem saldo para separar"></span>') +
+    cardHTML(it) + '</div>';
+}
+
+function avisar(txt){
+  var t = document.getElementById('toast');
+  if(!t){ t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = txt;
+  t.classList.add('on');
+  clearTimeout(avisar.tempo);
+  avisar.tempo = setTimeout(function(){ t.classList.remove('on'); }, 2800);
+}
+
+function separarSelecionados(){
+  var ids = Object.keys(S.selec);
+  if(!ids.length) return;
+  if(ids.length > 50 && !confirm('Adicionar ' + ids.length + ' itens à separação de uma vez?')) return;
+  var novos = 0, ja = 0;
+  ids.forEach(function(id){
+    var it = ITENS[+id];
+    if(!it) return;
+    var existe = S.sep.some(function(s){ return s.f === it.f && s.c === it.c; });
+    if(existe){ ja++; return; }
+    S.sep.push({f:it.f, c:it.c, qtd:1, ok:false});
+    novos++;
+  });
+  store('sep', S.sep); badge();
+  S.selec = {};
+  render();
+  avisar(novos + ' ' + plural(novos,'item enviado','itens enviados') + ' para a separação' +
+         (ja ? ' · ' + ja + ' já ' + plural(ja,'estava','estavam') + ' na lista' : ''));
+}
+
 function renderProd(){
   var todos = buscar(), cc = {sim:0, nao:0, sem:0};
   todos.forEach(function(it){ cc[catControle(it)]++; });
@@ -888,13 +991,15 @@ function renderProd(){
   for(var i=0;i<n;i++){ if(r[i].saldo>0){ comSaldo++; valor+=r[i].valor; } }
   cont.innerHTML = '<span>'+n.toLocaleString('pt-BR')+' '+plural(n,'item','itens')+
     (n>150?' · mostrando 150':'')+'</span>'+(SEM_CUSTOS?'':'<span>'+nm(valor)+'</span>');
-  lista.innerHTML = chipsControle(cc) + (n===0
+  ULTIMOS_PROD = r.filter(selecionavel).map(function(it){ return it.id; });
+  lista.innerHTML = chipsControle(cc) + barraSelecao() + (n===0
     ? '<p class="empty"><b>Nada encontrado</b>' +
       (S.ctrl && todos.length
         ? 'Nenhum destes produtos está em “' + {sim:'Contr. Endereço: Sim', nao:'Contr. Endereço: Nao', sem:'fora da SBZ'}[S.ctrl] + '”.'
         : 'Tente o código do produto, parte da descrição ou o endereço (ex.: A01-B03).') +
       (S.comSaldo?'<br>O filtro “Só com saldo” está ligado.':'')+'</p>'
-    : lim.map(cardHTML).join(''));
+    : lim.map(linhaProduto).join(''));
+  ajustarParcial();
   mostrarEscolhido();
 }
 
@@ -1349,6 +1454,8 @@ lista.addEventListener('click', function(e){
   if(e.target.closest('#imp-inv')){ imprimirInventario(ULTIMOS_INV); return; }
   var ui = e.target.closest('[data-impinv]');
   if(ui){ imprimirInventario(ULTIMOS_INV.filter(function(g){ return g.k === ui.dataset.impinv; })); return; }
+  if(e.target.closest('#sel-separar')){ separarSelecionados(); return; }
+  if(e.target.closest('#sel-limpar')){ S.selec = {}; render(); return; }
   var ct = e.target.closest('[data-ctrl]');
   if(ct){ S.ctrl = ct.dataset.ctrl || null; render(); return; }
   var tp = e.target.closest('[data-tipo]');
@@ -1379,6 +1486,19 @@ lista.addEventListener('input', function(e){
   }
 });
 lista.addEventListener('change', function(e){
+  if(e.target.matches('[data-sel]')){
+    var id = +e.target.dataset.sel;
+    if(e.target.checked) S.selec[id] = 1; else delete S.selec[id];
+    e.target.closest('.linha-sel').classList.toggle('on', e.target.checked);
+    atualizarBarra();
+    return;
+  }
+  if(e.target.id === 'selall'){
+    var marcar = e.target.checked;
+    ULTIMOS_PROD.forEach(function(id){ if(marcar) S.selec[id] = 1; else delete S.selec[id]; });
+    render();
+    return;
+  }
   if(e.target.id === 'cega'){ S.cega = e.target.checked; return; }
   if(e.target.matches('[data-i]')){ S.sep[+e.target.dataset.i].ok = e.target.checked; store('sep',S.sep); render(); }
   if(e.target.matches('[data-q]')){ S.sep[+e.target.dataset.q].qtd = e.target.value; store('sep',S.sep); }
