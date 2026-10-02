@@ -284,6 +284,8 @@ main{padding:14px 14px 92px}
 .rua:hover{border-color:var(--line-2)}
 .rua[aria-pressed="true"]{background:var(--steel); border-color:var(--steel); color:var(--loc)}
 .rua i{font-style:normal; font-weight:400; color:var(--muted); font-size:11px; margin-left:5px}
+.rua.txt{font-family:var(--sans); letter-spacing:0}
+.ctrlrow{margin-top:-4px}
 .rua[aria-pressed="true"] i{color:var(--steel-muted)}
 .locgroup{margin-bottom:14px}
 .locgroup > h3{
@@ -629,7 +631,7 @@ var RUAKEYS = Object.keys(RUAS).sort(function(a,b){
 /* ---------- estado ---------- */
 var S = {
   tab:'prod', q:'', fil: store('fil') || '', comSaldo: store('comSaldo')!==false,
-  sel:null, rua:null, invDia:null, invTipo:null, cega:false, sep: store('sep') || []
+  sel:null, rua:null, ctrl:null, invDia:null, invTipo:null, cega:false, sep: store('sep') || []
 };
 
 /* ---------- filtros ---------- */
@@ -686,6 +688,28 @@ function buscar(){
 }
 
 /* ---------- cartões ---------- */
+function catControle(it){ return it.ctrl === true ? 'sim' : it.ctrl === false ? 'nao' : 'sem'; }
+
+function chipsControle(cont){
+  var ops = [['', 'Todos', cont.sim + cont.nao + cont.sem],
+             ['sim', 'Controla', cont.sim],
+             ['nao', 'Não controla', cont.nao],
+             ['sem', 'Sem indicador', cont.sem]];
+  var h = '<div class="ruas ctrlrow">';
+  ops.forEach(function(o){
+    if(o[0] === 'sem' && !o[2] && S.ctrl !== 'sem') return;   // so aparece se existir
+    h += '<button class="rua txt" data-ctrl="' + o[0] + '" aria-pressed="' +
+         ((S.ctrl || '') === o[0] ? 'true' : 'false') + '">' + o[1] +
+         '<i>' + o[2].toLocaleString('pt-BR') + '</i></button>';
+  });
+  return h + '</div>';
+}
+
+function mostrarEscolhido(){
+  var linha = lista.querySelector('.ctrlrow'), ativo = linha && linha.querySelector('[aria-pressed="true"]');
+  if(ativo && ativo.offsetLeft + ativo.offsetWidth > linha.clientWidth) linha.scrollLeft = ativo.offsetLeft - 14;
+}
+
 function etiquetaControle(it){
   if(it.ctrl === true)  return '<span class="flag ctrl" title="Indicador da SBZ">controla endereço</span>';
   if(it.ctrl === false) return '<span class="flag nctrl" title="Indicador da SBZ">não controla endereço</span>';
@@ -855,15 +879,22 @@ function render(){
 }
 
 function renderProd(){
-  var r = buscar(), n = r.length, lim = r.slice(0,150);
+  var todos = buscar(), cc = {sim:0, nao:0, sem:0};
+  todos.forEach(function(it){ cc[catControle(it)]++; });
+  var r = S.ctrl ? todos.filter(function(it){ return catControle(it) === S.ctrl; }) : todos;
+  var n = r.length, lim = r.slice(0,150);
   var comSaldo = 0, valor = 0;
   for(var i=0;i<n;i++){ if(r[i].saldo>0){ comSaldo++; valor+=r[i].valor; } }
   cont.innerHTML = '<span>'+n.toLocaleString('pt-BR')+' '+plural(n,'item','itens')+
     (n>150?' · mostrando 150':'')+'</span>'+(SEM_CUSTOS?'':'<span>'+nm(valor)+'</span>');
-  lista.innerHTML = n===0
-    ? '<p class="empty"><b>Nada encontrado</b>Tente o código do produto, parte da descrição ou o endereço (ex.: A01-B03).'+
+  lista.innerHTML = chipsControle(cc) + (n===0
+    ? '<p class="empty"><b>Nada encontrado</b>' +
+      (S.ctrl && todos.length
+        ? 'Nenhum destes produtos está em “' + {sim:'controla', nao:'não controla', sem:'sem indicador'}[S.ctrl] + '”.'
+        : 'Tente o código do produto, parte da descrição ou o endereço (ex.: A01-B03).') +
       (S.comSaldo?'<br>O filtro “Só com saldo” está ligado.':'')+'</p>'
-    : lim.map(cardHTML).join('');
+    : lim.map(cardHTML).join(''));
+  mostrarEscolhido();
 }
 
 function renderEnd(){
@@ -875,13 +906,16 @@ function renderEnd(){
     for(var i=0;i<termos.length;i++) if(it.idx.indexOf(termos[i])<0) return false;
     return true;
   }
-  var grupos = [];
+  var grupos = [], vistos = {sim:{}, nao:{}, sem:{}};
   LOCS.forEach(function(L){
     if(S.rua && L.split('-')[0]!==S.rua) return;
     var porEndereco = q && L.indexOf(q)>=0;
     var its = PORLOC[L].filter(function(x){
       if(S.fil && FIL[x.it.f]!==S.fil) return false;
-      return porEndereco || casaItem(x.it);
+      if(!(porEndereco || casaItem(x.it))) return false;
+      var cat = catControle(x.it);
+      vistos[cat][x.it.id] = 1;
+      return !S.ctrl || cat === S.ctrl;
     });
     if(its.length) grupos.push({L:L, its:its, pref: q && L.indexOf(q)===0 ? 0 : 1});
   });
@@ -894,6 +928,8 @@ function renderEnd(){
          '<i>'+RUAS[r].length+'</i></button>';
   });
   h += '</div>';
+  h += chipsControle({sim:Object.keys(vistos.sim).length, nao:Object.keys(vistos.nao).length,
+                      sem:Object.keys(vistos.sem).length});
 
   ULTIMOS_GRUPOS = grupos;
   cont.innerHTML = '<span>'+grupos.length+' '+plural(grupos.length,'endereço','endereços')+' com material'+
@@ -904,7 +940,12 @@ function renderEnd(){
       '</button></div>';
   }
   if(!grupos.length){
-    h += '<p class="empty"><b>Nenhum endereço aqui</b>Escolha outra rua, limpe a busca ou troque a filial.</p>';
+    h += S.ctrl === 'nao'
+      ? '<p class="empty"><b>Nenhum produto endereçado deixa de controlar endereço</b>' +
+        'Todo produto que está num endereço aqui é marcado na SBZ como “controla endereço”. ' +
+        'Os que não controlam ficam no armazém sem posição — veja na aba Produtos.</p>'
+      : '<p class="empty"><b>Nenhum endereço aqui</b>Escolha outra rua, limpe a busca, troque a filial' +
+        (S.ctrl ? ' ou o filtro de controle de endereço' : '') + '.</p>';
   }
   grupos.slice(0,120).forEach(function(g){
     h += '<div class="locgroup"><h3>'+esc(g.L)+'<span class="dir">'+g.its.length+' '+
@@ -923,6 +964,7 @@ function renderEnd(){
   lista.innerHTML = h;
   var nova = lista.querySelector('.ruas');
   if(nova && rolagem) nova.scrollLeft = rolagem;
+  mostrarEscolhido();
 }
 
 var ULTIMOS_GRUPOS = [];
@@ -1317,6 +1359,8 @@ lista.addEventListener('click', function(e){
   if(e.target.closest('#imp-inv')){ imprimirInventario(ULTIMOS_INV); return; }
   var ui = e.target.closest('[data-impinv]');
   if(ui){ imprimirInventario(ULTIMOS_INV.filter(function(g){ return g.k === ui.dataset.impinv; })); return; }
+  var ct = e.target.closest('[data-ctrl]');
+  if(ct){ S.ctrl = ct.dataset.ctrl || null; render(); return; }
   var tp = e.target.closest('[data-tipo]');
   if(tp){ S.invTipo = tp.dataset.tipo || null; render(); return; }
   var dd = e.target.closest('[data-dia]');
