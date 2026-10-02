@@ -285,7 +285,8 @@ main{padding:14px 14px 92px}
 .rua[aria-pressed="true"]{background:var(--steel); border-color:var(--steel); color:var(--loc)}
 .rua i{font-style:normal; font-weight:400; color:var(--muted); font-size:11px; margin-left:5px}
 .rua.txt{font-family:var(--sans); letter-spacing:0}
-.ctrlrow{margin-top:-4px}
+.ctrlrow{margin-top:-4px; align-items:center}
+.ctrlrot{flex:none; font-size:12px; font-weight:700; color:var(--muted); margin-right:2px; white-space:nowrap}
 .rua[aria-pressed="true"] i{color:var(--steel-muted)}
 .locgroup{margin-bottom:14px}
 .locgroup > h3{
@@ -692,10 +693,10 @@ function catControle(it){ return it.ctrl === true ? 'sim' : it.ctrl === false ? 
 
 function chipsControle(cont){
   var ops = [['', 'Todos', cont.sim + cont.nao + cont.sem],
-             ['sim', 'Controla', cont.sim],
-             ['nao', 'Não controla', cont.nao],
-             ['sem', 'Sem indicador', cont.sem]];
-  var h = '<div class="ruas ctrlrow">';
+             ['sim', 'Sim', cont.sim],
+             ['nao', 'Nao', cont.nao],
+             ['sem', 'Fora da SBZ', cont.sem]];
+  var h = '<div class="ruas ctrlrow"><span class="ctrlrot">Contr. Endereço</span>';
   ops.forEach(function(o){
     if(o[0] === 'sem' && !o[2] && S.ctrl !== 'sem') return;   // so aparece se existir
     h += '<button class="rua txt" data-ctrl="' + o[0] + '" aria-pressed="' +
@@ -711,15 +712,15 @@ function mostrarEscolhido(){
 }
 
 function etiquetaControle(it){
-  if(it.ctrl === true)  return '<span class="flag ctrl" title="Indicador da SBZ">controla endereço</span>';
-  if(it.ctrl === false) return '<span class="flag nctrl" title="Indicador da SBZ">não controla endereço</span>';
-  return '<span class="flag sctrl" title="Produto sem registro na SBZ">sem indicador</span>';
+  if(it.ctrl === true)  return '<span class="flag ctrl" title="Campo Contr.Endere da SBZ">Contr. Endereço: Sim</span>';
+  if(it.ctrl === false) return '<span class="flag nctrl" title="Campo Contr.Endere da SBZ">Contr. Endereço: Nao</span>';
+  return '<span class="flag sctrl" title="Produto sem registro na SBZ">Contr. Endereço: fora da SBZ</span>';
 }
 
 function cardHTML(it){
   var loc;
   if(it.ends.length===0) loc = it.saldo<=0 ? ''
-    : it.naoCtrl ? '<span class="flag nctrl">não controla endereço</span>'
+    : it.naoCtrl ? '<span class="flag nctrl">Contr. Endereço: Nao</span>'
     : '<span class="loc none">sem endereço</span>';
   else{
     loc = '<span class="loc">'+esc(it.ends[0].e)+'</span>';
@@ -758,7 +759,7 @@ function abrir(id){
     '<button class="btn" id="addsep">Separar</button>'+
     '<button class="btn ghost" id="copiar">Copiar código</button></div>';
 
-  var linhaCtrl = '<div class="locrow"><span style="color:var(--muted);font-size:13px">Controle de endereço</span>' +
+  var linhaCtrl = '<div class="locrow"><span style="color:var(--muted);font-size:13px">Indicador da SBZ</span>' +
     '<span style="margin-left:auto">' + etiquetaControle(it) + '</span></div>';
   if(it.ends.length){
     h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl;
@@ -777,8 +778,8 @@ function abrir(id){
   } else if(it.saldo>0 && it.naoCtrl){
     h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl +
          '<div class="locrow"><span class="arm">armazém</span><span class="qn">'+nq(it.saldo)+'</span></div>'+
-         '<div class="locrow"><span style="font-size:12.5px;color:var(--muted)">Este produto não controla endereço, '+
-         'então fica no armazém sem posição definida. Não é pendência.</span></div></div>';
+         '<div class="locrow"><span style="font-size:12.5px;color:var(--muted)">Contr. Endereço = Nao: o produto '+
+         'fica no armazém sem posição definida. Não é pendência.</span></div></div>';
   } else if(it.saldo>0){
     h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl + '<div class="locrow">'+
          '<span class="loc none">sem endereço cadastrado</span>'+
@@ -890,7 +891,7 @@ function renderProd(){
   lista.innerHTML = chipsControle(cc) + (n===0
     ? '<p class="empty"><b>Nada encontrado</b>' +
       (S.ctrl && todos.length
-        ? 'Nenhum destes produtos está em “' + {sim:'controla', nao:'não controla', sem:'sem indicador'}[S.ctrl] + '”.'
+        ? 'Nenhum destes produtos está em “' + {sim:'Contr. Endereço: Sim', nao:'Contr. Endereço: Nao', sem:'fora da SBZ'}[S.ctrl] + '”.'
         : 'Tente o código do produto, parte da descrição ou o endereço (ex.: A01-B03).') +
       (S.comSaldo?'<br>O filtro “Só com saldo” está ligado.':'')+'</p>'
     : lim.map(cardHTML).join(''));
@@ -941,9 +942,9 @@ function renderEnd(){
   }
   if(!grupos.length){
     h += S.ctrl === 'nao'
-      ? '<p class="empty"><b>Nenhum produto endereçado deixa de controlar endereço</b>' +
-        'Todo produto que está num endereço aqui é marcado na SBZ como “controla endereço”. ' +
-        'Os que não controlam ficam no armazém sem posição — veja na aba Produtos.</p>'
+      ? '<p class="empty"><b>Nenhum produto endereçado tem Contr. Endereço = Nao</b>' +
+        'Todo produto que está num endereço aqui tem Contr. Endereço = Sim na SBZ. ' +
+        'Os que têm Nao ficam no armazém sem posição — veja na aba Produtos.</p>'
       : '<p class="empty"><b>Nenhum endereço aqui</b>Escolha outra rua, limpe a busca, troque a filial' +
         (S.ctrl ? ' ou o filtro de controle de endereço' : '') + '.</p>';
   }
