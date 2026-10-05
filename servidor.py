@@ -25,9 +25,6 @@ import http.server
 import socketserver
 import subprocess
 import urllib.parse
-import urllib.request
-import urllib.error
-import json
 
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 PASTA_DADOS = os.path.join(RAIZ, "dados")
@@ -43,19 +40,6 @@ PASTA_SAIDA = RAIZ   # o app e gerado na propria pasta do projeto
 #  envio automatico nunca pergunta senha.
 # ---------------------------------------------------------------------
 ENVIAR_PARA_O_GITHUB = True
-
-# ---------------------------------------------------------------------
-#  JARVIS - assistente com IA
-#
-#  A chave da API fica SO neste computador, no arquivo jarvis_chave.txt
-#  (ou na variavel de ambiente ANTHROPIC_API_KEY). Ela nunca vai para o
-#  navegador nem para o GitHub: o servidor faz a ponte com a IA.
-#
-#  MODELO_JARVIS: o modelo usado. Troque aqui se quiser outro.
-# ---------------------------------------------------------------------
-MODELO_JARVIS = "claude-sonnet-5"
-ARQUIVO_CHAVE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jarvis_chave.txt")
-URL_API = os.environ.get("JARVIS_URL_API", "https://api.anthropic.com/v1/messages")
 
 PORTA = int(os.environ.get("PORTA", "8080"))
 INTERVALO = 2  # segundos entre cada checagem da pasta
@@ -180,73 +164,6 @@ def meu_ip():
         return None
 
 
-def chave_jarvis():
-    chave = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if chave:
-        return chave
-    try:
-        with open(ARQUIVO_CHAVE, encoding="utf-8-sig") as f:
-            for linha in f:
-                linha = linha.strip()
-                if linha and not linha.startswith("#"):
-                    return linha
-    except OSError:
-        pass
-    return ""
-
-
-def _traduzir_erro(status, mensagem):
-    if status == 401:
-        return "A chave do Jarvis foi recusada. Confira o arquivo jarvis_chave.txt."
-    if status == 403:
-        return "A chave nao tem permissao para usar a API."
-    if status == 404 and "model" in mensagem.lower():
-        return "Modelo nao encontrado (%s). Troque MODELO_JARVIS no servidor.py." % MODELO_JARVIS
-    if status == 429:
-        return "Limite de uso da API atingido. Espere um pouco e tente de novo."
-    if status in (500, 529) or "overloaded" in mensagem.lower():
-        return "A API esta sobrecarregada agora. Tente de novo em instantes."
-    if status == 400 and ("credit" in mensagem.lower() or "billing" in mensagem.lower()):
-        return "A conta da API esta sem credito."
-    return "A API respondeu com erro %s: %s" % (status, mensagem)
-
-
-def perguntar_ao_claude(corpo):
-    """Recebe system, messages e tools do navegador e repassa para a API.
-    O navegador nao escolhe modelo, limite nem endereco: so a conversa."""
-    chave = chave_jarvis()
-    if not chave:
-        return 503, {"erro": "O Jarvis esta sem chave. Crie o arquivo jarvis_chave.txt na pasta "
-                             "do projeto, com a chave da API na primeira linha, e ligue o servidor de novo."}
-    mensagens = corpo.get("messages")
-    if not isinstance(mensagens, list) or not mensagens:
-        return 400, {"erro": "Conversa vazia."}
-    pedido = {
-        "model": MODELO_JARVIS,
-        "max_tokens": 1500,
-        "system": str(corpo.get("system", ""))[:30000],
-        "messages": mensagens,
-    }
-    if isinstance(corpo.get("tools"), list):
-        pedido["tools"] = corpo["tools"]
-    req = urllib.request.Request(
-        URL_API, data=json.dumps(pedido).encode("utf-8"), method="POST",
-        headers={"content-type": "application/json", "x-api-key": chave,
-                 "anthropic-version": "2023-06-01"})
-    try:
-        with urllib.request.urlopen(req, timeout=120) as r:
-            return 200, json.loads(r.read().decode("utf-8"))
-    except urllib.error.HTTPError as erro:
-        try:
-            detalhe = json.loads(erro.read().decode("utf-8"))
-            mensagem = (detalhe.get("error") or {}).get("message") or str(erro)
-        except Exception:
-            mensagem = str(erro)
-        return erro.code, {"erro": _traduzir_erro(erro.code, mensagem)}
-    except Exception as erro:
-        return 502, {"erro": "Nao consegui falar com a API. Confira a internet deste computador. (%s)" % erro}
-
-
 class Servidor(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=PASTA_SAIDA, **kwargs)
@@ -262,40 +179,7 @@ class Servidor(http.server.SimpleHTTPRequestHandler):
             return True
         return alvo in build.ARQUIVOS_DO_SITE
 
-    def _json(self, status, obj):
-        corpo = json.dumps(obj, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(corpo)))
-        self.end_headers()
-        self.wfile.write(corpo)
-
-    def do_POST(self):
-        alvo = urllib.parse.unquote(self.path.split("?")[0]).strip("/")
-        if alvo != "jarvis":
-            self.send_error(404, "Nao disponivel")
-            return
-        try:
-            tamanho = int(self.headers.get("Content-Length") or 0)
-        except ValueError:
-            tamanho = 0
-        if tamanho <= 0 or tamanho > 3000000:
-            self._json(413, {"erro": "Conversa grande demais. Comece uma nova conversa."})
-            return
-        try:
-            corpo = json.loads(self.rfile.read(tamanho).decode("utf-8"))
-        except Exception:
-            self._json(400, {"erro": "Pedido invalido."})
-            return
-        status, resposta = perguntar_ao_claude(corpo)
-        self._json(status, resposta)
-
     def do_GET(self):
-        if urllib.parse.unquote(self.path.split("?")[0]).strip("/") == "jarvis/status":
-            ok = bool(chave_jarvis())
-            self._json(200, {"ok": ok, "modelo": MODELO_JARVIS,
-                             "motivo": "" if ok else "sem chave"})
-            return
         if not self._liberado():
             self.send_error(404, "Nao disponivel")
             return
@@ -354,9 +238,7 @@ def principal():
     print("")
     print("  Troque as planilhas na pasta 'dados' e a pagina")
     print("  se atualiza sozinha. Ctrl+C para parar.")
-    print("")
-    print("  Jarvis: %s" % ("ligado (%s)" % MODELO_JARVIS if chave_jarvis()
-                             else "sem chave - crie o arquivo jarvis_chave.txt"))
+
     if ENVIAR_PARA_O_GITHUB:
         print("")
         if os.path.isdir(os.path.join(RAIZ, ".git")):

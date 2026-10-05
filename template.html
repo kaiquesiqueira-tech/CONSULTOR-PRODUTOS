@@ -362,18 +362,20 @@ main{padding:14px 14px 92px}
   .jv .jv-head{padding-top:12px}
   body.jv-aberto main{max-width:none; margin:0 440px 0 0}
 }
-.jv-m .jv-ir{display:inline-flex; align-items:center; gap:6px; margin-top:10px; padding:9px 14px; border-radius:9px;
-  background:var(--steel); color:var(--loc); font-weight:700; font-size:13.5px; text-decoration:none;
-  border:1px solid rgba(245,197,24,.5); white-space:nowrap}
-.jv-m .jv-ir:hover{border-color:var(--loc)}
-.jv-m.ele i.corte{display:block; margin-top:6px; color:var(--muted); font-size:12px}
-.jv-form #jv-parar{background:var(--alert); color:#fff}
-.jv-form #jv-parar[hidden], .jv-form #jv-enviar[hidden]{display:none}
-.atualizar{display:flex; justify-content:center; margin:2px 0 6px}
-.atualizar[hidden]{display:none}
-.atualizar button{border:1px dashed var(--line-2); background:transparent; color:var(--muted); border-radius:8px;
-  padding:7px 12px; font-size:12.5px; font-weight:600}
-.atualizar button:hover{color:var(--act); border-color:var(--act)}
+.jv-m.rico{white-space:normal; max-width:94%}
+.jv-m .jt{font-weight:700; line-height:1.35; margin-bottom:7px}
+.jv-m .jfil{font-family:var(--mono); font-size:11px; font-weight:500; color:var(--muted); white-space:nowrap}
+.jv-m .jfoco{margin-bottom:8px}
+.jv-m .jl{margin:4px 0; font-size:13.5px}
+.jv-m .jl > b{font-size:11.5px; font-weight:700; color:var(--muted); margin-right:3px}
+.jv-m .jl i, .jv-m .jnota i{color:var(--muted); font-style:normal; font-size:12px}
+.jv-m .jlista{margin:4px 0 0; padding:0; list-style:none}
+.jv-m .jlista li{padding:7px 0; border-top:1px solid var(--line); font-size:13.5px; line-height:1.4}
+.jv-m .jsub{font-size:12px; color:var(--muted)}
+.jv-m .jnota{font-size:12.5px; color:var(--muted); margin-top:8px}
+.jv-m .loc{font-size:11.5px; padding:2px 6px}
+.jv-m a.prod{font-family:var(--mono); font-weight:600; color:var(--act); text-decoration:underline; cursor:pointer}
+.jv-m a.ir{color:var(--act); font-weight:600; text-decoration:underline; cursor:pointer}
 .btn.jv-perg{width:100%; margin-bottom:10px; color:var(--steel); border-color:var(--loc-edge);
   background:rgba(245,197,24,.12)}
 .btn.jv-perg svg{vertical-align:-2px; margin-right:6px}
@@ -511,7 +513,7 @@ main{padding:14px 14px 92px}
 
 /* ============ impressao ============ */
 @media print{
-  .top,.tabs,.btnrow,.sep .x,.sep .chk,.count,.rodape,.atualizar,.jv,.jv-abrir,.toast{display:none !important}
+  .top,.tabs,.btnrow,.sep .x,.sep .chk,.count,.rodape,.jv,.jv-abrir,.toast{display:none !important}
   .qtyin,.obsin{display:none !important}
   .so-imprime{display:block}
   .so-imprime.qtd{display:inline-block; margin-left:auto; font-family:var(--mono);
@@ -612,10 +614,6 @@ main{padding:14px 14px 92px}
     <div class="count" id="count"></div>
     <div class="list" id="lista"></div>
     <p class="rodape" id="rodape"></p>
-    <div class="atualizar" id="atualizar" hidden>
-      <button type="button" id="atualizar-btn">Atualizar a base deste app</button>
-      <input type="file" id="atualizar-arq" accept=".html,text/html" hidden>
-    </div>
   </div>
   <div class="col2">
     <section class="panel" id="panel" aria-live="polite">
@@ -637,7 +635,7 @@ main{padding:14px 14px 92px}
     <button class="iconbtn" id="jv-fechar" aria-label="Fechar o Jarvis">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
-    <h2>JARVIS<small id="jv-status">assistente do almoxarifado</small></h2>
+    <h2>JARVIS<small id="jv-status">responde com os dados da base</small></h2>
     <button class="iconbtn" id="jv-novo" title="Nova conversa" aria-label="Nova conversa">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
     </button>
@@ -645,9 +643,6 @@ main{padding:14px 14px 92px}
   <div class="jv-msgs" id="jv-msgs" aria-live="polite"></div>
   <div class="jv-form">
     <textarea id="jv-texto" rows="1" placeholder="Pergunte sobre um produto…" aria-label="Pergunta para o Jarvis"></textarea>
-    <button type="button" id="jv-parar" aria-label="Parar a resposta" title="Parar" hidden>
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-    </button>
     <button type="button" id="jv-enviar" aria-label="Enviar">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
     </button>
@@ -936,8 +931,7 @@ function abrir(id){
   if(window.innerWidth < 860) document.body.classList.add('locked');
   document.getElementById('addsep').addEventListener('click', function(){ addSep(it); });
   document.getElementById('jv-perg').addEventListener('click', function(){
-    abrirJarvis('Me fale sobre o produto ' + it.c + ' da filial ' + FIL[it.f] + ' (' + (it.d || 'sem descrição') +
-                '): para que serve e onde ele é aplicado?');
+    abrirJarvis(null, it);
   });
   document.getElementById('copiar').addEventListener('click', function(e){
     var botao = e.currentTarget;
@@ -1622,496 +1616,491 @@ function medirTopo(){
 }
 window.addEventListener('resize', medirTopo);
 /* ======================================================================
-   JARVIS — assistente com IA.
-   A conversa vai para o servidor local (/jarvis), que guarda a chave e
-   repassa para a API. As ferramentas rodam aqui, em cima da base do app.
+   JARVIS — responde perguntas com os dados da base.
+   Sem IA, sem internet e sem chave: entende a pergunta por palavras-chave
+   (código, endereço, equipamento, nota, palavras da descrição) e monta a
+   resposta com o que está na base.
    ====================================================================== */
-var JV = {hist: [], ocupado: false, estado: null};
+var JV = {ultimos: []};
 var jvPainel = document.getElementById('jv'), jvMsgs = document.getElementById('jv-msgs');
 var jvTexto = document.getElementById('jv-texto'), jvEnviar = document.getElementById('jv-enviar');
-var jvStatus = document.getElementById('jv-status');
 
-var JV_FERRAMENTAS = [
-  {name: 'buscar_produtos',
-   description: 'Procura produtos na base de estoque por código (inteiro ou parte) ou por palavras da descrição, ' +
-     'por exemplo "filtro ar d6t", "fleetguard", "010200003". Devolve até 12 produtos com filial, descrição, saldo, ' +
-     'disponível, endereços e o indicador Contr. Endereço da SBZ. Use antes de responder sobre qualquer produto.',
-   input_schema: {type: 'object', properties: {
-     termo: {type: 'string', description: 'Código ou palavras da descrição'},
-     filial: {type: 'string', description: 'Código da filial (ex.: 020102). Opcional.'},
-     so_com_saldo: {type: 'boolean', description: 'true para trazer só produtos com saldo. Padrão: false.'}},
-     required: ['termo']}},
-  {name: 'detalhar_produto',
-   description: 'Detalhe completo de um produto pelo código: saldo por armazém, endereços, empenho, última saída, ' +
-     'último movimento, custo (se a base tiver), Contr. Endereço, as saídas recentes com o equipamento ou setor de ' +
-     'destino e o endereço de onde saiu (é daqui que vem a aplicação real na empresa), e notas pendentes de endereçamento.',
-   input_schema: {type: 'object', properties: {
-     codigo: {type: 'string', description: 'Código do produto, 9 dígitos'},
-     filial: {type: 'string', description: 'Código da filial. Opcional.'}},
-     required: ['codigo']}},
-  {name: 'saidas_por_destino',
-   description: 'Lista os produtos que saíram para um equipamento ou setor, conforme as movimentações internas da base ' +
-     '(por exemplo "EH-07", "CB-23", "OFICINA", "BORRACHARIA"). Use para perguntas como "o que foi aplicado na EH-07".',
-   input_schema: {type: 'object', properties: {
-     destino: {type: 'string', description: 'Código do equipamento ou nome do setor'}},
-     required: ['destino']}}
-];
+var JV_VAZIAS = {};
+('A O AS OS DE DO DA DOS DAS E EM NO NA NOS NAS UM UMA UNS UMAS AO AOS PRO PRA PARA POR PELO PELA QUE QUAL ' +
+ 'QUAIS ONDE COMO QUANDO QUANTO QUANTOS QUANTA QUANTAS TEM TEMOS TENHO TINHA HA EXISTE ESTA ESTAO FICA FICAM ' +
+ 'ME MIM NOS FALE FALA DIGA DIZ SOBRE MOSTRA MOSTRE MOSTRAR VER QUERO QUERIA SABER PODE PODERIA VOCE SABE ' +
+ 'PRODUTO PRODUTOS ITEM ITENS MATERIAL MATERIAIS PECA PECAS COISA COISAS CODIGO ' +
+ 'SERVE SERVEM APLICADO APLICADA APLICADOS APLICADAS APLICACAO APLICA USADO USADA USA UTILIZADO ' +
+ 'ESTOQUE SALDO DISPONIVEL ENDERECO ENDERECOS ENDERECADO GUARDADO GUARDADA LOCAL LOCALIZACAO ' +
+ 'ELE ELA ELES ELAS ESSE ESSA ESSES ESSAS ISSO ESTE ESTES DELE DELA DELES AQUI LA AI ENTAO TAMBEM AINDA ' +
+ 'AGORA FILIAL FILIAIS COM SEM MAIS MENOS MUITO POUCO TUDO TODO TODOS TODA TODAS ALGUM ALGUMA NADA SO ' +
+ 'SAIU SAIRAM SAIDA SAIDAS FOI FORAM VAI MANDADO MANDADA MANDARAM EQUIPAMENTO EQUIPAMENTOS DESTINO ' +
+ 'NOTA NOTAS NF PENDENTE PENDENTES ENDERECAR RUA PRATELEIRA ULTIMA ULTIMO VEZ DIA DIAS HOJE ONTEM QUE ' +
+ 'OI OLA BOM BOA TARDE NOITE OBRIGADO OBRIGADA FAVOR EH SAO SER TA TO TAO').split(' ')
+  .forEach(function(p){ JV_VAZIAS[p] = 1; });
 
+/* ---------- índices montados uma vez ---------- */
+var JV_MOV = {}, JV_PEND = {}, JV_DEST = {}, JV_LOCSET = {}, JV_RUASET = {};
+(D.movimentos || []).forEach(function(m){
+  (JV_MOV[m[0] + '|' + m[1]] = JV_MOV[m[0] + '|' + m[1]] || []).push(m);
+  if(m[12]) JV_DEST[m[12]] = 1;
+});
+(D.pendentes || []).forEach(function(p){
+  (JV_PEND[p[0] + '|' + p[1]] = JV_PEND[p[0] + '|' + p[1]] || []).push(p);
+});
+var JV_DESTINOS = Object.keys(JV_DEST).map(function(n){
+  var nn = norm(n);
+  return {nome: n, chave: nn.replace(/[^A-Z0-9]/g, ''), palavras: nn.split(/[^A-Z0-9]+/).filter(Boolean)};
+});
+LOCS.forEach(function(L){ JV_LOCSET[norm(L)] = L; });
+RUAKEYS.forEach(function(r){ JV_RUASET[norm(r)] = r; });
+var JV_DIAS = (function(){
+  var s = {};
+  (D.movimentos || []).forEach(function(m){ if(m[7]) s[m[7]] = 1; });
+  return Object.keys(s).map(Number).sort(function(a, b){ return a - b; });
+})();
+
+/* ---------- utilidades ---------- */
+function jvDiaCurto(n){ var d = data(n); return d.slice(0, 5); }
 function jvDiasDaBase(){
-  var dias = {};
-  (D.movimentos || []).forEach(function(m){ if(m[7]) dias[m[7]] = 1; });
-  return Object.keys(dias).map(Number).sort().map(data);
+  if(!JV_DIAS.length) return 'nenhum dia';
+  return JV_DIAS.length === 1 ? jvDiaCurto(JV_DIAS[0]) : jvDiaCurto(JV_DIAS[0]) + ' a ' + jvDiaCurto(JV_DIAS[JV_DIAS.length - 1]);
+}
+function jvProd(it){ return '<a class="prod" data-abrir="' + it.id + '">' + it.c + '</a>'; }
+function jvLoc(e){ return '<span class="loc">' + esc(e) + '</span>'; }
+function jvPerg(t){ return '<button type="button" data-perg="' + esc(t) + '">' + esc(t) + '</button>'; }
+function jvLinha(rotulo, html){ return '<div class="jl"><b>' + rotulo + '</b> ' + html + '</div>'; }
+function jvLista(itens){ return '<ul class="jlista">' + itens.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul>'; }
+
+function jvCasa(it, t){
+  var alvo = it.idx;
+  if(t.length <= 3){
+    if(!jvCasa.re[t]) jvCasa.re[t] = new RegExp('(^|[^A-Z0-9])' + t.replace(/[^A-Z0-9]/g, '') + '([^A-Z0-9]|$)');
+    return jvCasa.re[t].test(alvo);
+  }
+  if(alvo.indexOf(t) >= 0) return true;
+  return t.length > 4 && t.charAt(t.length - 1) === 'S' && alvo.indexOf(t.slice(0, -1)) >= 0;
+}
+jvCasa.re = {};
+
+/* aplicação e uso escritos na própria descrição */
+function jvDaDescricao(d){
+  d = norm(d || '');
+  var r = {aplicacao: '', serve: ''};
+  var m = d.match(/APLICACAO\s*:?\s*(.+)$/) || d.match(/\b(?:USAD[OA]|UTILIZAD[OA])\s+(?:N[OA]S?|EM)\s+(.+)$/);
+  if(m) r.aplicacao = m[1].replace(/\s+/g, ' ').trim();
+  m = d.match(/\bP\/\s*(.+)$/) || d.match(/\bPARA\s+(.+)$/);
+  if(m && m[1].indexOf('APLICACAO') < 0) r.serve = m[1].replace(/\s+/g, ' ').trim();
+  else if(m) r.serve = m[1].split('APLICACAO')[0].trim();
+  return r;
 }
 
-function jvSistema(){
-  var dias = jvDiasDaBase();
-  return [
-    'Você é o Jarvis, assistente do almoxarifado de uma operação de mineração. Você trabalha dentro do app ' +
-    'Consulta de Estoque, cuja base é exportada do ERP Protheus.',
-    '',
-    'Base atual: gerada em ' + D.gerado.split('-').reverse().join('/') + '. Filiais: ' + FIL.join(', ') + '. ' +
-    'As saídas (movimentações internas) da base cobrem: ' + (dias.length ? dias.join(', ') : 'nenhum dia') + '. ' +
-    (SEM_CUSTOS ? 'A base está sem custos: não informe valores.' : 'A base tem custo unitário e valor em estoque.'),
-    '',
-    'Como responder:',
-    '- Para qualquer pergunta sobre produto, consulte as ferramentas antes de responder. Saldo, endereço, código, ' +
-    'quantidade e datas só podem vir das ferramentas. Nunca invente esses números.',
-    '- "Onde é aplicado" tem duas fontes, e você deve dizer de qual veio cada parte da resposta:',
-    '  1. Dados da empresa: os destinos das saídas (equipamento ou setor, como EH-07, CB-23, OFICINA/BORRACHARIA) ' +
-    'e o texto da própria descrição (por exemplo "APLICACAO: D6T" ou "USADO NO D7").',
-    '  2. Conhecimento técnico geral: para que serve aquele tipo de peça e onde costuma ser usada. Deixe claro que é ' +
-    'conhecimento geral. Quando for um número de peça específico e você não tiver certeza da aplicação, diga que é ' +
-    'uma indicação e que vale confirmar no catálogo do fabricante.',
-    '- Códigos de equipamento como EH-07 ou CB-23 são internos da empresa. Não afirme o modelo do equipamento a não ' +
-    'ser que isso esteja na base.',
-    '- As filiais 02xxxx e 10xxxx têm cadastros diferentes: o mesmo código pode ser outro produto em cada uma.',
-    '- Se a descrição vier vazia ou "(sem descrição)", avise que a exportação veio sem descrição para aquele produto ' +
-    'em vez de adivinhar o que ele é.',
-    '- Responda em português, de forma curta e prática, como quem fala com o pessoal do almoxarifado. Ao citar um ' +
-    'produto, escreva o código de 9 dígitos. Use listas só quando ajudarem.',
-    '- Se não encontrar, diga que não encontrou e sugira outra forma de procurar.'
-  ].join('\n');
+function jvSaidas(it){
+  var ms = JV_MOV[it.f + '|' + it.c] || [], por = {}, ordem = [];
+  ms.forEach(function(m){
+    var k = m[12] || 'destino não informado';
+    if(!por[k]){ por[k] = {destino: k, qtd: 0, un: m[11] || '', dias: {}}; ordem.push(k); }
+    por[k].qtd += m[3]; por[k].dias[jvDiaCurto(m[7])] = 1;
+  });
+  return ordem.map(function(k){ return por[k]; });
 }
 
-function jvResumo(it){
-  return {
-    codigo: it.c, filial: FIL[it.f], descricao: it.d || '(sem descrição)',
-    saldo: it.saldo, empenhado: it.emp, disponivel: it.disp,
-    enderecos: it.ends.slice(0, 6).map(function(e){ return e.e + ' (arm ' + e.arm + ': ' + e.q + ')'; }),
-    contr_endereco: it.ctrl === true ? 'Sim' : it.ctrl === false ? 'Nao' : 'fora da SBZ'
-  };
+/* ---------- entender a pergunta ---------- */
+function jvAnalisar(texto){
+  var q = ' ' + norm(texto) + ' ';
+  var tokens = q.split(/[^A-Z0-9-]+/).filter(Boolean);
+  var a = {q: q, fil: '', codigos: [], numeros: [], enderecos: [], ruas: [], destinos: [], termos: []};
+  var usados = {};
+
+  tokens.forEach(function(t){
+    if(FIL.indexOf(t) >= 0){ a.fil = t; usados[t] = 1; return; }
+    if(/^\d{7,9}$/.test(t)){ a.codigos.push(t.padStart(9, '0')); usados[t] = 1; return; }
+    if(/^\d{3,9}$/.test(t)){ a.numeros.push(t); usados[t] = 1; return; }
+    if(JV_LOCSET[t]){ a.enderecos.push(JV_LOCSET[t]); usados[t] = 1; }
+    if(JV_RUASET[t] && !JV_LOCSET[t]){ a.ruas.push(JV_RUASET[t]); usados[t] = 1; }
+  });
+  LOCS.forEach(function(L){
+    if(L.indexOf(' ') > 0 && q.indexOf(' ' + norm(L) + ' ') >= 0 && a.enderecos.indexOf(L) < 0) a.enderecos.push(L);
+  });
+
+  // equipamento: duas ou três letras e um número (EH-07, CB 23, PC5)
+  var achou = {};
+  q.replace(/(?:^|[^A-Z0-9])([A-Z]{2,3})\s*-?\s*(\d{1,3})(?=[^A-Z0-9]|$)/g, function(_, l, n){
+    var ch = l + (n.length < 2 ? '0' + n : n), bateu = false;
+    JV_DESTINOS.forEach(function(d){ if(d.chave.indexOf(ch) === 0){ achou[d.nome] = 1; bateu = true; } });
+    if(bateu){ usados[l] = 1; usados[n] = 1; usados[l + '-' + n] = 1; usados[l + n] = 1; }
+    return _;
+  });
+  // setor pelo nome, quando a pergunta fala em saída ou aplicação
+  if(/SAIU|SAIRAM|FOI PARA|FORAM PARA|APLICAD|MANDAD|USAD|DESTINO|ENTREG/.test(q)){
+    tokens.forEach(function(t){
+      if(t.length < 3 || JV_VAZIAS[t] || /^\d+$/.test(t)) return;
+      JV_DESTINOS.forEach(function(d){
+        if(d.palavras.indexOf(t) >= 0){ achou[d.nome] = 1; usados[t] = 1; }
+      });
+    });
+  }
+  a.destinos = Object.keys(achou);
+
+  tokens.forEach(function(t){
+    if(usados[t] || JV_VAZIAS[t] || t.length < 2 || /^-+$/.test(t)) return;
+    a.termos.push(t);
+  });
+
+  a.foco = /ONDE|ENDERECO|LOCALIZ|GUARDAD|PRATELEIRA| FICA /.test(q) ? 'onde'
+         : /SERVE|PRA QUE|PARA QUE|O QUE E |FUNCAO/.test(q) ? 'serve'
+         : /APLICA|USAD|UTILIZ|DESTINO|EQUIPAMENTO|SAIU|SAIDA|FOI PARA/.test(q) ? 'aplicacao'
+         : /QUANT|SALDO|DISPONIVEL|TEM EM ESTOQUE|ESTOQUE/.test(q) ? 'quanto' : '';
+  a.pronome = /( ELE | ELA | ESSE | ESSA | ISSO | DELE | DELA | ESTE | ESTA PECA )/.test(q);
+  return a;
 }
 
-function jvFilial(f){ return f ? String(f).replace(/\D/g, '').padStart(6, '0') : ''; }
-
-function jvBuscar(inp){
-  var termos = norm(String(inp.termo || '')).split(/\s+/).filter(Boolean);
-  if(!termos.length) return {erro: 'Informe um código ou uma palavra da descrição.'};
-  var fil = jvFilial(inp.filial), achados = [];
+function jvBuscar(termos, fil){
+  if(!termos.length) return [];
+  var todos = [], parcial = [];
   for(var i = 0; i < ITENS.length; i++){
     var it = ITENS[i];
     if(fil && FIL[it.f] !== fil) continue;
-    if(inp.so_com_saldo && it.saldo <= 0) continue;
-    var ok = true;
-    for(var t = 0; t < termos.length; t++) if(it.idx.indexOf(termos[t]) < 0){ ok = false; break; }
-    if(ok) achados.push(it);
+    var n = 0;
+    for(var j = 0; j < termos.length; j++) if(jvCasa(it, termos[j])) n++;
+    if(n === termos.length) todos.push(it);
+    else if(n && termos.length > 1 && n >= Math.ceil(termos.length / 2)) parcial.push([n, it]);
   }
-  achados.sort(function(a, b){ return (b.saldo > 0) - (a.saldo > 0) || b.saldo - a.saldo; });
-  return {total_encontrado: achados.length, mostrando: Math.min(achados.length, 12),
-          produtos: achados.slice(0, 12).map(jvResumo)};
+  var ordem = function(a, b){ return (b.saldo > 0) - (a.saldo > 0) || b.saldo - a.saldo; };
+  if(todos.length) return todos.sort(ordem);
+  parcial.sort(function(a, b){ return b[0] - a[0] || ordem(a[1], b[1]); });
+  return parcial.map(function(x){ return x[1]; });
 }
 
-function jvDetalhar(inp){
-  var cod = String(inp.codigo || '').replace(/\D/g, '').padStart(9, '0'), fil = jvFilial(inp.filial);
-  var lista_p = ITENS.filter(function(it){ return it.c === cod && (!fil || FIL[it.f] === fil); });
-  if(!lista_p.length) return {erro: 'Produto ' + cod + ' não encontrado' + (fil ? ' na filial ' + fil : '') + '.'};
-  return {produtos: lista_p.slice(0, 6).map(function(it){
-    var r = jvResumo(it);
-    r.por_armazem = it.rows.map(function(x){
-      return {armazem: x[0], saldo: x[1], empenho: x[2], previsto_receber: x[4]}; });
-    r.ultima_saida = it.ultS ? data(it.ultS) : 'sem registro';
-    r.ultimo_movimento = it.ultM ? data(it.ultM) : 'sem registro';
-    if(!SEM_CUSTOS && it.saldo > 0){
-      r.custo_unitario = +(it.valor / it.saldo).toFixed(2);
-      r.valor_em_estoque = +it.valor.toFixed(2);
-    }
-    r.saidas_recentes = (D.movimentos || []).filter(function(m){ return m[0] === it.f && m[1] === it.c; })
-      .slice(0, 20).map(function(m){
-        return {data: data(m[7]), quantidade: m[3], unidade: m[11] || '', destino: m[12] || '',
-                endereco_de_onde_saiu: m[9] || '', centro_custo: m[5] || ''}; });
-    r.pendente_enderecar = (D.pendentes || []).filter(function(p){ return p[0] === it.f && p[1] === it.c; })
-      .map(function(p){ return {nota: p[6], quantidade: p[4], data: data(p[7])}; });
-    return r;
-  })};
+/* ---------- respostas ---------- */
+function jvOndeTexto(it){
+  if(it.ends.length === 1) return 'Fica em ' + jvLoc(it.ends[0].e) + ' (armazém ' + esc(it.ends[0].arm) + ').';
+  if(it.ends.length > 1) return 'Está em ' + it.ends.length + ' endereços: ' +
+    it.ends.slice(0, 4).map(function(e){ return jvLoc(e.e) + ' ' + nq(e.q); }).join(', ') + '.';
+  if(it.saldo <= 0) return 'Está sem saldo, então não tem onde procurar.';
+  if(it.ctrl === false) return 'Não controla endereço: fica no armazém, sem posição definida.';
+  return 'Tem saldo mas <b>está sem endereço cadastrado</b>. Precisa localizar e endereçar.';
 }
 
-function jvDestino(inp){
-  var alvo = norm(String(inp.destino || '')).trim();
-  if(!alvo) return {erro: 'Informe o equipamento ou setor.'};
-  var ag = {}, ordem = [], total = 0;
-  (D.movimentos || []).forEach(function(m){
-    if(norm(m[12] || '').indexOf(alvo) < 0) return;
-    total++;
-    var k = m[0] + '|' + m[1];
-    if(!ag[k]){
-      var it = itemDe(m[0], m[1]);
-      ag[k] = {codigo: m[1], filial: FIL[m[0]], descricao: DESCS[m[2]] || (it ? it.d : '') || '(sem descrição)',
-               quantidade: 0, unidade: m[11] || '', destinos: {}, datas: {}};
-      ordem.push(k);
-    }
-    ag[k].quantidade += m[3]; ag[k].destinos[m[12]] = 1; ag[k].datas[data(m[7])] = 1;
-  });
-  return {movimentos_encontrados: total, dias_cobertos_pela_base: jvDiasDaBase(),
-          produtos: ordem.slice(0, 40).map(function(k){
-            var a = ag[k];
-            return {codigo: a.codigo, filial: a.filial, descricao: a.descricao, quantidade: a.quantidade,
-                    unidade: a.unidade, destino: Object.keys(a.destinos).join(', '), datas: Object.keys(a.datas).join(', ')};
-          })};
-}
+function jvCartao(it, foco){
+  var desc = jvDaDescricao(it.d), saidas = jvSaidas(it), pend = JV_PEND[it.f + '|' + it.c] || [];
+  var h = '<div class="jt">' + jvProd(it) + ' · ' + esc(it.d || '(sem descrição)') +
+          ' <span class="jfil">filial ' + FIL[it.f] + '</span></div>';
 
-function jvExecutar(nome, inp){
-  if(nome === 'buscar_produtos') return jvBuscar(inp);
-  if(nome === 'detalhar_produto') return jvDetalhar(inp);
-  if(nome === 'saidas_por_destino') return jvDestino(inp);
-  return {erro: 'Ferramenta desconhecida: ' + nome};
-}
+  // primeiro, a resposta direta ao que foi perguntado
+  if(foco === 'onde') h += '<div class="jfoco">' + jvOndeTexto(it) + '</div>';
+  else if(foco === 'quanto') h += '<div class="jfoco">' + (it.saldo > 0
+      ? 'Tem <b>' + nq(it.saldo) + '</b> em estoque' + (it.emp > 0 ? ', ' + nq(it.disp) + ' disponíveis (' + nq(it.emp) + ' empenhados)' : ', tudo disponível') + '.'
+      : 'Está <b>sem saldo</b>.' + (it.prev > 0 ? ' Tem ' + nq(it.prev) + ' a receber.' : '')) + '</div>';
+  else if(foco === 'aplicacao'){
+    var partes = [];
+    if(saidas.length) partes.push('Na base, saiu para ' + saidas.map(function(s){ return '<b>' + esc(s.destino) + '</b>'; }).join(', ') + '.');
+    if(desc.aplicacao) partes.push('A descrição diz: aplicação em <b>' + esc(desc.aplicacao) + '</b>.');
+    if(!partes.length) partes.push('A base não registra onde ele é aplicado: não teve saída nos dias da base (' +
+      jvDiasDaBase() + ') e a descrição não traz aplicação.');
+    h += '<div class="jfoco">' + partes.join(' ') + '</div>';
+  }
+  else if(foco === 'serve'){
+    h += '<div class="jfoco">' + (desc.serve
+      ? 'Pela descrição, serve para <b>' + esc(desc.serve) + '</b>.'
+      : 'A base não explica para que ele serve — só tem a descrição acima. ' +
+        'Eu respondo com os dados da base e não tenho conhecimento técnico das peças.') + '</div>';
+  }
 
-function jvRotulo(uso){
-  var i = uso.input || {};
-  if(uso.name === 'buscar_produtos') return 'Consultando o estoque: “' + (i.termo || '') + '”…';
-  if(uso.name === 'detalhar_produto') return 'Abrindo o produto ' + (i.codigo || '') + '…';
-  if(uso.name === 'saidas_por_destino') return 'Vendo o que saiu para ' + (i.destino || '') + '…';
-  return 'Consultando a base…';
-}
-
-function jvFormatar(txt){
-  var h = esc(txt);
-  h = h.replace(/^#{1,4}\s*/gm, '');
-  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>');
-  h = h.replace(/\b(\d{9})\b/g, '<a class="cod" data-cod="$1" title="Ver na lista de produtos">$1</a>');
+  // depois, a ficha resumida
+  h += jvLinha('Saldo', it.saldo > 0
+    ? nq(it.saldo) + ' · disponível ' + nq(it.disp) + (it.emp > 0 ? ' · empenhado ' + nq(it.emp) : '')
+    : 'sem saldo') + (it.prev > 0 ? jvLinha('A receber', nq(it.prev)) : '');
+  if(foco !== 'onde') h += jvLinha('Onde está', it.ends.length
+    ? it.ends.slice(0, 5).map(function(e){ return jvLoc(e.e) + ' arm ' + esc(e.arm) + ': ' + nq(e.q); }).join(' ')
+    : (it.saldo > 0 ? (it.ctrl === false ? 'não controla endereço' : 'sem endereço cadastrado') : '—'));
+  if(foco !== 'aplicacao'){
+    if(saidas.length) h += jvLinha('Saiu para', saidas.map(function(s){
+      return esc(s.destino) + ' (' + nq(s.qtd) + (s.un ? ' ' + esc(s.un) : '') + ', ' + Object.keys(s.dias).join(', ') + ')';
+    }).join('; '));
+    if(desc.aplicacao) h += jvLinha('Aplicação', esc(desc.aplicacao) + ' <i>(da descrição)</i>');
+  } else if(saidas.length){
+    h += jvLinha('Saídas', saidas.map(function(s){
+      return esc(s.destino) + ': ' + nq(s.qtd) + (s.un ? ' ' + esc(s.un) : '') + ' em ' + Object.keys(s.dias).join(', ');
+    }).join('; '));
+  }
+  if(foco !== 'serve' && desc.serve) h += jvLinha('Serve para', esc(desc.serve) + ' <i>(da descrição)</i>');
+  h += jvLinha('Última saída', it.ultS ? data(it.ultS) + ' (' + (HOJE - it.ultS) + ' dias)' : 'sem registro');
+  if(pend.length) h += jvLinha('A endereçar', pend.map(function(p){ return 'NF ' + esc(p[6]) + ': ' + nq(p[4]); }).join('; '));
+  h += jvLinha('Contr. Endereço', it.ctrl === true ? 'Sim' : it.ctrl === false ? 'Nao' : 'fora da SBZ');
   return h;
 }
 
-function jvBalao(tipo, txt){
+function jvVarios(lista_p, foco, cabeca){
+  var mostra = lista_p.slice(0, 8);
+  var h = '<div class="jfoco">' + cabeca + '</div>';
+  h += jvLista(mostra.map(function(it){
+    var extra = '';
+    if(foco === 'aplicacao'){
+      var s = jvSaidas(it), dd = jvDaDescricao(it.d).aplicacao;
+      extra = s.length ? ' · saiu para ' + s.map(function(x){ return esc(x.destino); }).join(', ')
+            : dd ? ' · aplicação: ' + esc(dd) : ' · sem aplicação na base';
+    } else if(it.ends.length) extra = ' · ' + jvLoc(it.ends[0].e) + (it.ends.length > 1 ? ' +' + (it.ends.length - 1) : '');
+    else if(it.saldo > 0) extra = ' · ' + (it.ctrl === false ? 'não controla endereço' : '<b>sem endereço</b>');
+    return jvProd(it) + ' ' + esc(it.d || '(sem descrição)') + ' <span class="jfil">' + FIL[it.f] + '</span>' +
+           '<br><span class="jsub">saldo ' + nq(it.saldo) + extra + '</span>';
+  }));
+  if(lista_p.length > mostra.length)
+    h += '<div class="jnota">E mais ' + (lista_p.length - mostra.length) + '. Para afinar, acrescente uma palavra, a marca ou a filial.</div>';
+  else h += '<div class="jnota">Toque no código para abrir a ficha, ou pergunte sobre um deles.</div>';
+  return h;
+}
+
+function jvRespostaDestino(a){
+  var linhas = [];
+  (D.movimentos || []).forEach(function(m){
+    if(a.destinos.indexOf(m[12]) < 0) return;
+    if(a.fil && FIL[m[0]] !== a.fil) return;
+    var it = itemDe(m[0], m[1]);
+    if(!it) return;
+    if(a.termos.length && !a.termos.every(function(t){ return jvCasa(it, t); })) return;
+    linhas.push({m: m, it: it});
+  });
+  var nomes = a.destinos.slice(0, 4).map(function(d){ return '<b>' + esc(d) + '</b>'; }).join(', ') + (a.destinos.length > 4 ? ' e outros' : '');
+  if(!linhas.length && a.termos.length) return null;
+  if(!linhas.length) return 'Não achei saídas para ' + nomes + (a.termos.length ? ' com “' + esc(a.termos.join(' ')) + '”' : '') +
+    ' nos dias da base (' + jvDiasDaBase() + ').';
+  var ag = {}, ordem = [];
+  linhas.forEach(function(x){
+    var k = x.it.id + '|' + x.m[12];
+    if(!ag[k]){ ag[k] = {it: x.it, destino: x.m[12], qtd: 0, un: x.m[11] || '', dias: {}, de: {}}; ordem.push(k); }
+    ag[k].qtd += x.m[3]; ag[k].dias[jvDiaCurto(x.m[7])] = 1; if(x.m[9]) ag[k].de[x.m[9]] = 1;
+  });
+  JV.ultimos = ordem.map(function(k){ return ag[k].it; });
+  var h = '<div class="jfoco">Para ' + nomes + ' saíram <b>' + ordem.length + '</b> ' +
+          plural(ordem.length, 'item', 'itens') + ' nos dias da base (' + jvDiasDaBase() + '):</div>';
+  h += jvLista(ordem.slice(0, 25).map(function(k){
+    var g = ag[k], de = Object.keys(g.de);
+    return jvProd(g.it) + ' ' + esc(g.it.d || '(sem descrição)') +
+      '<br><span class="jsub">' + nq(g.qtd) + (g.un ? ' ' + esc(g.un) : '') + ' · ' + Object.keys(g.dias).join(', ') +
+      ' · filial ' + FIL[g.it.f] +
+      (a.destinos.length > 1 ? ' · ' + esc(g.destino) : '') + (de.length ? ' · saiu de ' + de.map(jvLoc).join(' ') : '') + '</span>';
+  }));
+  if(ordem.length > 25) h += '<div class="jnota">E mais ' + (ordem.length - 25) + ' itens.</div>';
+  return h;
+}
+
+function jvRespostaEndereco(a){
+  var h = '';
+  a.enderecos.slice(0, 3).forEach(function(L){
+    var its = (PORLOC[L] || []).filter(function(x){ return !a.fil || FIL[x.it.f] === a.fil; });
+    var fils = {}; its.forEach(function(x){ fils[x.it.f] = 1; });
+    var varias = Object.keys(fils).length > 1;
+    h += '<div class="jfoco">' + (its.length
+      ? 'No ' + jvLoc(L) + ' tem <b>' + its.length + '</b> ' + plural(its.length, 'item', 'itens') + ':'
+      : 'O ' + jvLoc(L) + ' está vazio' + (a.fil ? ' na filial ' + a.fil : '') + '.') + '</div>';
+    if(its.length) h += jvLista(its.slice(0, 20).map(function(x){
+      return jvProd(x.it) + ' ' + esc(x.it.d || '(sem descrição)') + '<br><span class="jsub">' + nq(x.q) +
+             ' neste endereço · arm ' + esc(x.arm) + (varias ? ' · filial ' + FIL[x.it.f] : '') + '</span>';
+    }));
+    if(varias) h += '<div class="jnota">Esse endereço existe em mais de uma filial — são prateleiras em lugares diferentes.</div>';
+    JV.ultimos = its.map(function(x){ return x.it; });
+  });
+  return h;
+}
+
+function jvRespostaRua(a){
+  var r = a.ruas[0], locs = (RUAS[r] || []).filter(function(L){
+    return (PORLOC[L] || []).some(function(x){ return !a.fil || FIL[x.it.f] === a.fil; });
+  });
+  var itens = 0;
+  locs.forEach(function(L){ itens += (PORLOC[L] || []).length; });
+  var h = '<div class="jfoco">A rua <b>' + esc(r) + '</b> tem <b>' + locs.length + '</b> endereços com material, ' + itens + ' itens no total.</div>';
+  h += jvLista(locs.slice(0, 15).map(function(L){
+    return jvLoc(L) + ' <span class="jsub">' + (PORLOC[L] || []).length + ' ' + plural((PORLOC[L] || []).length, 'item', 'itens') + '</span>';
+  }));
+  h += '<div class="jnota"><a class="ir" data-rua-ir="' + esc(r) + '">Ver a rua ' + esc(r) + ' na aba Endereços</a> ' +
+       'ou pergunte “o que tem no ' + esc(locs[0] || r) + '”.</div>';
+  return h;
+}
+
+function jvRespostaPendentes(a){
+  var P = (D.pendentes || []).filter(function(p){ return !a.fil || FIL[p[0]] === a.fil; });
+  if(!P.length) return 'Não há produtos pendentes de endereçamento na base' + (a.fil ? ' para a filial ' + a.fil : '') + '.';
+  var nf = a.numeros.concat(a.codigos).map(function(n){ return n.replace(/^0+/, ''); });
+  if(nf.length){
+    var daNota = P.filter(function(p){ return nf.indexOf(String(p[6]).replace(/^0+/, '')) >= 0; });
+    if(daNota.length){
+      var h0 = '<div class="jfoco">A NF <b>' + esc(daNota[0][6]) + '</b> (' + data(daNota[0][7]) + ', filial ' + FIL[daNota[0][0]] +
+               ') tem ' + daNota.length + ' ' + plural(daNota.length, 'item', 'itens') + ' para endereçar:</div>';
+      return h0 + jvLista(daNota.map(function(p){
+        var it = itemDe(p[0], p[1]);
+        return (it ? jvProd(it) : p[1]) + ' ' + esc(DESCS[p[2]] || '') + '<br><span class="jsub">' + nq(p[4]) +
+               ' a endereçar' + (it && it.ends.length ? ' · já tem estoque em ' + jvLoc(it.ends[0].e) : '') + '</span>';
+      }));
+    }
+  }
+  if(a.termos.length){
+    var achados = P.filter(function(p){
+      var it = itemDe(p[0], p[1]);
+      var alvo = it || {idx: p[1] + ' ' + norm(DESCS[p[2]] || '')};
+      return a.termos.every(function(t){ return jvCasa(alvo, t); });
+    });
+    if(!achados.length) return 'Nenhum produto com “' + esc(a.termos.join(' ')) + '” está pendente de endereçamento.';
+    return '<div class="jfoco">' + achados.length + ' ' + plural(achados.length, 'pendência', 'pendências') + ' com “' +
+      esc(a.termos.join(' ')) + '”:</div>' + jvLista(achados.slice(0, 15).map(function(p){
+        var it = itemDe(p[0], p[1]);
+        return (it ? jvProd(it) : p[1]) + ' ' + esc(DESCS[p[2]] || '') + '<br><span class="jsub">NF ' + esc(p[6]) + ' · ' +
+               nq(p[4]) + ' · ' + haQuanto(p[7]) + '</span>';
+      }));
+  }
+  var notas = {}, ordem = [];
+  P.forEach(function(p){
+    var k = p[0] + '|' + p[6];
+    if(!notas[k]){ notas[k] = {f: p[0], nf: p[6], dia: p[7], n: 0}; ordem.push(k); }
+    notas[k].n++;
+    if(p[7] && p[7] < notas[k].dia) notas[k].dia = p[7];
+  });
+  var ns = ordem.map(function(k){ return notas[k]; }).sort(function(x, y){ return (x.dia || 99999) - (y.dia || 99999); });
+  var h = '<div class="jfoco">Há <b>' + P.length + '</b> itens em <b>' + ns.length + '</b> notas esperando endereço. ' +
+          'A mais antiga é a NF ' + esc(ns[0].nf) + ', de ' + data(ns[0].dia) + ' (' + haQuanto(ns[0].dia) + ').</div>';
+  h += jvLista(ns.slice(0, 6).map(function(n){
+    return 'NF ' + esc(n.nf) + ' <span class="jsub">' + data(n.dia) + ' · ' + haQuanto(n.dia) + ' · filial ' + FIL[n.f] +
+           ' · ' + n.n + ' ' + plural(n.n, 'item', 'itens') + '</span>';
+  }));
+  h += '<div class="jnota"><a class="ir" data-aba-ir="pend">Ver tudo na aba Pendentes</a> ou pergunte “nota ' + esc(ns[0].nf.replace(/^0+/, '')) + '”.</div>';
+  return h;
+}
+
+function jvRespostaSemEndereco(a){
+  var l = ITENS.filter(function(it){ return it.semEnd && (!a.fil || FIL[it.f] === a.fil); })
+               .sort(function(x, y){ return y.saldo - x.saldo; });
+  if(!l.length) return 'Nenhum produto com saldo está sem endereço' + (a.fil ? ' na filial ' + a.fil : '') + '.';
+  JV.ultimos = l.slice(0, 8);
+  return jvVarios(l, '', '<b>' + l.length + '</b> produtos com saldo estão sem endereço (com Contr. Endereço = Sim ou fora da SBZ). Os de maior saldo:');
+}
+
+function jvRespostaParados(a){
+  var l = ITENS.filter(function(it){
+    return it.saldo > 0 && (!it.ultS || HOJE - it.ultS > 365) && (!a.fil || FIL[it.f] === a.fil);
+  }).sort(function(x, y){ return SEM_CUSTOS ? y.saldo - x.saldo : y.valor - x.valor; });
+  if(!l.length) return 'Nenhum produto com saldo está parado há mais de um ano.';
+  var h = '<div class="jfoco"><b>' + l.length + '</b> produtos com saldo estão sem saída há mais de um ano. Os de maior ' +
+          (SEM_CUSTOS ? 'saldo' : 'valor') + ':</div>';
+  h += jvLista(l.slice(0, 8).map(function(it){
+    return jvProd(it) + ' ' + esc(it.d || '(sem descrição)') + '<br><span class="jsub">saldo ' + nq(it.saldo) +
+      (SEM_CUSTOS ? '' : ' · ' + nm(it.valor)) + ' · última saída ' + (it.ultS ? data(it.ultS) : 'nunca registrada') + '</span>';
+  }));
+  JV.ultimos = l.slice(0, 8);
+  return h;
+}
+
+function jvAjuda(abertura){
+  return '<div class="jfoco">' + (abertura || 'Eu respondo com os dados da base. Pode perguntar assim:') + '</div>' +
+    '<div class="jv-sug">' +
+      jvPerg('Onde fica o filtro FF5052?') + jvPerg('Quanto tem de diesel?') +
+      jvPerg('O que foi aplicado na EH-07?') + jvPerg('O que tem no A03-B04?') +
+      jvPerg('Pendentes de endereçar') + jvPerg('Produtos sem endereço') +
+    '</div><div class="jnota">Funciono sem internet e sem IA: sei o que está na base (saldo, endereço, saídas, ' +
+    'notas, descrição), mas não explico para que serve uma peça além do que a descrição diz.</div>';
+}
+
+function jvResponder(texto){
+  var a = jvAnalisar(texto), q = a.q;
+  if(!a.fil && S.fil && !/TODAS AS FILIAIS/.test(q)) a.fil = S.fil;
+
+  if(/^\s*$/.test(q) || /AJUDA|O QUE VOCE (SABE|FAZ)|COMO (USA|FUNCIONA)|QUEM E VOCE/.test(q)) return jvAjuda();
+  if(/^ (OI|OLA|BOM DIA|BOA TARDE|BOA NOITE|E AI) ?$/.test(q.replace(/ +$/, ' '))) return jvAjuda('Olá! Pergunte sobre qualquer produto. Por exemplo:');
+  if(/OBRIGAD/.test(q) && a.termos.length < 2) return 'Às ordens.';
+
+  if(/PENDENT|A ENDERECAR|PARA ENDERECAR|PRA ENDERECAR| NF | NOTA /.test(q)) return jvRespostaPendentes(a);
+  if(/SEM ENDERECO|NAO ENDERECAD|SEM LOCAL/.test(q) && !a.codigos.length && a.termos.length < 2) return jvRespostaSemEndereco(a);
+  if(/PARAD|SEM SAIDA|SEM MOVIMENT|ENCALHAD/.test(q) && !a.codigos.length && a.termos.length < 2) return jvRespostaParados(a);
+  if(a.destinos.length && !a.codigos.length){
+    var rd = jvRespostaDestino(a);
+    if(rd) return rd;
+  }
+  if(a.enderecos.length && !a.codigos.length && !a.termos.length) return jvRespostaEndereco(a);
+  if(a.ruas.length && !a.codigos.length && !a.termos.length) return jvRespostaRua(a);
+
+  var achados = [];
+  if(a.codigos.length){
+    achados = ITENS.filter(function(it){ return a.codigos.indexOf(it.c) >= 0 && (!a.fil || FIL[it.f] === a.fil); });
+    if(!achados.length && a.fil) achados = ITENS.filter(function(it){ return a.codigos.indexOf(it.c) >= 0; });
+    achados.sort(function(x, y){ return (y.saldo > 0) - (x.saldo > 0) || x.f - y.f; });
+    if(!achados.length) return 'Não encontrei o código ' + esc(a.codigos.join(', ')) + ' na base.';
+  } else if(a.termos.length){
+    achados = jvBuscar(a.termos, a.fil);
+    if(!achados.length && a.fil){
+      var outras = jvBuscar(a.termos, '');
+      if(outras.length) return 'Na filial ' + a.fil + ' não achei nada com “' + esc(a.termos.join(' ')) + '”. Em outras filiais:' +
+        jvVarios(outras, a.foco, '');
+    }
+    if(!achados.length) return jvAjuda('Não encontrei nada com “' + esc(a.termos.join(' ')) + '”. ' +
+      'Tente pelo código, por outra palavra da descrição, pela marca, por um endereço ou por um equipamento:');
+  } else if(JV.ultimos.length && (a.pronome || a.foco)){
+    achados = JV.ultimos.slice(0, 8);
+  } else {
+    return jvAjuda('Não entendi a pergunta. Pode perguntar assim:');
+  }
+
+  JV.ultimos = achados.slice(0, 8);
+  var aviso = (a.fil && !a.codigos.length) ? '<div class="jnota">Procurando só na filial ' + a.fil + '.</div>' : '';
+  if(achados.length === 1) return jvCartao(achados[0], a.foco) + aviso;
+  var comSaldo = achados.filter(function(it){ return it.saldo > 0; });
+  if(comSaldo.length === 1){
+    var unico = comSaldo[0], outros = achados.filter(function(x){ return x !== unico; });
+    JV.ultimos = [unico];
+    var mesmoCodigo = outros.every(function(x){ return x.c === unico.c; });
+    var lista_o = outros.slice(0, 4).map(function(x){ return jvProd(x) + ' (' + FIL[x.f] + ')'; }).join(', ') + (outros.length > 4 ? '…' : '');
+    return jvCartao(unico, a.foco) + '<div class="jnota">' + (mesmoCodigo
+      ? 'O mesmo código também existe ' + (outros.length === 1 ? 'na filial ' + FIL[outros[0].f] : 'em outras filiais') + ', sem saldo.'
+      : (outros.length === 1 ? 'Há outro cadastro parecido' : 'Há outros ' + outros.length + ' cadastros parecidos') +
+        ', sem saldo: ' + lista_o + '.') + '</div>' + aviso;
+  }
+  var mesmos = achados.every(function(it){ return it.c === achados[0].c; });
+  return jvVarios(achados, a.foco, mesmos
+    ? 'O código ' + achados[0].c + ' existe em ' + achados.length + ' filiais (cada uma tem o seu cadastro):'
+    : 'Encontrei <b>' + achados.length + '</b> produtos' + (a.termos.length ? ' com “' + esc(a.termos.join(' ')) + '”' : '') + ':') + aviso;
+}
+
+/* ---------- conversa ---------- */
+function jvBalao(tipo, conteudo, html){
   var d = document.createElement('div');
-  d.className = 'jv-m ' + tipo;
-  if(tipo === 'ele') d.innerHTML = jvFormatar(txt); else d.textContent = txt;
+  d.className = 'jv-m ' + tipo + (html ? ' rico' : '');
+  if(html) d.innerHTML = conteudo; else d.textContent = conteudo;
   jvMsgs.appendChild(d);
   jvMsgs.scrollTop = jvMsgs.scrollHeight;
   return d;
 }
 
-function jvDesfazer(){
-  // tira da conversa a ultima pergunta que falhou, para nao quebrar a sequencia
-  while(JV.hist.length){
-    var m = JV.hist.pop();
-    if(m.role === 'user' && typeof m.content === 'string') break;
-  }
-}
-
-function jvAparar(){
-  while(JV.hist.length > 30){
-    JV.hist.shift();
-    while(JV.hist.length && !(JV.hist[0].role === 'user' && typeof JV.hist[0].content === 'string')) JV.hist.shift();
-  }
-}
-
-async function jvPerguntarLocal(texto){
-  JV.ocupado = true; jvEnviar.disabled = true;
+function jvPerguntar(texto){
+  texto = (texto || '').trim();
+  if(!texto) return;
   jvTexto.value = ''; jvTexto.style.height = '';
   jvBalao('eu', texto);
-  JV.hist.push({role: 'user', content: texto});
-  jvAparar();
-  var pensando = jvBalao('pensando', 'Jarvis está pensando…');
-  try{
-    var respondeu = false;
-    for(var volta = 0; volta < 6 && !respondeu; volta++){
-      var resp = await fetch('jarvis', {method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({system: jvSistema(), messages: JV.hist, tools: JV_FERRAMENTAS})});
-      var dados = await resp.json().catch(function(){ return {erro: 'O servidor respondeu algo inesperado.'}; });
-      if(!resp.ok || dados.erro) throw new Error(dados.erro || ('Erro ' + resp.status));
-      var blocos = dados.content || [];
-      JV.hist.push({role: 'assistant', content: blocos});
-      var usos = blocos.filter(function(b){ return b.type === 'tool_use'; });
-      if(dados.stop_reason !== 'tool_use' || !usos.length){
-        var txt = blocos.filter(function(b){ return b.type === 'text'; })
-                        .map(function(b){ return b.text; }).join('\n').trim();
-        pensando.remove();
-        jvBalao('ele', txt || '(o Jarvis não respondeu nada)');
-        respondeu = true;
-        break;
-      }
-      pensando.textContent = jvRotulo(usos[0]);
-      JV.hist.push({role: 'user', content: usos.map(function(u){
-        var r;
-        try{ r = jvExecutar(u.name, u.input || {}); }catch(e){ r = {erro: String(e)}; }
-        return {type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(r)};
-      })});
-    }
-    if(!respondeu) throw new Error('O Jarvis consultou a base muitas vezes sem fechar uma resposta. Tente perguntar de outro jeito.');
-  }catch(e){
-    if(pensando.parentNode) pensando.remove();
-    jvBalao('erro', e.message || String(e));
-    jvDesfazer();
-  }
-  JV.ocupado = false; jvEnviar.disabled = false;
-  if(window.innerWidth >= 860) jvTexto.focus();
+  var r;
+  try{ r = jvResponder(texto); }catch(e){ r = 'Tive um problema para responder essa. Tente perguntar de outro jeito.'; }
+  var b = jvBalao('ele', r, true);
+  jvMsgs.scrollTop = b.offsetTop - 12;
 }
 
-
-function jvSugestoes(){
-  var s = [], ex = null, dest = {};
-  for(var i = 0; i < ITENS.length && !ex; i++){
-    var it = ITENS[i];
-    if(it.saldo > 0 && it.d && it.d.indexOf('(sem') !== 0 && /FILTRO|ROLAMENTO|CORREIA|OLEO/.test(it.d)) ex = it;
-  }
-  if(ex) s.push('Para que serve o ' + ex.c + ' e onde ele é aplicado?');
-  (D.movimentos || []).forEach(function(m){ if(m[12]) dest[m[12]] = (dest[m[12]] || 0) + 1; });
-  var ordem_d = Object.keys(dest).sort(function(a, b){ return dest[b] - dest[a]; });
-  var equip = ordem_d.filter(function(x){ return /^[A-Z]{2,3}-\d+/.test(x); });
-  var top = equip[0] || ordem_d[0];
-  if(top) s.push('O que foi aplicado na ' + top + '?');
-  s.push('Tem filtro de combustível com saldo?');
-  return s;
+function jvSobreItem(it){
+  jvBalao('eu', 'Sobre o ' + it.c + ' · filial ' + FIL[it.f]);
+  JV.ultimos = [it];
+  var b = jvBalao('ele', jvCartao(it, ''), true);
+  jvMsgs.scrollTop = b.offsetTop - 12;
 }
 
 function jvBoasVindas(){
   jvMsgs.innerHTML = '';
-  var d = jvBalao('ele', 'Olá, sou o Jarvis. Pergunte sobre qualquer produto: onde está, quanto tem, ' +
-    'para que serve, onde é aplicado, o que saiu para um equipamento…');
-  var sug = document.createElement('div');
-  sug.className = 'jv-sug';
-  jvSugestoes().forEach(function(t){
-    var b = document.createElement('button');
-    b.type = 'button'; b.textContent = t;
-    b.addEventListener('click', function(){ jvPerguntar(t); });
-    sug.appendChild(b);
-  });
-  d.appendChild(sug);
+  jvBalao('ele', jvAjuda('Olá, sou o Jarvis. Pergunte sobre qualquer produto: onde está, quanto tem, ' +
+    'para onde saiu, o que tem num endereço, o que falta endereçar…'), true);
 }
 
-
-/* ---------- Jarvis pelo app publicado no Claude: IA da conta de quem pergunta, sem chave ---------- */
-var LINK_APP_CLAUDE = 'https://claude.ai/artifact/RJ65rr4zeDMBFGdbwD2LRn';
-var jvParar = document.getElementById('jv-parar');
-JV.turnos = []; JV.sample = null; JV.ferramentas = false; JV.artifact = null; JV.ctl = null;
-
-if(window.claude && typeof window.claude.use === 'function'){
-  window.claude.use('sample').then(function(s){
-    if(!s) return;
-    JV.sample = s;
-    return s.limits().then(function(l){ JV.ferramentas = !!(l && l.tools); }, function(){});
-  }).catch(function(){});
-  window.claude.use('artifact').then(function(a){
-    if(!a) return;
-    JV.artifact = a;
-    return Promise.resolve(window.claude.use('user'))
-      .then(function(u){ return u ? u.canEdit() : true; })
-      .catch(function(){ return true; })
-      .then(function(pode){ if(pode) document.getElementById('atualizar').hidden = false; });
-  }).catch(function(){});
-}
-
-function jvVerificar(){
-  if(JV.sample) return Promise.resolve({ok: true, modo: 'claude'});
-  if(window.claude && typeof window.claude.use === 'function'){
-    return window.claude.use('sample').then(function(s){
-      if(!s) return {ok: false, motivo: 'claude sem ia'};
-      JV.sample = s;
-      return s.limits().then(function(l){ JV.ferramentas = !!(l && l.tools); }, function(){})
-        .then(function(){ return {ok: true, modo: 'claude'}; });
-    }).catch(function(){ return {ok: false, motivo: 'claude sem ia'}; });
-  }
-  if(location.protocol.indexOf('http') !== 0) return Promise.resolve({ok: false, motivo: 'fora'});
-  return fetch('jarvis/status', {cache: 'no-store'})
-    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-    .then(function(e){ e.modo = 'local'; if(!e.ok) e.motivo = 'sem chave'; return e; })
-    .catch(function(){ return {ok: false, motivo: 'fora'}; });
-}
-
-function jvAvisoComLink(texto){
-  var d = jvBalao('sis', texto);
-  var a = document.createElement('a');
-  a.className = 'jv-ir'; a.href = LINK_APP_CLAUDE; a.target = '_blank'; a.rel = 'noopener';
-  a.textContent = 'Abrir o Jarvis no Claude →';
-  d.appendChild(document.createElement('br'));
-  d.appendChild(a);
-}
-
-function jvMostrarEstado(){
-  var e = JV.estado || {};
-  var ok = !!e.ok;
-  jvTexto.disabled = !ok; jvEnviar.disabled = !ok || JV.ocupado;
-  jvStatus.textContent = ok ? 'assistente do almoxarifado' : 'indisponível aqui';
-  if(ok) return;
-  jvMsgs.innerHTML = '';
-  if(e.motivo === 'fora'){
-    jvAvisoComLink('O Jarvis funciona no app publicado no Claude, sem precisar de chave nenhuma: ' +
-      'a pergunta usa a conta do Claude de quem está perguntando. É o mesmo app, com a mesma base.');
-  } else if(e.motivo === 'sem chave'){
-    jvAvisoComLink('Este servidor não tem chave de API. O jeito mais simples é usar o Jarvis pelo app ' +
-      'publicado no Claude, que não precisa de chave. (Se preferir pelo servidor, crie o arquivo jarvis_chave.txt.)');
-  } else {
-    jvBalao('sis', 'A IA do Claude não está liberada para a sua conta neste app. ' +
-      'Confira se você está conectado ao Claude e se a sua organização permite.');
-  }
-}
-
-/* sem ferramentas na conta: manda junto um recorte da base escolhido aqui */
-function jvContexto(texto){
-  var codigos = (texto.match(/\b\d{6,9}\b/g) || []).map(function(c){ return c.padStart(9, '0'); });
-  if(codigos.length) return {produtos: codigos.slice(0, 3).map(function(c){ return jvDetalhar({codigo: c}); })};
-  var vazias = {'PARA':1,'SERVE':1,'ONDE':1,'QUAL':1,'QUAIS':1,'TEM':1,'COMO':1,'ESTA':1,'FICA':1,'COM':1,
-                'SALDO':1,'ESTOQUE':1,'APLICADO':1,'PRODUTO':1,'QUANTO':1,'MEU':1,'NOSSO':1,'QUE':1};
-  var palavras = norm(texto).split(/[^A-Z0-9-]+/).filter(function(p){ return p.length >= 3 && !vazias[p]; });
-  if(!palavras.length) return {aviso: 'Nenhum produto identificado na pergunta.'};
-  var pontos = [];
-  ITENS.forEach(function(it){
-    var n = 0;
-    palavras.forEach(function(p){ if(it.idx.indexOf(p) >= 0) n++; });
-    if(n) pontos.push([n, it]);
-  });
-  pontos.sort(function(a, b){ return b[0] - a[0] || (b[1].saldo > 0) - (a[1].saldo > 0); });
-  return {produtos_mais_parecidos: pontos.slice(0, 10).map(function(x){ return jvResumo(x[1]); })};
-}
-
-function jvErroClaude(e, bolha){
-  var c = (e && e.code) || 'upstream_error';
-  var parcial = e && e.text;
-  if(c === 'cancelled'){
-    if(parcial){ bolha.className = 'jv-m ele'; bolha.innerHTML = jvFormatar(parcial) + '<i class="corte">(você parou a resposta)</i>'; }
-    else bolha.remove();
-    return;
-  }
-  if(c === 'refused') bolha.remove();
-  else if(parcial){ bolha.className = 'jv-m ele'; bolha.innerHTML = jvFormatar(parcial) + '<i class="corte">(a resposta foi interrompida)</i>'; }
-  else bolha.remove();
-  if(c === 'tools_unavailable'){ JV.ferramentas = false; jvBalao('erro', 'Sua conta não permite as consultas automáticas. Pergunte de novo: vou mandar os dados junto.'); return; }
-  if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].indexOf(c) >= 0){
-    JV.estado = {ok: false, motivo: 'claude sem ia'};
-    jvBalao('erro', c === 'not_granted'
-      ? 'Você não autorizou o app a usar o Claude. Para usar o Jarvis, recarregue a página e permita quando ele perguntar.'
-      : 'A IA do Claude não está liberada para a sua conta neste app.');
-    jvTexto.disabled = true; jvEnviar.disabled = true;
-    return;
-  }
-  var msg = {
-    rate_limited: 'Muitas perguntas seguidas, ou o limite de uso do seu plano do Claude acabou. Espere um pouco e pergunte de novo.',
-    session_expired: 'Sua sessão do Claude expirou. Entre de novo no Claude e pergunte outra vez.',
-    refused: 'O Claude não respondeu essa pergunta. Tente perguntar de outro jeito.',
-    prompt_too_large: 'A conversa ficou longa demais. Toque no botão de nova conversa e pergunte de novo.',
-    empty_completion: 'Não veio resposta. Tente perguntar de outro jeito.'
-  }[c] || 'A resposta não chegou inteira (falha de conexão). Pergunte de novo.';
-  jvBalao('erro', msg);
-}
-
-async function jvPerguntarClaude(texto){
-  JV.ocupado = true; jvEnviar.hidden = true; jvParar.hidden = false;
-  jvTexto.value = ''; jvTexto.style.height = '';
-  jvBalao('eu', texto);
-  var bolha = jvBalao('pensando', 'Jarvis está pensando…');
-  var regras = jvSistema() + '\n\n(Estas são as suas instruções permanentes. A conversa com o usuário começa abaixo.)';
-  var pergunta = texto;
-  if(!JV.ferramentas){
-    pergunta = texto + '\n\n[Dados da base para esta pergunta, em JSON — use só isto como fonte de saldo, ' +
-               'endereço e quantidade]\n' + JSON.stringify(jvContexto(texto)).slice(0, 60000);
-  }
-  var turnos = [{role: 'user', content: regras}].concat(JV.turnos.slice(-12), [{role: 'user', content: pergunta}]);
-  JV.ctl = new AbortController();
-  var opcoes = {
-    signal: JV.ctl.signal, modelTier: 'default',
-    onText: function(u){
-      bolha.className = 'jv-m ele';
-      bolha.innerHTML = jvFormatar(u.text);
-      jvMsgs.scrollTop = jvMsgs.scrollHeight;
-    }
-  };
-  if(JV.ferramentas){
-    opcoes.tools = JV_FERRAMENTAS.map(function(f){
-      return {name: f.name, description: f.description, inputSchema: f.input_schema,
-        execute: function(inp){
-          if(bolha.classList.contains('pensando')) bolha.textContent = jvRotulo({name: f.name, input: inp || {}});
-          var r = jvExecutar(f.name, inp || {});
-          if(r && r.erro) throw new Error(r.erro);
-          return r;
-        }};
-    });
-  } else {
-    opcoes.cache = false;
-  }
-  try{
-    var r = await JV.sample(turnos, opcoes);
-    bolha.className = 'jv-m ele';
-    bolha.innerHTML = jvFormatar(r.text) + (r.truncated ? '<i class="corte">(resposta cortada — pergunte por partes)</i>' : '');
-    JV.turnos.push({role: 'user', content: texto}, {role: 'assistant', content: r.text});
-    jvMsgs.scrollTop = jvMsgs.scrollHeight;
-  }catch(e){
-    jvErroClaude(e, bolha);
-  }
-  JV.ocupado = false; JV.ctl = null;
-  jvParar.hidden = true; jvEnviar.hidden = false;
-  jvEnviar.disabled = !(JV.estado && JV.estado.ok);
-  if(window.innerWidth >= 860 && !jvTexto.disabled) jvTexto.focus();
-}
-
-jvParar.addEventListener('click', function(){ if(JV.ctl) JV.ctl.abort(); });
-
-function jvPerguntar(texto){
-  texto = (texto || '').trim();
-  if(!texto || JV.ocupado || !(JV.estado && JV.estado.ok)) return;
-  return JV.estado.modo === 'claude' ? jvPerguntarClaude(texto) : jvPerguntarLocal(texto);
-}
-
-/* ---------- atualizar a base do app publicado no Claude ---------- */
-document.getElementById('atualizar-btn').addEventListener('click', function(){
-  document.getElementById('atualizar-arq').click();
-});
-document.getElementById('atualizar-arq').addEventListener('change', function(ev){
-  var arq = ev.target.files && ev.target.files[0];
-  ev.target.value = '';
-  if(!arq || !JV.artifact) return;
-  var leitor = new FileReader();
-  leitor.onload = function(){
-    var html = String(leitor.result || '');
-    if(!/^\s*<!doctype html/i.test(html) || html.indexOf('id="dados"') < 0 || html.indexOf('id="jv"') < 0){
-      avisar('Esse arquivo não é o index.html do app. Escolha o index.html da pasta do projeto.');
-      return;
-    }
-    var m = html.match(/"gerado":"(\d{4})-(\d{2})-(\d{2})"/);
-    var quando = m ? m[3] + '/' + m[2] + '/' + m[1] : 'data desconhecida';
-    if(!confirm('Publicar a base de ' + quando + ' (' + (arq.size / 1e6).toFixed(1) + ' MB) neste app?\n\n' +
-                'Quem estiver com o app aberto vai recarregar com a base nova.')) return;
-    avisar('Publicando a base nova…');
-    JV.artifact.publish(html).then(function(){ avisar('Base atualizada. Recarregando…'); }, function(err){
-      var c = err && err.code;
-      if(c === 'not_writer' || c === 'not_granted' || c === 'consent_required'){
-        document.getElementById('atualizar').hidden = true;
-        avisar('Você pode usar este app, mas só quem edita pode atualizar a base.');
-      } else if(c === 'conflict') avisar('Alguém atualizou a base agora mesmo. O app vai recarregar.');
-      else if(c === 'too_large') avisar('O arquivo é grande demais para publicar aqui.');
-      else if(c === 'invalid_content') avisar('O arquivo não é uma página válida.');
-      else if(c === 'rate_limited') avisar('Muitas publicações seguidas. Espere um pouco.');
-      else avisar('Não consegui publicar agora (' + (c || 'erro') + '). Tente de novo em instantes.');
-    });
-  };
-  leitor.onerror = function(){ avisar('Não consegui ler o arquivo.'); };
-  leitor.readAsText(arq, 'utf-8');
-});
-
-function abrirJarvis(pergunta){
+function abrirJarvis(pergunta, item){
   jvPainel.classList.add('open');
   document.body.classList.add('jv-aberto');
   if(window.innerWidth < 860) document.body.classList.add('locked');
-  var depois = function(){
-    jvMostrarEstado();
-    if(JV.estado.ok){
-      if(!JV.hist.length && !JV.turnos.length && !jvMsgs.children.length) jvBoasVindas();
-      if(pergunta) jvPerguntar(pergunta);
-      else if(window.innerWidth >= 860) jvTexto.focus();
-    }
-  };
-  if(JV.estado) depois();
-  else jvVerificar().then(function(e){ JV.estado = e; depois(); });
+  if(!jvMsgs.children.length) jvBoasVindas();
+  if(item) jvSobreItem(item);
+  else if(pergunta) jvPerguntar(pergunta);
+  else if(window.innerWidth >= 860) jvTexto.focus();
 }
 
 function fecharJarvis(){
@@ -2122,11 +2111,7 @@ function fecharJarvis(){
 
 document.getElementById('jv-abrir').addEventListener('click', function(){ abrirJarvis(); });
 document.getElementById('jv-fechar').addEventListener('click', fecharJarvis);
-document.getElementById('jv-novo').addEventListener('click', function(){
-  if(JV.ocupado) return;
-  JV.hist = []; JV.turnos = [];
-  if(JV.estado && JV.estado.ok) jvBoasVindas();
-});
+document.getElementById('jv-novo').addEventListener('click', function(){ JV.ultimos = []; jvBoasVindas(); });
 jvEnviar.addEventListener('click', function(){ jvPerguntar(jvTexto.value); });
 jvTexto.addEventListener('keydown', function(e){
   if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); jvPerguntar(jvTexto.value); }
@@ -2135,12 +2120,28 @@ jvTexto.addEventListener('input', function(){
   jvTexto.style.height = ''; jvTexto.style.height = Math.min(jvTexto.scrollHeight, 120) + 'px';
 });
 jvMsgs.addEventListener('click', function(e){
-  var a = e.target.closest('[data-cod]');
-  if(!a) return;
-  document.querySelector('[data-tab=prod]').click();
-  elQ.value = a.dataset.cod; S.q = norm(a.dataset.cod); elClear.classList.add('on');
-  render();
-  if(window.innerWidth < 860) fecharJarvis();
+  var p = e.target.closest('[data-perg]');
+  if(p){ jvPerguntar(p.dataset.perg); return; }
+  var a = e.target.closest('[data-abrir]');
+  if(a){
+    var it = ITENS[+a.dataset.abrir];
+    if(!it) return;
+    if(window.innerWidth < 1200) fecharJarvis();
+    abrir(it.id);
+    return;
+  }
+  var r = e.target.closest('[data-rua-ir]');
+  if(r){
+    document.querySelector('[data-tab=end]').click();
+    S.rua = r.dataset.ruaIr; render();
+    if(window.innerWidth < 1200) fecharJarvis();
+    return;
+  }
+  var t = e.target.closest('[data-aba-ir]');
+  if(t){
+    document.querySelector('[data-tab=' + t.dataset.abaIr + ']').click();
+    if(window.innerWidth < 1200) fecharJarvis();
+  }
 });
 
 (function(){
