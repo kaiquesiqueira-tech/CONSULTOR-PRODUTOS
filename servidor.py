@@ -7,6 +7,9 @@ O que ele faz enquanto estiver aberto:
   2. Fica de olho na pasta. Se voce trocar, adicionar ou apagar um arquivo,
      ele gera tudo de novo sozinho e a pagina aberta recarrega
   3. Publica na sua rede, entao o celular no mesmo wi-fi abre pelo IP
+     (so os arquivos do app; as planilhas nao ficam acessiveis)
+  4. Se ENVIAR_PARA_O_GITHUB estiver ligado, manda as planilhas novas
+     para o GitHub, que gera e publica o app sozinho
 
 Uso:  python servidor.py
 Parar: Ctrl+C
@@ -20,29 +23,53 @@ import threading
 import webbrowser
 import http.server
 import socketserver
+import subprocess
 import urllib.parse
+import urllib.request
+import urllib.error
+import json
 
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 PASTA_DADOS = os.path.join(RAIZ, "dados")
-PASTA_SAIDA = RAIZ   # definida de verdade no inicio, pelo config.txt
+PASTA_SAIDA = RAIZ   # o app e gerado na propria pasta do projeto
+# ---------------------------------------------------------------------
+#  ENVIAR_PARA_O_GITHUB
+#    True  = ao detectar planilha nova, alem de gerar o app aqui, manda
+#            para o GitHub sozinho. O GitHub gera e publica o site.
+#    False = so gera aqui no computador.
+#
+#  Para funcionar, o repositorio precisa ja estar ligado e o login do
+#  GitHub ja feito uma vez (pelo VS Code ou pelo enviar.bat). Este
+#  envio automatico nunca pergunta senha.
+# ---------------------------------------------------------------------
+ENVIAR_PARA_O_GITHUB = True
+
+# ---------------------------------------------------------------------
+#  JARVIS - assistente com IA
+#
+#  A chave da API fica SO neste computador, no arquivo jarvis_chave.txt
+#  (ou na variavel de ambiente ANTHROPIC_API_KEY). Ela nunca vai para o
+#  navegador nem para o GitHub: o servidor faz a ponte com a IA.
+#
+#  MODELO_JARVIS: o modelo usado. Troque aqui se quiser outro.
+# ---------------------------------------------------------------------
+MODELO_JARVIS = "claude-sonnet-5"
+ARQUIVO_CHAVE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jarvis_chave.txt")
+URL_API = os.environ.get("JARVIS_URL_API", "https://api.anthropic.com/v1/messages")
+
 PORTA = int(os.environ.get("PORTA", "8080"))
 INTERVALO = 2  # segundos entre cada checagem da pasta
 
 sys.path.insert(0, RAIZ)
 import build  # noqa: E402
-import publicacao  # noqa: E402
-
-
-PASTA_APP = os.path.join(RAIZ, "app")
 
 
 def vigiados():
     """Tudo que, ao mudar, obriga a gerar o app de novo."""
     caminhos = list(build.achar_planilhas())
-    if os.path.isdir(PASTA_APP):
-        for nome in os.listdir(PASTA_APP):
-            if nome.endswith((".html", ".js", ".webmanifest", ".css", ".png")):
-                caminhos.append(os.path.join(PASTA_APP, nome))
+    modelo = os.path.join(RAIZ, "template.html")
+    if os.path.exists(modelo):
+        caminhos.append(modelo)
     return caminhos
 
 
@@ -58,7 +85,58 @@ def retrato():
     return tuple(sorted(itens))
 
 
-def gerar(motivo, publicar=False):
+def _git(*args, **kwargs):
+    ambiente = dict(os.environ)
+    ambiente["GIT_TERMINAL_PROMPT"] = "0"   # falha rapido em vez de travar pedindo senha
+    ambiente["GCM_INTERACTIVE"] = "never"
+    return subprocess.run(["git"] + list(args), cwd=RAIZ, capture_output=True,
+                          text=True, env=ambiente, timeout=kwargs.get("timeout", 120))
+
+
+def _recado(texto):
+    for linha in (texto or "").splitlines():
+        if linha.strip():
+            return linha.strip()
+    return ""
+
+
+def enviar_para_o_github():
+    """Manda as planilhas novas. Devolve (enviou, recado). Nunca levanta erro."""
+    try:
+        if not os.path.isdir(os.path.join(RAIZ, ".git")):
+            return False, "esta pasta nao esta ligada a nenhum repositorio."
+        if _git("remote", "get-url", "origin").returncode != 0:
+            return False, "nenhum repositorio do GitHub configurado."
+        if _git("config", "user.name").returncode != 0:
+            return False, "falta configurar seu nome no Git."
+
+        if _git("add", "-A").returncode != 0:
+            return False, "nao consegui preparar os arquivos."
+        _git("reset", "-q", "--", "jarvis_chave.txt")   # a chave do Jarvis nunca sobe
+        if _git("diff", "--cached", "--quiet").returncode == 0:
+            return False, "nada novo para enviar."
+
+        recado = "Planilhas de " + time.strftime("%d/%m/%Y %H:%M")
+        r = _git("commit", "-m", recado)
+        if r.returncode != 0:
+            return False, _recado(r.stderr or r.stdout)
+
+        r = _git("push", "origin", "HEAD", timeout=300)
+        if r.returncode != 0:
+            saida = (r.stderr or "") + (r.stdout or "")
+            if "Authentication" in saida or "could not read" in saida.lower():
+                return False, ("o GitHub recusou o acesso. Envie uma vez pelo VS Code "
+                               "para o login ficar guardado.")
+            return False, _recado(saida)
+
+        return True, "planilhas enviadas. O GitHub vai publicar em uns 2 minutos."
+    except subprocess.TimeoutExpired:
+        return False, "o envio demorou demais. Tenta de novo na proxima alteracao."
+    except Exception as erro:
+        return False, "falha inesperada: %s" % erro
+
+
+def gerar(motivo, enviar=False):
     print("\n[%s] %s" % (time.strftime("%H:%M:%S"), motivo))
     try:
         build.principal()
@@ -67,10 +145,10 @@ def gerar(motivo, publicar=False):
         print("  Confira se a planilha nao esta aberta no Excel e tente salvar de novo.")
         return
 
-    if publicar and publicacao.ligado():
-        print("  Publicando no GitHub...")
-        enviou, recado = publicacao.publicar()
-        print("  %s %s" % ("OK -" if enviou else "  -", recado))
+    if enviar and ENVIAR_PARA_O_GITHUB:
+        print("  Enviando para o GitHub...")
+        foi, recado = enviar_para_o_github()
+        print("  %s %s" % ("OK -" if foi else "   -", recado))
 
 
 def vigiar():
@@ -88,7 +166,7 @@ def vigiar():
             estavel = estavel + 1 if novo == atual else 0
             atual = novo
         anterior = atual
-        gerar("Mudanca detectada, gerando o app de novo...", publicar=True)
+        gerar("Mudanca detectada, gerando o app de novo...", enviar=True)
 
 
 def meu_ip():
@@ -100,6 +178,73 @@ def meu_ip():
         return ip
     except Exception:
         return None
+
+
+def chave_jarvis():
+    chave = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if chave:
+        return chave
+    try:
+        with open(ARQUIVO_CHAVE, encoding="utf-8-sig") as f:
+            for linha in f:
+                linha = linha.strip()
+                if linha and not linha.startswith("#"):
+                    return linha
+    except OSError:
+        pass
+    return ""
+
+
+def _traduzir_erro(status, mensagem):
+    if status == 401:
+        return "A chave do Jarvis foi recusada. Confira o arquivo jarvis_chave.txt."
+    if status == 403:
+        return "A chave nao tem permissao para usar a API."
+    if status == 404 and "model" in mensagem.lower():
+        return "Modelo nao encontrado (%s). Troque MODELO_JARVIS no servidor.py." % MODELO_JARVIS
+    if status == 429:
+        return "Limite de uso da API atingido. Espere um pouco e tente de novo."
+    if status in (500, 529) or "overloaded" in mensagem.lower():
+        return "A API esta sobrecarregada agora. Tente de novo em instantes."
+    if status == 400 and ("credit" in mensagem.lower() or "billing" in mensagem.lower()):
+        return "A conta da API esta sem credito."
+    return "A API respondeu com erro %s: %s" % (status, mensagem)
+
+
+def perguntar_ao_claude(corpo):
+    """Recebe system, messages e tools do navegador e repassa para a API.
+    O navegador nao escolhe modelo, limite nem endereco: so a conversa."""
+    chave = chave_jarvis()
+    if not chave:
+        return 503, {"erro": "O Jarvis esta sem chave. Crie o arquivo jarvis_chave.txt na pasta "
+                             "do projeto, com a chave da API na primeira linha, e ligue o servidor de novo."}
+    mensagens = corpo.get("messages")
+    if not isinstance(mensagens, list) or not mensagens:
+        return 400, {"erro": "Conversa vazia."}
+    pedido = {
+        "model": MODELO_JARVIS,
+        "max_tokens": 1500,
+        "system": str(corpo.get("system", ""))[:30000],
+        "messages": mensagens,
+    }
+    if isinstance(corpo.get("tools"), list):
+        pedido["tools"] = corpo["tools"]
+    req = urllib.request.Request(
+        URL_API, data=json.dumps(pedido).encode("utf-8"), method="POST",
+        headers={"content-type": "application/json", "x-api-key": chave,
+                 "anthropic-version": "2023-06-01"})
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            return 200, json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as erro:
+        try:
+            detalhe = json.loads(erro.read().decode("utf-8"))
+            mensagem = (detalhe.get("error") or {}).get("message") or str(erro)
+        except Exception:
+            mensagem = str(erro)
+        return erro.code, {"erro": _traduzir_erro(erro.code, mensagem)}
+    except Exception as erro:
+        return 502, {"erro": "Nao consegui falar com a API. Confira a internet deste computador. (%s)" % erro}
 
 
 class Servidor(http.server.SimpleHTTPRequestHandler):
@@ -117,7 +262,40 @@ class Servidor(http.server.SimpleHTTPRequestHandler):
             return True
         return alvo in build.ARQUIVOS_DO_SITE
 
+    def _json(self, status, obj):
+        corpo = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(corpo)))
+        self.end_headers()
+        self.wfile.write(corpo)
+
+    def do_POST(self):
+        alvo = urllib.parse.unquote(self.path.split("?")[0]).strip("/")
+        if alvo != "jarvis":
+            self.send_error(404, "Nao disponivel")
+            return
+        try:
+            tamanho = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            tamanho = 0
+        if tamanho <= 0 or tamanho > 3000000:
+            self._json(413, {"erro": "Conversa grande demais. Comece uma nova conversa."})
+            return
+        try:
+            corpo = json.loads(self.rfile.read(tamanho).decode("utf-8"))
+        except Exception:
+            self._json(400, {"erro": "Pedido invalido."})
+            return
+        status, resposta = perguntar_ao_claude(corpo)
+        self._json(status, resposta)
+
     def do_GET(self):
+        if urllib.parse.unquote(self.path.split("?")[0]).strip("/") == "jarvis/status":
+            ok = bool(chave_jarvis())
+            self._json(200, {"ok": ok, "modelo": MODELO_JARVIS,
+                             "motivo": "" if ok else "sem chave"})
+            return
         if not self._liberado():
             self.send_error(404, "Nao disponivel")
             return
@@ -143,10 +321,8 @@ class ServidorTCP(socketserver.ThreadingTCPServer):
 
 
 def principal():
-    global PASTA_SAIDA
     os.makedirs(PASTA_DADOS, exist_ok=True)
     gerar("Gerando o app pela primeira vez...")
-    PASTA_SAIDA = build.pasta_saida()
 
     if not os.path.exists(os.path.join(PASTA_SAIDA, "index.html")):
         print("\nColoque as planilhas na pasta 'dados' e rode de novo.")
@@ -178,9 +354,16 @@ def principal():
     print("")
     print("  Troque as planilhas na pasta 'dados' e a pagina")
     print("  se atualiza sozinha. Ctrl+C para parar.")
-    if publicacao.ligado():
+    print("")
+    print("  Jarvis: %s" % ("ligado (%s)" % MODELO_JARVIS if chave_jarvis()
+                             else "sem chave - crie o arquivo jarvis_chave.txt"))
+    if ENVIAR_PARA_O_GITHUB:
         print("")
-        print("  Publicacao automatica no GitHub: LIGADA")
+        if os.path.isdir(os.path.join(RAIZ, ".git")):
+            print("  Envio automatico para o GitHub: LIGADO")
+        else:
+            print("  Envio automatico: ligado, mas esta pasta ainda nao esta")
+            print("  ligada a um repositorio. Publique uma vez pelo VS Code.")
     print("=" * 58)
 
     try:

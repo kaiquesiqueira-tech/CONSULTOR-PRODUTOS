@@ -1,0 +1,18 @@
+# O app e gerado, nao versionado: quem monta a versao publicada e o
+# GitHub Actions, a partir das planilhas da pasta 'dados'.
+index.html
+versao.txt
+site/
+
+__pycache__/
+*.pyc
+
+# arquivo temporario que o Excel cria enquanto a planilha esta aberta
+~$*.xlsx
+
+.DS_Store
+Thumbs.db
+
+# CHAVE DO JARVIS: nunca pode ir para o GitHub. O repositorio e publico,
+# e quem pegar a chave usa a IA na sua conta.
+jarvis_chave.txt
