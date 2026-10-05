@@ -290,6 +290,18 @@ def montar(sb2, sbf, sda=None, sd3=None, sbz=None):
                 z.append(it["e"])
             zerados.append(z)
 
+    # descricao vem so da coluna "Nome Cientif" do saldo fisico. Se ela vier vazia
+    # em boa parte das linhas, a exportacao saiu com problema: avisa em vez de publicar calado.
+    com_saldo = [a for a in ativos if sum(r[1] for r in a["r"]) > 0]
+    sem_desc = [a for a in com_saldo if not textos[a["d"]].strip()]
+    if com_saldo and len(sem_desc) > max(20, 0.05 * len(com_saldo)):
+        exemplo = ", ".join(a["c"] for a in sem_desc[:3])
+        AVISOS.append(
+            "%d de %d produtos com saldo vieram SEM DESCRICAO na planilha de saldo\n"
+            "  fisico (coluna 'Nome Cientif'). Exemplos: %s.\n"
+            "  Abra a planilha e confira essa coluna antes de publicar: se ela veio\n"
+            "  vazia ou com descricao trocada, exporte de novo." % (len(sem_desc), len(com_saldo), exemplo))
+
     ativos.sort(key=lambda x: (x["f"], x["c"]))
     zerados.sort(key=lambda x: (x[0], x[1]))
 
