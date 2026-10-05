@@ -362,6 +362,18 @@ main{padding:14px 14px 92px}
   .jv .jv-head{padding-top:12px}
   body.jv-aberto main{max-width:none; margin:0 440px 0 0}
 }
+.jv-m .jv-ir{display:inline-flex; align-items:center; gap:6px; margin-top:10px; padding:9px 14px; border-radius:9px;
+  background:var(--steel); color:var(--loc); font-weight:700; font-size:13.5px; text-decoration:none;
+  border:1px solid rgba(245,197,24,.5); white-space:nowrap}
+.jv-m .jv-ir:hover{border-color:var(--loc)}
+.jv-m.ele i.corte{display:block; margin-top:6px; color:var(--muted); font-size:12px}
+.jv-form #jv-parar{background:var(--alert); color:#fff}
+.jv-form #jv-parar[hidden], .jv-form #jv-enviar[hidden]{display:none}
+.atualizar{display:flex; justify-content:center; margin:2px 0 6px}
+.atualizar[hidden]{display:none}
+.atualizar button{border:1px dashed var(--line-2); background:transparent; color:var(--muted); border-radius:8px;
+  padding:7px 12px; font-size:12.5px; font-weight:600}
+.atualizar button:hover{color:var(--act); border-color:var(--act)}
 .btn.jv-perg{width:100%; margin-bottom:10px; color:var(--steel); border-color:var(--loc-edge);
   background:rgba(245,197,24,.12)}
 .btn.jv-perg svg{vertical-align:-2px; margin-right:6px}
@@ -499,7 +511,7 @@ main{padding:14px 14px 92px}
 
 /* ============ impressao ============ */
 @media print{
-  .top,.tabs,.btnrow,.sep .x,.sep .chk,.count,.rodape,.jv,.jv-abrir,.toast{display:none !important}
+  .top,.tabs,.btnrow,.sep .x,.sep .chk,.count,.rodape,.atualizar,.jv,.jv-abrir,.toast{display:none !important}
   .qtyin,.obsin{display:none !important}
   .so-imprime{display:block}
   .so-imprime.qtd{display:inline-block; margin-left:auto; font-family:var(--mono);
@@ -600,6 +612,10 @@ main{padding:14px 14px 92px}
     <div class="count" id="count"></div>
     <div class="list" id="lista"></div>
     <p class="rodape" id="rodape"></p>
+    <div class="atualizar" id="atualizar" hidden>
+      <button type="button" id="atualizar-btn">Atualizar a base deste app</button>
+      <input type="file" id="atualizar-arq" accept=".html,text/html" hidden>
+    </div>
   </div>
   <div class="col2">
     <section class="panel" id="panel" aria-live="polite">
@@ -629,6 +645,9 @@ main{padding:14px 14px 92px}
   <div class="jv-msgs" id="jv-msgs" aria-live="polite"></div>
   <div class="jv-form">
     <textarea id="jv-texto" rows="1" placeholder="Pergunte sobre um produto…" aria-label="Pergunta para o Jarvis"></textarea>
+    <button type="button" id="jv-parar" aria-label="Parar a resposta" title="Parar" hidden>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+    </button>
     <button type="button" id="jv-enviar" aria-label="Enviar">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
     </button>
@@ -1797,9 +1816,7 @@ function jvAparar(){
   }
 }
 
-async function jvPerguntar(texto){
-  texto = (texto || '').trim();
-  if(!texto || JV.ocupado || !(JV.estado && JV.estado.ok)) return;
+async function jvPerguntarLocal(texto){
   JV.ocupado = true; jvEnviar.disabled = true;
   jvTexto.value = ''; jvTexto.style.height = '';
   jvBalao('eu', texto);
@@ -1841,12 +1858,6 @@ async function jvPerguntar(texto){
   if(window.innerWidth >= 860) jvTexto.focus();
 }
 
-function jvVerificar(){
-  if(location.protocol.indexOf('http') !== 0) return Promise.resolve({ok: false, motivo: 'arquivo'});
-  return fetch('jarvis/status', {cache: 'no-store'})
-    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-    .catch(function(){ return {ok: false, motivo: 'sem servidor'}; });
-}
 
 function jvSugestoes(){
   var s = [], ex = null, dest = {};
@@ -1879,6 +1890,54 @@ function jvBoasVindas(){
   d.appendChild(sug);
 }
 
+
+/* ---------- Jarvis pelo app publicado no Claude: IA da conta de quem pergunta, sem chave ---------- */
+var LINK_APP_CLAUDE = 'https://claude.ai/artifact/RJ65rr4zeDMBFGdbwD2LRn';
+var jvParar = document.getElementById('jv-parar');
+JV.turnos = []; JV.sample = null; JV.ferramentas = false; JV.artifact = null; JV.ctl = null;
+
+if(window.claude && typeof window.claude.use === 'function'){
+  window.claude.use('sample').then(function(s){
+    if(!s) return;
+    JV.sample = s;
+    return s.limits().then(function(l){ JV.ferramentas = !!(l && l.tools); }, function(){});
+  }).catch(function(){});
+  window.claude.use('artifact').then(function(a){
+    if(!a) return;
+    JV.artifact = a;
+    return Promise.resolve(window.claude.use('user'))
+      .then(function(u){ return u ? u.canEdit() : true; })
+      .catch(function(){ return true; })
+      .then(function(pode){ if(pode) document.getElementById('atualizar').hidden = false; });
+  }).catch(function(){});
+}
+
+function jvVerificar(){
+  if(JV.sample) return Promise.resolve({ok: true, modo: 'claude'});
+  if(window.claude && typeof window.claude.use === 'function'){
+    return window.claude.use('sample').then(function(s){
+      if(!s) return {ok: false, motivo: 'claude sem ia'};
+      JV.sample = s;
+      return s.limits().then(function(l){ JV.ferramentas = !!(l && l.tools); }, function(){})
+        .then(function(){ return {ok: true, modo: 'claude'}; });
+    }).catch(function(){ return {ok: false, motivo: 'claude sem ia'}; });
+  }
+  if(location.protocol.indexOf('http') !== 0) return Promise.resolve({ok: false, motivo: 'fora'});
+  return fetch('jarvis/status', {cache: 'no-store'})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(e){ e.modo = 'local'; if(!e.ok) e.motivo = 'sem chave'; return e; })
+    .catch(function(){ return {ok: false, motivo: 'fora'}; });
+}
+
+function jvAvisoComLink(texto){
+  var d = jvBalao('sis', texto);
+  var a = document.createElement('a');
+  a.className = 'jv-ir'; a.href = LINK_APP_CLAUDE; a.target = '_blank'; a.rel = 'noopener';
+  a.textContent = 'Abrir o Jarvis no Claude →';
+  d.appendChild(document.createElement('br'));
+  d.appendChild(a);
+}
+
 function jvMostrarEstado(){
   var e = JV.estado || {};
   var ok = !!e.ok;
@@ -1886,13 +1945,158 @@ function jvMostrarEstado(){
   jvStatus.textContent = ok ? 'assistente do almoxarifado' : 'indisponível aqui';
   if(ok) return;
   jvMsgs.innerHTML = '';
-  var msg = {
-    'arquivo': 'O Jarvis precisa do servidor local. Abra o app pelo iniciar.bat (no PC: http://localhost:8080) em vez de abrir o arquivo direto.',
-    'sem servidor': 'O Jarvis não funciona pelo site do GitHub, porque a chave da IA fica guardada só no computador do servidor — se ela estivesse no site, qualquer um poderia copiá-la. Use pelo servidor local: no PC, http://localhost:8080; no celular, o endereço com IP que aparece no iniciar.bat, no mesmo wi-fi.',
-    'sem chave': 'O servidor está no ar, mas o Jarvis está sem chave. No computador do servidor, crie o arquivo jarvis_chave.txt na pasta do projeto, com a chave da API na primeira linha, e ligue o iniciar.bat de novo.'
-  }[e.motivo] || 'O Jarvis não está disponível agora.';
-  jvBalao('sis', msg);
+  if(e.motivo === 'fora'){
+    jvAvisoComLink('O Jarvis funciona no app publicado no Claude, sem precisar de chave nenhuma: ' +
+      'a pergunta usa a conta do Claude de quem está perguntando. É o mesmo app, com a mesma base.');
+  } else if(e.motivo === 'sem chave'){
+    jvAvisoComLink('Este servidor não tem chave de API. O jeito mais simples é usar o Jarvis pelo app ' +
+      'publicado no Claude, que não precisa de chave. (Se preferir pelo servidor, crie o arquivo jarvis_chave.txt.)');
+  } else {
+    jvBalao('sis', 'A IA do Claude não está liberada para a sua conta neste app. ' +
+      'Confira se você está conectado ao Claude e se a sua organização permite.');
+  }
 }
+
+/* sem ferramentas na conta: manda junto um recorte da base escolhido aqui */
+function jvContexto(texto){
+  var codigos = (texto.match(/\b\d{6,9}\b/g) || []).map(function(c){ return c.padStart(9, '0'); });
+  if(codigos.length) return {produtos: codigos.slice(0, 3).map(function(c){ return jvDetalhar({codigo: c}); })};
+  var vazias = {'PARA':1,'SERVE':1,'ONDE':1,'QUAL':1,'QUAIS':1,'TEM':1,'COMO':1,'ESTA':1,'FICA':1,'COM':1,
+                'SALDO':1,'ESTOQUE':1,'APLICADO':1,'PRODUTO':1,'QUANTO':1,'MEU':1,'NOSSO':1,'QUE':1};
+  var palavras = norm(texto).split(/[^A-Z0-9-]+/).filter(function(p){ return p.length >= 3 && !vazias[p]; });
+  if(!palavras.length) return {aviso: 'Nenhum produto identificado na pergunta.'};
+  var pontos = [];
+  ITENS.forEach(function(it){
+    var n = 0;
+    palavras.forEach(function(p){ if(it.idx.indexOf(p) >= 0) n++; });
+    if(n) pontos.push([n, it]);
+  });
+  pontos.sort(function(a, b){ return b[0] - a[0] || (b[1].saldo > 0) - (a[1].saldo > 0); });
+  return {produtos_mais_parecidos: pontos.slice(0, 10).map(function(x){ return jvResumo(x[1]); })};
+}
+
+function jvErroClaude(e, bolha){
+  var c = (e && e.code) || 'upstream_error';
+  var parcial = e && e.text;
+  if(c === 'cancelled'){
+    if(parcial){ bolha.className = 'jv-m ele'; bolha.innerHTML = jvFormatar(parcial) + '<i class="corte">(você parou a resposta)</i>'; }
+    else bolha.remove();
+    return;
+  }
+  if(c === 'refused') bolha.remove();
+  else if(parcial){ bolha.className = 'jv-m ele'; bolha.innerHTML = jvFormatar(parcial) + '<i class="corte">(a resposta foi interrompida)</i>'; }
+  else bolha.remove();
+  if(c === 'tools_unavailable'){ JV.ferramentas = false; jvBalao('erro', 'Sua conta não permite as consultas automáticas. Pergunte de novo: vou mandar os dados junto.'); return; }
+  if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].indexOf(c) >= 0){
+    JV.estado = {ok: false, motivo: 'claude sem ia'};
+    jvBalao('erro', c === 'not_granted'
+      ? 'Você não autorizou o app a usar o Claude. Para usar o Jarvis, recarregue a página e permita quando ele perguntar.'
+      : 'A IA do Claude não está liberada para a sua conta neste app.');
+    jvTexto.disabled = true; jvEnviar.disabled = true;
+    return;
+  }
+  var msg = {
+    rate_limited: 'Muitas perguntas seguidas, ou o limite de uso do seu plano do Claude acabou. Espere um pouco e pergunte de novo.',
+    session_expired: 'Sua sessão do Claude expirou. Entre de novo no Claude e pergunte outra vez.',
+    refused: 'O Claude não respondeu essa pergunta. Tente perguntar de outro jeito.',
+    prompt_too_large: 'A conversa ficou longa demais. Toque no botão de nova conversa e pergunte de novo.',
+    empty_completion: 'Não veio resposta. Tente perguntar de outro jeito.'
+  }[c] || 'A resposta não chegou inteira (falha de conexão). Pergunte de novo.';
+  jvBalao('erro', msg);
+}
+
+async function jvPerguntarClaude(texto){
+  JV.ocupado = true; jvEnviar.hidden = true; jvParar.hidden = false;
+  jvTexto.value = ''; jvTexto.style.height = '';
+  jvBalao('eu', texto);
+  var bolha = jvBalao('pensando', 'Jarvis está pensando…');
+  var regras = jvSistema() + '\n\n(Estas são as suas instruções permanentes. A conversa com o usuário começa abaixo.)';
+  var pergunta = texto;
+  if(!JV.ferramentas){
+    pergunta = texto + '\n\n[Dados da base para esta pergunta, em JSON — use só isto como fonte de saldo, ' +
+               'endereço e quantidade]\n' + JSON.stringify(jvContexto(texto)).slice(0, 60000);
+  }
+  var turnos = [{role: 'user', content: regras}].concat(JV.turnos.slice(-12), [{role: 'user', content: pergunta}]);
+  JV.ctl = new AbortController();
+  var opcoes = {
+    signal: JV.ctl.signal, modelTier: 'default',
+    onText: function(u){
+      bolha.className = 'jv-m ele';
+      bolha.innerHTML = jvFormatar(u.text);
+      jvMsgs.scrollTop = jvMsgs.scrollHeight;
+    }
+  };
+  if(JV.ferramentas){
+    opcoes.tools = JV_FERRAMENTAS.map(function(f){
+      return {name: f.name, description: f.description, inputSchema: f.input_schema,
+        execute: function(inp){
+          if(bolha.classList.contains('pensando')) bolha.textContent = jvRotulo({name: f.name, input: inp || {}});
+          var r = jvExecutar(f.name, inp || {});
+          if(r && r.erro) throw new Error(r.erro);
+          return r;
+        }};
+    });
+  } else {
+    opcoes.cache = false;
+  }
+  try{
+    var r = await JV.sample(turnos, opcoes);
+    bolha.className = 'jv-m ele';
+    bolha.innerHTML = jvFormatar(r.text) + (r.truncated ? '<i class="corte">(resposta cortada — pergunte por partes)</i>' : '');
+    JV.turnos.push({role: 'user', content: texto}, {role: 'assistant', content: r.text});
+    jvMsgs.scrollTop = jvMsgs.scrollHeight;
+  }catch(e){
+    jvErroClaude(e, bolha);
+  }
+  JV.ocupado = false; JV.ctl = null;
+  jvParar.hidden = true; jvEnviar.hidden = false;
+  jvEnviar.disabled = !(JV.estado && JV.estado.ok);
+  if(window.innerWidth >= 860 && !jvTexto.disabled) jvTexto.focus();
+}
+
+jvParar.addEventListener('click', function(){ if(JV.ctl) JV.ctl.abort(); });
+
+function jvPerguntar(texto){
+  texto = (texto || '').trim();
+  if(!texto || JV.ocupado || !(JV.estado && JV.estado.ok)) return;
+  return JV.estado.modo === 'claude' ? jvPerguntarClaude(texto) : jvPerguntarLocal(texto);
+}
+
+/* ---------- atualizar a base do app publicado no Claude ---------- */
+document.getElementById('atualizar-btn').addEventListener('click', function(){
+  document.getElementById('atualizar-arq').click();
+});
+document.getElementById('atualizar-arq').addEventListener('change', function(ev){
+  var arq = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if(!arq || !JV.artifact) return;
+  var leitor = new FileReader();
+  leitor.onload = function(){
+    var html = String(leitor.result || '');
+    if(!/^\s*<!doctype html/i.test(html) || html.indexOf('id="dados"') < 0 || html.indexOf('id="jv"') < 0){
+      avisar('Esse arquivo não é o index.html do app. Escolha o index.html da pasta do projeto.');
+      return;
+    }
+    var m = html.match(/"gerado":"(\d{4})-(\d{2})-(\d{2})"/);
+    var quando = m ? m[3] + '/' + m[2] + '/' + m[1] : 'data desconhecida';
+    if(!confirm('Publicar a base de ' + quando + ' (' + (arq.size / 1e6).toFixed(1) + ' MB) neste app?\n\n' +
+                'Quem estiver com o app aberto vai recarregar com a base nova.')) return;
+    avisar('Publicando a base nova…');
+    JV.artifact.publish(html).then(function(){ avisar('Base atualizada. Recarregando…'); }, function(err){
+      var c = err && err.code;
+      if(c === 'not_writer' || c === 'not_granted' || c === 'consent_required'){
+        document.getElementById('atualizar').hidden = true;
+        avisar('Você pode usar este app, mas só quem edita pode atualizar a base.');
+      } else if(c === 'conflict') avisar('Alguém atualizou a base agora mesmo. O app vai recarregar.');
+      else if(c === 'too_large') avisar('O arquivo é grande demais para publicar aqui.');
+      else if(c === 'invalid_content') avisar('O arquivo não é uma página válida.');
+      else if(c === 'rate_limited') avisar('Muitas publicações seguidas. Espere um pouco.');
+      else avisar('Não consegui publicar agora (' + (c || 'erro') + '). Tente de novo em instantes.');
+    });
+  };
+  leitor.onerror = function(){ avisar('Não consegui ler o arquivo.'); };
+  leitor.readAsText(arq, 'utf-8');
+});
 
 function abrirJarvis(pergunta){
   jvPainel.classList.add('open');
@@ -1901,7 +2105,7 @@ function abrirJarvis(pergunta){
   var depois = function(){
     jvMostrarEstado();
     if(JV.estado.ok){
-      if(!JV.hist.length && !jvMsgs.children.length) jvBoasVindas();
+      if(!JV.hist.length && !JV.turnos.length && !jvMsgs.children.length) jvBoasVindas();
       if(pergunta) jvPerguntar(pergunta);
       else if(window.innerWidth >= 860) jvTexto.focus();
     }
@@ -1920,7 +2124,7 @@ document.getElementById('jv-abrir').addEventListener('click', function(){ abrirJ
 document.getElementById('jv-fechar').addEventListener('click', fecharJarvis);
 document.getElementById('jv-novo').addEventListener('click', function(){
   if(JV.ocupado) return;
-  JV.hist = [];
+  JV.hist = []; JV.turnos = [];
   if(JV.estado && JV.estado.ok) jvBoasVindas();
 });
 jvEnviar.addEventListener('click', function(){ jvPerguntar(jvTexto.value); });
