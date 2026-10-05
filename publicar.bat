@@ -39,8 +39,8 @@ rem ---------------- enviando ----------------
 echo.
 echo  Enviando para o GitHub...
 git add -A
-rem a chave do Jarvis nunca sobe, mesmo se o .gitignore estiver faltando
-git reset -q -- jarvis_chave.txt >nul 2>&1
+rem as chaves nunca sobem, mesmo se o .gitignore estiver faltando
+git reset -q -- gemini_chave.txt jarvis_chave.txt >nul 2>&1
 git diff --cached --quiet
 if not errorlevel 1 goto semmudanca
 

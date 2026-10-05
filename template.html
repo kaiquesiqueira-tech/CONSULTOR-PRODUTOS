@@ -376,6 +376,16 @@ main{padding:14px 14px 92px}
 .jv-m .loc{font-size:11.5px; padding:2px 6px}
 .jv-m a.prod{font-family:var(--mono); font-weight:600; color:var(--act); text-decoration:underline; cursor:pointer}
 .jv-m a.ir{color:var(--act); font-weight:600; text-decoration:underline; cursor:pointer}
+.jv-m.gm{align-self:flex-start; background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--act);
+  border-bottom-left-radius:4px}
+.jv-m .gmt{font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--act); margin-bottom:6px}
+.jv-m .gmtx{white-space:pre-wrap; font-size:13.5px; line-height:1.5}
+.jv-m .gmf{font-size:12px; margin-top:8px; color:var(--muted)}
+.jv-m .gmf a{color:var(--act); font-weight:600}
+.jv-m .gms{margin-top:8px; overflow-x:auto}
+.jv-m .jgm{margin-top:10px; border:1px solid var(--act); background:transparent; color:var(--act);
+  border-radius:8px; padding:7px 12px; font-size:12.5px; font-weight:700}
+.jv-m .jgm:disabled{opacity:.5; cursor:default}
 .btn.jv-perg{width:100%; margin-bottom:10px; color:var(--steel); border-color:var(--loc-edge);
   background:rgba(245,197,24,.12)}
 .btn.jv-perg svg{vertical-align:-2px; margin-right:6px}
@@ -1625,6 +1635,7 @@ var JV = {ultimos: []};
 var jvPainel = document.getElementById('jv'), jvMsgs = document.getElementById('jv-msgs');
 var jvTexto = document.getElementById('jv-texto'), jvEnviar = document.getElementById('jv-enviar');
 
+
 var JV_VAZIAS = {};
 ('A O AS OS DE DO DA DOS DAS E EM NO NA NOS NAS UM UMA UNS UMAS AO AOS PRO PRA PARA POR PELO PELA QUE QUAL ' +
  'QUAIS ONDE COMO QUANDO QUANTO QUANTOS QUANTA QUANTAS TEM TEMOS TENHO TINHA HA EXISTE ESTA ESTAO FICA FICAM ' +
@@ -1636,7 +1647,8 @@ var JV_VAZIAS = {};
  'AGORA FILIAL FILIAIS COM SEM MAIS MENOS MUITO POUCO TUDO TODO TODOS TODA TODAS ALGUM ALGUMA NADA SO ' +
  'SAIU SAIRAM SAIDA SAIDAS FOI FORAM VAI MANDADO MANDADA MANDARAM EQUIPAMENTO EQUIPAMENTOS DESTINO ' +
  'NOTA NOTAS NF PENDENTE PENDENTES ENDERECAR RUA PRATELEIRA ULTIMA ULTIMO VEZ DIA DIAS HOJE ONTEM QUE ' +
- 'OI OLA BOM BOA TARDE NOITE OBRIGADO OBRIGADA FAVOR EH SAO SER TA TO TAO').split(' ')
+ 'OI OLA BOM BOA TARDE NOITE OBRIGADO OBRIGADA FAVOR EH SAO SER TA TO TAO ' +
+ 'PESQUISA PESQUISAR PESQUISE GEMINI INTERNET GOOGLE WEB').split(' ')
   .forEach(function(p){ JV_VAZIAS[p] = 1; });
 
 /* ---------- índices montados uma vez ---------- */
@@ -1803,6 +1815,7 @@ function jvCartao(it, foco){
   else if(foco === 'serve'){
     h += '<div class="jfoco">' + (desc.serve
       ? 'Pela descrição, serve para <b>' + esc(desc.serve) + '</b>.'
+      : GEMINI ? 'A base não explica para que ele serve. Veja a pesquisa do Gemini logo abaixo.'
       : 'A base não explica para que ele serve — só tem a descrição acima. ' +
         'Eu respondo com os dados da base e não tenho conhecimento técnico das peças.') + '</div>';
   }
@@ -1828,6 +1841,7 @@ function jvCartao(it, foco){
   h += jvLinha('Última saída', it.ultS ? data(it.ultS) + ' (' + (HOJE - it.ultS) + ' dias)' : 'sem registro');
   if(pend.length) h += jvLinha('A endereçar', pend.map(function(p){ return 'NF ' + esc(p[6]) + ': ' + nq(p[4]); }).join('; '));
   h += jvLinha('Contr. Endereço', it.ctrl === true ? 'Sim' : it.ctrl === false ? 'Nao' : 'fora da SBZ');
+  if(GEMINI) h += '<button type="button" class="jgm" data-gemini="' + it.id + '">Pesquisar no Gemini</button>';
   return h;
 }
 
@@ -1996,12 +2010,16 @@ function jvAjuda(abertura){
       jvPerg('Onde fica o filtro FF5052?') + jvPerg('Quanto tem de diesel?') +
       jvPerg('O que foi aplicado na EH-07?') + jvPerg('O que tem no A03-B04?') +
       jvPerg('Pendentes de endereçar') + jvPerg('Produtos sem endereço') +
-    '</div><div class="jnota">Funciono sem internet e sem IA: sei o que está na base (saldo, endereço, saídas, ' +
-    'notas, descrição), mas não explico para que serve uma peça além do que a descrição diz.</div>';
+    '</div><div class="jnota">' + (GEMINI
+      ? 'Saldo, endereço, saídas e notas eu respondo com a base, na hora. Para “para que serve” e “onde é aplicado”, ' +
+        'pesquiso no Gemini — só a descrição da peça vai para lá.'
+      : 'Funciono sem internet e sem IA: sei o que está na base (saldo, endereço, saídas, ' +
+        'notas, descrição), mas não explico para que serve uma peça além do que a descrição diz.') + '</div>';
 }
 
 function jvResponder(texto){
   var a = jvAnalisar(texto), q = a.q;
+  JV.alvo = null; JV.foco = a.foco; JV.pesquisa = /PESQUIS|GEMINI|INTERNET|GOOGLE/.test(q);
   if(!a.fil && S.fil && !/TODAS AS FILIAIS/.test(q)) a.fil = S.fil;
 
   if(/^\s*$/.test(q) || /AJUDA|O QUE VOCE (SABE|FAZ)|COMO (USA|FUNCIONA)|QUEM E VOCE/.test(q)) return jvAjuda();
@@ -2041,11 +2059,11 @@ function jvResponder(texto){
 
   JV.ultimos = achados.slice(0, 8);
   var aviso = (a.fil && !a.codigos.length) ? '<div class="jnota">Procurando só na filial ' + a.fil + '.</div>' : '';
-  if(achados.length === 1) return jvCartao(achados[0], a.foco) + aviso;
+  if(achados.length === 1){ JV.alvo = achados[0]; return jvCartao(achados[0], a.foco) + aviso; }
   var comSaldo = achados.filter(function(it){ return it.saldo > 0; });
   if(comSaldo.length === 1){
     var unico = comSaldo[0], outros = achados.filter(function(x){ return x !== unico; });
-    JV.ultimos = [unico];
+    JV.ultimos = [unico]; JV.alvo = unico;
     var mesmoCodigo = outros.every(function(x){ return x.c === unico.c; });
     var lista_o = outros.slice(0, 4).map(function(x){ return jvProd(x) + ' (' + FIL[x.f] + ')'; }).join(', ') + (outros.length > 4 ? '…' : '');
     return jvCartao(unico, a.foco) + '<div class="jnota">' + (mesmoCodigo
@@ -2057,6 +2075,115 @@ function jvResponder(texto){
   return jvVarios(achados, a.foco, mesmos
     ? 'O código ' + achados[0].c + ' existe em ' + achados.length + ' filiais (cada uma tem o seu cadastro):'
     : 'Encontrei <b>' + achados.length + '</b> produtos' + (a.termos.length ? ' com “' + esc(a.termos.join(' ')) + '”' : '') + ':') + aviso;
+}
+
+/* ---------- Gemini: pesquisa na internet para o que a base não sabe ---------- */
+var GEMINI = D.gemini || null;
+if(GEMINI) document.getElementById('jv-status').textContent = 'dados da base + pesquisa no Gemini';
+var JV_GEMINI_REGRAS = 'Você ajuda o almoxarifado de uma operação de mineração no Brasil. Responda sempre em ' +
+  'português do Brasil, de forma curta e prática, para quem trabalha no estoque. Use a pesquisa do Google para ' +
+  'confirmar o que disser. Quando a pesquisa não for conclusiva sobre um número de peça específico, diga isso ' +
+  'claramente em vez de supor.';
+
+function jvPromptGemini(it, pergunta){
+  if(!it) return 'Pergunta do almoxarifado: ' + pergunta;
+  var dd = jvDaDescricao(it.d);
+  var p = 'Peça do estoque, pela descrição do cadastro: "' + it.d + '".';
+  if(dd.aplicacao) p += ' O cadastro indica aplicação em: ' + dd.aplicacao + '.';
+  p += '\n\nPesquise e responda em no máximo 8 linhas:\n' +
+       '1. O que é e para que serve.\n' +
+       '2. Em que máquinas, motores ou equipamentos costuma ser aplicada (marca e modelo, se a pesquisa mostrar).\n' +
+       '3. Se aparecerem na pesquisa, números equivalentes de outras marcas.';
+  if(pergunta && !/^Sobre o /.test(pergunta)) p += '\n\nA pergunta do usuário foi: "' + pergunta + '".';
+  return p;
+}
+
+function jvErroGemini(status, msg){
+  if(/API key not valid|API_KEY_INVALID/i.test(msg)) return 'A chave do Gemini é inválida. Confira a chave cadastrada.';
+  if(status === 403 && /referer|referrer/i.test(msg))
+    return 'A chave do Gemini não aceita pedidos deste endereço (restrição de site). Inclua este endereço nas restrições da chave.';
+  if(status === 403) return 'O Gemini recusou o acesso: confira se a API está ativada para essa chave.';
+  if(status === 429) return 'O limite gratuito do Gemini acabou por agora. Tente mais tarde — o resto do Jarvis continua funcionando.';
+  if(status >= 500) return 'O Gemini está fora do ar agora. Tente de novo em instantes.';
+  return 'O Gemini respondeu com erro ' + status + ': ' + String(msg).slice(0, 140);
+}
+
+function jvLerGemini(d){
+  if(d.promptFeedback && d.promptFeedback.blockReason) throw new Error('O Gemini não quis responder essa pesquisa.');
+  var c = (d.candidates || [])[0] || {};
+  var partes = (c.content && c.content.parts) || [];
+  var texto = partes.filter(function(p){ return p.text && !p.thought; }).map(function(p){ return p.text; }).join('').trim();
+  if(!texto) throw new Error(c.finishReason === 'SAFETY' ? 'O Gemini não quis responder essa pesquisa.'
+                                                        : 'O Gemini não trouxe resposta. Tente perguntar de outro jeito.');
+  var g = c.groundingMetadata || {}, vistos = {};
+  var fontes = (g.groundingChunks || []).map(function(x){ return x.web; })
+    .filter(function(w){ if(!w || !/^https:\/\//.test(w.uri || '') || vistos[w.title]) return false; vistos[w.title] = 1; return true; })
+    .slice(0, 5);
+  return {texto: texto, fontes: fontes, sugestao: (g.searchEntryPoint || {}).renderedContent || ''};
+}
+
+async function jvChamarGemini(prompt){
+  var modelos = (GEMINI.modelos || []).slice(), lembrado = store('gemini_modelo');
+  if(lembrado && modelos.indexOf(lembrado) > 0){ modelos.splice(modelos.indexOf(lembrado), 1); modelos.unshift(lembrado); }
+  for(var i = 0; i < modelos.length; i++){
+    var ctl = new AbortController(), tempo = setTimeout(function(){ ctl.abort(); }, 45000), resp;
+    try{
+      resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelos[i]) +
+                         ':generateContent', {
+        method: 'POST', signal: ctl.signal,
+        headers: {'Content-Type': 'application/json', 'x-goog-api-key': GEMINI.chave},
+        body: JSON.stringify({
+          systemInstruction: {parts: [{text: JV_GEMINI_REGRAS}]},
+          contents: [{role: 'user', parts: [{text: prompt}]}],
+          tools: [{google_search: {}}],
+          generationConfig: {temperature: 0.3}
+        })
+      });
+    }catch(e){
+      clearTimeout(tempo);
+      throw new Error(e && e.name === 'AbortError' ? 'O Gemini demorou demais para responder. Tente de novo.'
+                                                   : 'Sem conexão com o Gemini. Confira a internet.');
+    }
+    clearTimeout(tempo);
+    var dados = await resp.json().catch(function(){ return {}; });
+    if(resp.ok){ store('gemini_modelo', modelos[i]); return jvLerGemini(dados); }
+    var msg = String((dados.error || {}).message || '');
+    if(resp.status === 404 || /not found|is not supported/i.test(msg)) continue;   // tenta o próximo modelo
+    throw new Error(jvErroGemini(resp.status, msg));
+  }
+  throw new Error('Nenhum modelo da lista do Gemini respondeu. Atualize GEMINI_MODELOS no build.py.');
+}
+
+function jvMd(t){
+  var h = esc(t);
+  h = h.replace(/^#{1,4}\s*(.+)$/gm, '<b>$1</b>');
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>');
+  h = h.replace(/^[ \t]*[\*\-][ \t]+/gm, '• ');
+  return '<div class="gmtx">' + h + '</div>';
+}
+
+async function jvPesquisarGemini(it, pergunta){
+  var bolha = jvBalao('pensando', 'Pesquisando no Gemini' + (it ? ' sobre ' + it.c : '') + '…');
+  try{
+    var r = await jvChamarGemini(jvPromptGemini(it, pergunta));
+    bolha.className = 'jv-m gm rico';
+    var h = '<div class="gmt">GEMINI · pesquisa na internet' + (it ? ' · ' + it.c : '') + '</div>' + jvMd(r.texto);
+    if(r.fontes.length) h += '<div class="gmf">Fontes: ' + r.fontes.map(function(w){
+      return '<a href="' + esc(w.uri) + '" target="_blank" rel="noopener noreferrer">' + esc(w.title || 'link') + '</a>';
+    }).join(' · ') + '</div>';
+    h += '<div class="jnota">Informação da internet, não da base. Confira antes de usar.</div>';
+    bolha.innerHTML = h;
+    if(r.sugestao){   // o Google exige mostrar as sugestões de pesquisa junto da resposta
+      var caixa = document.createElement('div');
+      caixa.className = 'gms';
+      caixa.attachShadow({mode: 'open'}).innerHTML = r.sugestao;
+      bolha.appendChild(caixa);
+    }
+  }catch(e){
+    bolha.className = 'jv-m erro';
+    bolha.textContent = (e && e.message) || 'Não consegui pesquisar no Gemini agora.';
+  }
+  jvMsgs.scrollTop = bolha.offsetTop - 12;
 }
 
 /* ---------- conversa ---------- */
@@ -2078,11 +2205,21 @@ function jvPerguntar(texto){
   try{ r = jvResponder(texto); }catch(e){ r = 'Tive um problema para responder essa. Tente perguntar de outro jeito.'; }
   var b = jvBalao('ele', r, true);
   jvMsgs.scrollTop = b.offsetTop - 12;
+  if(GEMINI){
+    var alvo = JV.alvo;
+    var semAplicacao = alvo && !jvSaidas(alvo).length && !jvDaDescricao(alvo.d).aplicacao;
+    if(alvo && (JV.pesquisa || JV.foco === 'serve' || (JV.foco === 'aplicacao' && semAplicacao))){
+      var bt = b.querySelector('.jgm');
+      if(bt){ bt.disabled = true; bt.textContent = 'Pesquisado no Gemini'; }
+      jvPesquisarGemini(alvo, texto);
+    }
+    else if(!alvo && JV.pesquisa) jvPesquisarGemini(null, texto);
+  }
 }
 
 function jvSobreItem(it){
   jvBalao('eu', 'Sobre o ' + it.c + ' · filial ' + FIL[it.f]);
-  JV.ultimos = [it];
+  JV.ultimos = [it]; JV.alvo = it;
   var b = jvBalao('ele', jvCartao(it, ''), true);
   jvMsgs.scrollTop = b.offsetTop - 12;
 }
@@ -2122,6 +2259,13 @@ jvTexto.addEventListener('input', function(){
 jvMsgs.addEventListener('click', function(e){
   var p = e.target.closest('[data-perg]');
   if(p){ jvPerguntar(p.dataset.perg); return; }
+  var g = e.target.closest('[data-gemini]');
+  if(g){
+    var itg = ITENS[+g.dataset.gemini];
+    g.disabled = true; g.textContent = 'Pesquisado no Gemini';
+    if(itg) jvPesquisarGemini(itg, 'Sobre o ' + itg.c);
+    return;
+  }
   var a = e.target.closest('[data-abrir]');
   if(a){
     var it = ITENS[+a.dataset.abrir];

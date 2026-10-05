@@ -61,6 +61,32 @@ PASTA_DADOS = os.path.join(RAIZ, "dados")
 # ---------------------------------------------------------------------
 INCLUIR_CUSTOS = True
 
+# ---------------------------------------------------------------------
+#  GEMINI (opcional) - pesquisa na internet para "para que serve" e
+#  "onde e aplicado". A chave vem da variavel GEMINI_API_KEY (e assim
+#  que o GitHub passa o segredo) ou do arquivo gemini_chave.txt aqui na
+#  pasta, que nunca vai para o GitHub. Sem chave, o Jarvis responde so
+#  com a base.
+#
+#  GEMINI_MODELOS: tentados nessa ordem; o primeiro que existir e usado.
+# ---------------------------------------------------------------------
+GEMINI_MODELOS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"]
+
+
+def chave_gemini():
+    chave = os.environ.get("GEMINI_API_KEY", "").strip()
+    if chave:
+        return chave
+    try:
+        with open(os.path.join(RAIZ, "gemini_chave.txt"), encoding="utf-8-sig") as f:
+            for linha in f:
+                linha = linha.strip()
+                if linha and not linha.startswith("#"):
+                    return linha
+    except OSError:
+        pass
+    return ""
+
 # arquivos que o build cria. O servidor so entrega estes, para ninguem
 # na rede baixar as planilhas ou os scripts pelo navegador.
 ARQUIVOS_DO_SITE = ("index.html", "versao.txt")
@@ -479,6 +505,8 @@ def principal(saida=None):
     quando_modelo = datetime.datetime.fromtimestamp(
         os.path.getmtime(modelo)).strftime("%d/%m/%Y %H:%M")
     base["appv"] = marca_app
+    if chave_gemini():
+        base["gemini"] = {"chave": chave_gemini(), "modelos": GEMINI_MODELOS}
 
     dados = json.dumps(base, ensure_ascii=False, separators=(",", ":"))
     dados = dados.replace("</", "<\\u002f")  # seguranca ao embutir no HTML
@@ -521,6 +549,8 @@ def principal(saida=None):
         sem = sum(1 for a in base["ativos"] if "e" not in a)
         print("  controla endereco .. %d sim, %d nao, %d sem indicador (itens ativos)" % (sim, nao, sem))
     print("  marca dos dados .... %s" % base["marca"])
+    print("  Gemini ............. %s" % ("ligado" if base.get("gemini") else
+                                         "desligado (sem gemini_chave.txt nem GEMINI_API_KEY)"))
     print("  marca do app ....... %s   (template.html de %s)" % (marca_app, quando_modelo))
     if base.get("semCustos"):
         print("  custos ............. FORA da base (INCLUIR_CUSTOS = False no build.py)")

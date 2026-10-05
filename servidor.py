@@ -96,7 +96,7 @@ def enviar_para_o_github():
 
         if _git("add", "-A").returncode != 0:
             return False, "nao consegui preparar os arquivos."
-        _git("reset", "-q", "--", "jarvis_chave.txt")   # a chave do Jarvis nunca sobe
+        _git("reset", "-q", "--", "gemini_chave.txt", "jarvis_chave.txt")   # chaves nunca sobem
         if _git("diff", "--cached", "--quiet").returncode == 0:
             return False, "nada novo para enviar."
 

@@ -16,3 +16,7 @@ Thumbs.db
 # CHAVE DO JARVIS: nunca pode ir para o GitHub. O repositorio e publico,
 # e quem pegar a chave usa a IA na sua conta.
 jarvis_chave.txt
+
+# CHAVE DO GEMINI: no GitHub ela entra como segredo (Settings > Secrets),
+# nunca como arquivo no repositorio.
+gemini_chave.txt
