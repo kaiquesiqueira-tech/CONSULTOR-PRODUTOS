@@ -8,8 +8,6 @@
 # Se voce quiser guardar as planilhas tambem, apague as duas
 # linhas abaixo. So faca isso se o repositorio for privado.
 # ---------------------------------------------------------------
-dados/*.xlsx
-dados/*.xls
 
 # gerado a cada build, so serve para o servidor local
 versao.txt

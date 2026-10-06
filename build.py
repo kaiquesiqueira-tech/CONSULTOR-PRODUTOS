@@ -99,10 +99,11 @@ EPOCA = datetime.date(2000, 1, 1)
 # leitura das planilhas
 # --------------------------------------------------------------------------
 def achar_planilhas():
-    arquivos = []
-    for ext in ("*.xlsx", "*.xlsm", "*.xls"):
-        arquivos += glob.glob(os.path.join(PASTA_DADOS, ext))
-    arquivos = [a for a in arquivos if not os.path.basename(a).startswith("~$")]
+    # nao usa glob: no servidor do GitHub (Linux) ele diferencia .xlsx de .XLSX
+    if not os.path.isdir(PASTA_DADOS):
+        return []
+    arquivos = [os.path.join(PASTA_DADOS, n) for n in os.listdir(PASTA_DADOS)
+                if n.lower().endswith((".xlsx", ".xlsm", ".xls")) and not n.startswith("~$")]
     return sorted(arquivos, key=lambda a: (os.path.getmtime(a), a))
 
 
@@ -443,7 +444,18 @@ def principal(saida=None):
     arquivos = achar_planilhas()
     if not arquivos:
         print("Nenhuma planilha em 'dados'.")
-        print("Coloque ali o SALDO FISICO e o SALDO POR ENDERECO em .xlsx e rode de novo.")
+        if not os.path.isdir(PASTA_DADOS):
+            print("A pasta 'dados' nem existe aqui.")
+        else:
+            outros = sorted(os.listdir(PASTA_DADOS))
+            print("A pasta 'dados' tem: %s" % (", ".join(outros) if outros else "nada"))
+        if os.environ.get("GITHUB_ACTIONS"):
+            print("")
+            print("Isto esta rodando no GitHub: as planilhas precisam estar no repositorio,")
+            print("nao so no seu computador. Confira se o .gitignore nao esta bloqueando")
+            print("a pasta dados e envie de novo pelo publicar.bat.")
+        else:
+            print("Coloque ali o SALDO FISICO e o SALDO POR ENDERECO em .xlsx e rode de novo.")
         return 1
 
     del AVISOS[:]
