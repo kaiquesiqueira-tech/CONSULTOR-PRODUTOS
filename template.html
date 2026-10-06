@@ -1722,14 +1722,22 @@ async function jvChamarGemini(contents){
       return r;
     }
     var msg = String((dados.error || {}).message || '');
+    var quem = t.modelo + (t.busca ? ' com pesquisa' : ' sem pesquisa') + ' (' + resp.status + '): ' + msg;
     if(resp.status === 404 || /not found|is not supported/i.test(msg)){ pular[t.modelo] = 1; continue; }
-    if(resp.status === 429){ recusas.push(t.modelo + (t.busca ? ' com pesquisa' : ' sem pesquisa') + ': ' + msg); continue; }
+    // limite de uso ou instabilidade do Google: tenta a próxima combinação
+    if(resp.status === 429 || resp.status >= 500){ recusas.push({s: resp.status, txt: quem}); continue; }
     if(resp.status === 400 && t.busca && /search|grounding|tool/i.test(msg)) continue;   // modelo sem pesquisa no Google
-    throw new Error(jvErroGemini(resp.status, msg));
+    var erro = new Error(jvErroGemini(resp.status, msg));
+    erro.detalhe = quem.slice(0, 260);
+    throw erro;
   }
   if(recusas.length){
-    var e = new Error('O Google recusou por limite de uso em todos os modelos que tentei.');
-    e.detalhe = recusas[0].slice(0, 260);
+    var so429 = recusas.every(function(r){ return r.s === 429; });
+    var soFalha = recusas.every(function(r){ return r.s >= 500; });
+    var e = new Error(so429 ? 'O Google recusou por limite de uso em todos os modelos que tentei.'
+      : soFalha ? 'O Gemini está instável agora: todos os modelos que tentei falharam do lado do Google. Tente de novo em alguns minutos.'
+      : 'O Google recusou em todos os modelos que tentei, por limite de uso ou instabilidade. Tente de novo em alguns minutos.');
+    e.detalhe = recusas[0].txt.slice(0, 260);
     throw e;
   }
   throw new Error('Nenhum modelo da lista do Gemini respondeu. Atualize GEMINI_MODELOS no build.py.');
