@@ -377,6 +377,7 @@ main{padding:14px 14px 92px}
 .jv-ouvir:hover{border-color:var(--act); color:var(--act)}
 .jv-ouvir.falando{border-color:var(--alert); color:var(--alert)}
 .jv-vozsel{margin-top:10px; font-size:12.5px; color:var(--muted)}
+.jv-vozdica{margin-top:6px; font-size:11.5px; color:var(--muted)}
 .jv-vozsel select{margin-left:4px; max-width:calc(100% - 44px); padding:5px 8px; border:1px solid var(--line-2); border-radius:7px;
   background:var(--surface-2); color:var(--ink); font-family:var(--sans); font-size:12.5px}
 .jv-m.gm{align-self:flex-start; background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--act);
@@ -1953,9 +1954,10 @@ function jvMelhorVozNav(){
 /* a voz escolhida: "gemini:Charon" ou "nav:Nome da voz" */
 function jvVozEscolhida(){
   var s = String(store('jarvis_voz') || '');
-  if(s.indexOf('gemini:') === 0 && GEMINI && JV_FALA.audio) return s;
+  var gemOk = GEMINI && JV_FALA.audio && !JV_FALA.geminiFalhou;
+  if(s.indexOf('gemini:') === 0 && gemOk) return s;
   if(s.indexOf('nav:') === 0 && JV_FALA.nav) return s;
-  if(GEMINI && JV_FALA.audio) return 'gemini:Charon';
+  if(gemOk) return 'gemini:Charon';
   var v = jvMelhorVozNav();
   return v ? 'nav:' + v.name : '';
 }
@@ -2086,10 +2088,39 @@ async function jvGerarVozGemini(texto, voz){
   throw new Error('nenhum modelo de voz do Gemini disponível');
 }
 
-async function jvFalar(texto, botao, chave){
+function jvAtualizarSeletores(){
+  document.querySelectorAll('.jv-vozsel').forEach(function(velho){
+    var novo = jvSeletorVoz();
+    if(novo) velho.parentNode.replaceChild(novo, velho);
+  });
+}
+
+function jvFalhaVozGemini(e, pedidoDoUsuario){
+  JV_FALA.geminiFalhou = true;
+  JV_FALA.geminiErro = String((e && e.message) || e || 'erro desconhecido');
+  jvAtualizarSeletores();
+  if(JV_FALA.avisouFalha && !pedidoDoUsuario) return;
+  JV_FALA.avisouFalha = true;
+  var naturais = jvVozesPt().filter(function(v){ return /natural|online/i.test(v.name); });
+  var d = jvBalao('sis', 'A voz natural do Gemini não funcionou na sua conta' +
+    (pedidoDoUsuario ? '.' : ', então estou falando com a voz do navegador.') + ' ' +
+    (naturais.length
+      ? 'Para uma voz humana sem gastar cota, escolha no seletor uma voz "Natural" — ' +
+        naturais.slice(0, 2).map(function(v){ return v.name.replace(/^Microsoft\s+/, '').split(' ')[0]; }).join(' ou ') + '.'
+      : 'Para uma voz bem mais humana sem gastar cota, abra o consultor no Microsoft Edge: ele tem vozes "Natural" ' +
+        '(Antonio, Francisca) que soam como gente. No celular, instale a voz em português de alta qualidade nas ' +
+        'configurações de leitura de texto do aparelho.'));
+  var det = document.createElement('div');
+  det.className = 'gmdet';
+  det.textContent = 'Detalhe do Google — ' + JV_FALA.geminiErro.slice(0, 260);
+  d.appendChild(det);
+}
+
+async function jvFalar(texto, botao, chave, semReserva){
   if(!JV_FALA.ok || !texto) return;
   jvCalar();
-  var escolha = jvVozEscolhida();
+  if(semReserva) JV_FALA.geminiFalhou = false;     // escolheu uma voz do Gemini no seletor: tenta de novo
+  var escolha = semReserva ? String(store('jarvis_voz') || '') : jvVozEscolhida();
   if(escolha.indexOf('gemini:') === 0 && !JV_FALA.geminiFalhou){
     var vez = JV_FALA.vez, voz = escolha.slice(7), id = chave != null ? chave + '|' + voz : null;
     try{
@@ -2104,12 +2135,9 @@ async function jvFalar(texto, botao, chave){
       return;
     }catch(e){
       if(vez !== JV_FALA.vez) return;
-      JV_FALA.geminiFalhou = true;                 // nesta sessão, vai direto para a voz do navegador
-      if(!JV_FALA.avisouFalha){
-        JV_FALA.avisouFalha = true;
-        avisar('A voz do Gemini não está disponível agora. Usando a voz do navegador.');
-      }
       jvMarcarFalando(false);
+      jvFalhaVozGemini(e, semReserva);             // nesta sessão, vai direto para a voz do navegador
+      if(semReserva) return;                       // amostra do seletor: não disfarça com outra voz
     }
   }
   jvFalarNavegador(texto, botao);
@@ -2138,7 +2166,7 @@ function jvSeletorVoz(){
   sel.setAttribute('aria-label', 'Voz do Jarvis');
   if(GEMINI && JV_FALA.audio){
     var g = document.createElement('optgroup');
-    g.label = 'Voz natural do Gemini (usa a cota)';
+    g.label = JV_FALA.geminiFalhou ? 'Voz do Gemini — não funcionou na sua conta' : 'Voz natural do Gemini (usa a cota)';
     JV_VOZES_GEMINI.forEach(function(v){
       var o = document.createElement('option');
       o.value = 'gemini:' + v[0]; o.textContent = v[1];
@@ -2163,14 +2191,20 @@ function jvSeletorVoz(){
   if(!sel.options.length) return null;
   sel.addEventListener('change', function(){
     store('jarvis_voz', sel.value);
-    JV_FALA.geminiFalhou = false;     // trocou de voz: tenta de novo a do Gemini
     jvDestravarFala();
-    jvFalar('Olá, eu sou o Jarvis. É assim que eu vou falar com você.');
+    // amostra na voz escolhida; se for do Gemini e falhar, mostra o motivo em vez de tocar outra voz
+    jvFalar('Olá, eu sou o Jarvis. É assim que eu vou falar com você.', null, null, sel.value.indexOf('gemini:') === 0);
   });
   var rot = document.createElement('label');
   rot.textContent = 'Voz: ';
   rot.appendChild(sel);
   caixa.appendChild(rot);
+  if(!vs.some(function(v){ return /natural|online/i.test(v.name); })){
+    var dica = document.createElement('div');
+    dica.className = 'jv-vozdica';
+    dica.textContent = 'Dica: no Microsoft Edge aparecem vozes “Natural”, que soam como gente e não gastam cota.';
+    caixa.appendChild(dica);
+  }
   return caixa;
 }
 
