@@ -363,29 +363,13 @@ main{padding:14px 14px 92px}
   body.jv-aberto main{max-width:none; margin:0 440px 0 0}
 }
 .jv-m.rico{white-space:normal; max-width:94%}
-.jv-m .jt{font-weight:700; line-height:1.35; margin-bottom:7px}
-.jv-m .jfil{font-family:var(--mono); font-size:11px; font-weight:500; color:var(--muted); white-space:nowrap}
-.jv-m .jfoco{margin-bottom:8px}
-.jv-m .jl{margin:4px 0; font-size:13.5px}
-.jv-m .jl > b{font-size:11.5px; font-weight:700; color:var(--muted); margin-right:3px}
-.jv-m .jl i, .jv-m .jnota i{color:var(--muted); font-style:normal; font-size:12px}
-.jv-m .jlista{margin:4px 0 0; padding:0; list-style:none}
-.jv-m .jlista li{padding:7px 0; border-top:1px solid var(--line); font-size:13.5px; line-height:1.4}
-.jv-m .jsub{font-size:12px; color:var(--muted)}
 .jv-m .jnota{font-size:12.5px; color:var(--muted); margin-top:8px}
-.jv-m .loc{font-size:11.5px; padding:2px 6px}
-.jv-m a.prod{font-family:var(--mono); font-weight:600; color:var(--act); text-decoration:underline; cursor:pointer}
-.jv-m a.ir{color:var(--act); font-weight:600; text-decoration:underline; cursor:pointer}
 .jv-m.gm{align-self:flex-start; background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--act);
   border-bottom-left-radius:4px}
-.jv-m .gmt{font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--act); margin-bottom:6px}
 .jv-m .gmtx{white-space:pre-wrap; font-size:13.5px; line-height:1.5}
 .jv-m .gmf{font-size:12px; margin-top:8px; color:var(--muted)}
 .jv-m .gmf a{color:var(--act); font-weight:600}
 .jv-m .gms{margin-top:8px; overflow-x:auto}
-.jv-m .jgm{margin-top:10px; border:1px solid var(--act); background:transparent; color:var(--act);
-  border-radius:8px; padding:7px 12px; font-size:12.5px; font-weight:700}
-.jv-m .jgm:disabled{opacity:.5; cursor:default}
 .btn.jv-perg{width:100%; margin-bottom:10px; color:var(--steel); border-color:var(--loc-edge);
   background:rgba(245,197,24,.12)}
 .btn.jv-perg svg{vertical-align:-2px; margin-right:6px}
@@ -645,14 +629,14 @@ main{padding:14px 14px 92px}
     <button class="iconbtn" id="jv-fechar" aria-label="Fechar o Jarvis">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
-    <h2>JARVIS<small id="jv-status">responde com os dados da base</small></h2>
+    <h2>JARVIS<small id="jv-status">pesquisa na internet com o Gemini</small></h2>
     <button class="iconbtn" id="jv-novo" title="Nova conversa" aria-label="Nova conversa">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
     </button>
   </div>
   <div class="jv-msgs" id="jv-msgs" aria-live="polite"></div>
   <div class="jv-form">
-    <textarea id="jv-texto" rows="1" placeholder="Pergunte sobre um produto…" aria-label="Pergunta para o Jarvis"></textarea>
+    <textarea id="jv-texto" rows="1" placeholder="Pergunte sobre uma peça…" aria-label="Pergunta para o Jarvis"></textarea>
     <button type="button" id="jv-enviar" aria-label="Enviar">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
     </button>
@@ -1626,476 +1610,50 @@ function medirTopo(){
 }
 window.addEventListener('resize', medirTopo);
 /* ======================================================================
-   JARVIS — responde perguntas com os dados da base.
-   Sem IA, sem internet e sem chave: entende a pergunta por palavras-chave
-   (código, endereço, equipamento, nota, palavras da descrição) e monta a
-   resposta com o que está na base.
+   JARVIS — pesquisa na internet com o Gemini.
+   Não consulta a base: para saldo, endereço e saídas, use a busca do app.
+   A pergunta vai para o Google como foi escrita. Códigos internos de 7 a 9
+   dígitos ganham a descrição do cadastro, para o Gemini saber o que é.
    ====================================================================== */
-var JV = {ultimos: []};
+var JV = {hist: [], ocupado: false};
 var jvPainel = document.getElementById('jv'), jvMsgs = document.getElementById('jv-msgs');
 var jvTexto = document.getElementById('jv-texto'), jvEnviar = document.getElementById('jv-enviar');
-
-
-var JV_VAZIAS = {};
-('A O AS OS DE DO DA DOS DAS E EM NO NA NOS NAS UM UMA UNS UMAS AO AOS PRO PRA PARA POR PELO PELA QUE QUAL ' +
- 'QUAIS ONDE COMO QUANDO QUANTO QUANTOS QUANTA QUANTAS TEM TEMOS TENHO TINHA HA EXISTE ESTA ESTAO FICA FICAM ' +
- 'ME MIM NOS FALE FALA DIGA DIZ SOBRE MOSTRA MOSTRE MOSTRAR VER QUERO QUERIA SABER PODE PODERIA VOCE SABE ' +
- 'PRODUTO PRODUTOS ITEM ITENS MATERIAL MATERIAIS PECA PECAS COISA COISAS CODIGO ' +
- 'SERVE SERVEM APLICADO APLICADA APLICADOS APLICADAS APLICACAO APLICA USADO USADA USA UTILIZADO ' +
- 'ESTOQUE SALDO DISPONIVEL ENDERECO ENDERECOS ENDERECADO GUARDADO GUARDADA LOCAL LOCALIZACAO ' +
- 'ELE ELA ELES ELAS ESSE ESSA ESSES ESSAS ISSO ESTE ESTES DELE DELA DELES AQUI LA AI ENTAO TAMBEM AINDA ' +
- 'AGORA FILIAL FILIAIS COM SEM MAIS MENOS MUITO POUCO TUDO TODO TODOS TODA TODAS ALGUM ALGUMA NADA SO ' +
- 'SAIU SAIRAM SAIDA SAIDAS FOI FORAM VAI MANDADO MANDADA MANDARAM EQUIPAMENTO EQUIPAMENTOS DESTINO ' +
- 'NOTA NOTAS NF PENDENTE PENDENTES ENDERECAR RUA PRATELEIRA ULTIMA ULTIMO VEZ DIA DIAS HOJE ONTEM QUE ' +
- 'OI OLA BOM BOA TARDE NOITE OBRIGADO OBRIGADA FAVOR EH SAO SER TA TO TAO ' +
- 'PESQUISA PESQUISAR PESQUISE GEMINI INTERNET GOOGLE WEB').split(' ')
-  .forEach(function(p){ JV_VAZIAS[p] = 1; });
-
-/* ---------- índices montados uma vez ---------- */
-var JV_MOV = {}, JV_PEND = {}, JV_DEST = {}, JV_LOCSET = {}, JV_RUASET = {};
-(D.movimentos || []).forEach(function(m){
-  (JV_MOV[m[0] + '|' + m[1]] = JV_MOV[m[0] + '|' + m[1]] || []).push(m);
-  if(m[12]) JV_DEST[m[12]] = 1;
-});
-(D.pendentes || []).forEach(function(p){
-  (JV_PEND[p[0] + '|' + p[1]] = JV_PEND[p[0] + '|' + p[1]] || []).push(p);
-});
-var JV_DESTINOS = Object.keys(JV_DEST).map(function(n){
-  var nn = norm(n);
-  return {nome: n, chave: nn.replace(/[^A-Z0-9]/g, ''), palavras: nn.split(/[^A-Z0-9]+/).filter(Boolean)};
-});
-LOCS.forEach(function(L){ JV_LOCSET[norm(L)] = L; });
-RUAKEYS.forEach(function(r){ JV_RUASET[norm(r)] = r; });
-var JV_DIAS = (function(){
-  var s = {};
-  (D.movimentos || []).forEach(function(m){ if(m[7]) s[m[7]] = 1; });
-  return Object.keys(s).map(Number).sort(function(a, b){ return a - b; });
-})();
-
-/* ---------- utilidades ---------- */
-function jvDiaCurto(n){ var d = data(n); return d.slice(0, 5); }
-function jvDiasDaBase(){
-  if(!JV_DIAS.length) return 'nenhum dia';
-  return JV_DIAS.length === 1 ? jvDiaCurto(JV_DIAS[0]) : jvDiaCurto(JV_DIAS[0]) + ' a ' + jvDiaCurto(JV_DIAS[JV_DIAS.length - 1]);
-}
-function jvProd(it){ return '<a class="prod" data-abrir="' + it.id + '">' + it.c + '</a>'; }
-function jvLoc(e){ return '<span class="loc">' + esc(e) + '</span>'; }
-function jvPerg(t){ return '<button type="button" data-perg="' + esc(t) + '">' + esc(t) + '</button>'; }
-function jvLinha(rotulo, html){ return '<div class="jl"><b>' + rotulo + '</b> ' + html + '</div>'; }
-function jvLista(itens){ return '<ul class="jlista">' + itens.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul>'; }
-
-function jvCasa(it, t){
-  var alvo = it.idx;
-  if(t.length <= 3){
-    if(!jvCasa.re[t]) jvCasa.re[t] = new RegExp('(^|[^A-Z0-9])' + t.replace(/[^A-Z0-9]/g, '') + '([^A-Z0-9]|$)');
-    return jvCasa.re[t].test(alvo);
-  }
-  if(alvo.indexOf(t) >= 0) return true;
-  return t.length > 4 && t.charAt(t.length - 1) === 'S' && alvo.indexOf(t.slice(0, -1)) >= 0;
-}
-jvCasa.re = {};
-
-/* aplicação e uso escritos na própria descrição */
-function jvDaDescricao(d){
-  d = norm(d || '');
-  var r = {aplicacao: '', serve: ''};
-  var m = d.match(/APLICACAO\s*:?\s*(.+)$/) || d.match(/\b(?:USAD[OA]|UTILIZAD[OA])\s+(?:N[OA]S?|EM)\s+(.+)$/);
-  if(m) r.aplicacao = m[1].replace(/\s+/g, ' ').trim();
-  m = d.match(/\bP\/\s*(.+)$/) || d.match(/\bPARA\s+(.+)$/);
-  if(m && m[1].indexOf('APLICACAO') < 0) r.serve = m[1].replace(/\s+/g, ' ').trim();
-  else if(m) r.serve = m[1].split('APLICACAO')[0].trim();
-  return r;
-}
-
-function jvSaidas(it){
-  var ms = JV_MOV[it.f + '|' + it.c] || [], por = {}, ordem = [];
-  ms.forEach(function(m){
-    var k = m[12] || 'destino não informado';
-    if(!por[k]){ por[k] = {destino: k, qtd: 0, un: m[11] || '', dias: {}}; ordem.push(k); }
-    por[k].qtd += m[3]; por[k].dias[jvDiaCurto(m[7])] = 1;
-  });
-  return ordem.map(function(k){ return por[k]; });
-}
-
-/* ---------- entender a pergunta ---------- */
-function jvAnalisar(texto){
-  var q = ' ' + norm(texto) + ' ';
-  var tokens = q.split(/[^A-Z0-9-]+/).filter(Boolean);
-  var a = {q: q, fil: '', codigos: [], numeros: [], enderecos: [], ruas: [], destinos: [], termos: []};
-  var usados = {};
-
-  tokens.forEach(function(t){
-    if(FIL.indexOf(t) >= 0){ a.fil = t; usados[t] = 1; return; }
-    if(/^\d{7,9}$/.test(t)){ a.codigos.push(t.padStart(9, '0')); usados[t] = 1; return; }
-    if(/^\d{3,9}$/.test(t)){ a.numeros.push(t); usados[t] = 1; return; }
-    if(JV_LOCSET[t]){ a.enderecos.push(JV_LOCSET[t]); usados[t] = 1; }
-    if(JV_RUASET[t] && !JV_LOCSET[t]){ a.ruas.push(JV_RUASET[t]); usados[t] = 1; }
-  });
-  LOCS.forEach(function(L){
-    if(L.indexOf(' ') > 0 && q.indexOf(' ' + norm(L) + ' ') >= 0 && a.enderecos.indexOf(L) < 0) a.enderecos.push(L);
-  });
-
-  // equipamento: duas ou três letras e um número (EH-07, CB 23, PC5)
-  var achou = {};
-  q.replace(/(?:^|[^A-Z0-9])([A-Z]{2,3})\s*-?\s*(\d{1,3})(?=[^A-Z0-9]|$)/g, function(_, l, n){
-    var ch = l + (n.length < 2 ? '0' + n : n), bateu = false;
-    JV_DESTINOS.forEach(function(d){ if(d.chave.indexOf(ch) === 0){ achou[d.nome] = 1; bateu = true; } });
-    if(bateu){ usados[l] = 1; usados[n] = 1; usados[l + '-' + n] = 1; usados[l + n] = 1; }
-    return _;
-  });
-  // setor pelo nome, quando a pergunta fala em saída ou aplicação
-  if(/SAIU|SAIRAM|FOI PARA|FORAM PARA|APLICAD|MANDAD|USAD|DESTINO|ENTREG/.test(q)){
-    tokens.forEach(function(t){
-      if(t.length < 3 || JV_VAZIAS[t] || /^\d+$/.test(t)) return;
-      JV_DESTINOS.forEach(function(d){
-        if(d.palavras.indexOf(t) >= 0){ achou[d.nome] = 1; usados[t] = 1; }
-      });
-    });
-  }
-  a.destinos = Object.keys(achou);
-
-  tokens.forEach(function(t){
-    if(usados[t] || JV_VAZIAS[t] || t.length < 2 || /^-+$/.test(t)) return;
-    a.termos.push(t);
-  });
-
-  a.foco = /ONDE|ENDERECO|LOCALIZ|GUARDAD|PRATELEIRA| FICA /.test(q) ? 'onde'
-         : /SERVE|PRA QUE|PARA QUE|O QUE E |FUNCAO/.test(q) ? 'serve'
-         : /APLICA|USAD|UTILIZ|DESTINO|EQUIPAMENTO|SAIU|SAIDA|FOI PARA/.test(q) ? 'aplicacao'
-         : /QUANT|SALDO|DISPONIVEL|TEM EM ESTOQUE|ESTOQUE/.test(q) ? 'quanto' : '';
-  a.pronome = /( ELE | ELA | ESSE | ESSA | ISSO | DELE | DELA | ESTE | ESTA PECA )/.test(q);
-  return a;
-}
-
-function jvBuscar(termos, fil){
-  if(!termos.length) return [];
-  var todos = [], parcial = [];
-  for(var i = 0; i < ITENS.length; i++){
-    var it = ITENS[i];
-    if(fil && FIL[it.f] !== fil) continue;
-    var n = 0;
-    for(var j = 0; j < termos.length; j++) if(jvCasa(it, termos[j])) n++;
-    if(n === termos.length) todos.push(it);
-    else if(n && termos.length > 1 && n >= Math.ceil(termos.length / 2)) parcial.push([n, it]);
-  }
-  var ordem = function(a, b){ return (b.saldo > 0) - (a.saldo > 0) || b.saldo - a.saldo; };
-  if(todos.length) return todos.sort(ordem);
-  parcial.sort(function(a, b){ return b[0] - a[0] || ordem(a[1], b[1]); });
-  return parcial.map(function(x){ return x[1]; });
-}
-
-/* ---------- respostas ---------- */
-function jvOndeTexto(it){
-  if(it.ends.length === 1) return 'Fica em ' + jvLoc(it.ends[0].e) + ' (armazém ' + esc(it.ends[0].arm) + ').';
-  if(it.ends.length > 1) return 'Está em ' + it.ends.length + ' endereços: ' +
-    it.ends.slice(0, 4).map(function(e){ return jvLoc(e.e) + ' ' + nq(e.q); }).join(', ') + '.';
-  if(it.saldo <= 0) return 'Está sem saldo, então não tem onde procurar.';
-  if(it.ctrl === false) return 'Não controla endereço: fica no armazém, sem posição definida.';
-  return 'Tem saldo mas <b>está sem endereço cadastrado</b>. Precisa localizar e endereçar.';
-}
-
-function jvCartao(it, foco){
-  var desc = jvDaDescricao(it.d), saidas = jvSaidas(it), pend = JV_PEND[it.f + '|' + it.c] || [];
-  var h = '<div class="jt">' + jvProd(it) + ' · ' + esc(it.d || '(sem descrição)') +
-          ' <span class="jfil">filial ' + FIL[it.f] + '</span></div>';
-
-  // primeiro, a resposta direta ao que foi perguntado
-  if(foco === 'onde') h += '<div class="jfoco">' + jvOndeTexto(it) + '</div>';
-  else if(foco === 'quanto') h += '<div class="jfoco">' + (it.saldo > 0
-      ? 'Tem <b>' + nq(it.saldo) + '</b> em estoque' + (it.emp > 0 ? ', ' + nq(it.disp) + ' disponíveis (' + nq(it.emp) + ' empenhados)' : ', tudo disponível') + '.'
-      : 'Está <b>sem saldo</b>.' + (it.prev > 0 ? ' Tem ' + nq(it.prev) + ' a receber.' : '')) + '</div>';
-  else if(foco === 'aplicacao'){
-    var partes = [];
-    if(saidas.length) partes.push('Na base, saiu para ' + saidas.map(function(s){ return '<b>' + esc(s.destino) + '</b>'; }).join(', ') + '.');
-    if(desc.aplicacao) partes.push('A descrição diz: aplicação em <b>' + esc(desc.aplicacao) + '</b>.');
-    if(!partes.length) partes.push('A base não registra onde ele é aplicado: não teve saída nos dias da base (' +
-      jvDiasDaBase() + ') e a descrição não traz aplicação.');
-    h += '<div class="jfoco">' + partes.join(' ') + '</div>';
-  }
-  else if(foco === 'serve'){
-    h += '<div class="jfoco">' + (desc.serve
-      ? 'Pela descrição, serve para <b>' + esc(desc.serve) + '</b>.'
-      : GEMINI ? 'A base não explica para que ele serve. Veja a pesquisa do Gemini logo abaixo.'
-      : 'A base não explica para que ele serve — só tem a descrição acima. ' +
-        'Eu respondo com os dados da base e não tenho conhecimento técnico das peças.') + '</div>';
-  }
-
-  // depois, a ficha resumida
-  h += jvLinha('Saldo', it.saldo > 0
-    ? nq(it.saldo) + ' · disponível ' + nq(it.disp) + (it.emp > 0 ? ' · empenhado ' + nq(it.emp) : '')
-    : 'sem saldo') + (it.prev > 0 ? jvLinha('A receber', nq(it.prev)) : '');
-  if(foco !== 'onde') h += jvLinha('Onde está', it.ends.length
-    ? it.ends.slice(0, 5).map(function(e){ return jvLoc(e.e) + ' arm ' + esc(e.arm) + ': ' + nq(e.q); }).join(' ')
-    : (it.saldo > 0 ? (it.ctrl === false ? 'não controla endereço' : 'sem endereço cadastrado') : '—'));
-  if(foco !== 'aplicacao'){
-    if(saidas.length) h += jvLinha('Saiu para', saidas.map(function(s){
-      return esc(s.destino) + ' (' + nq(s.qtd) + (s.un ? ' ' + esc(s.un) : '') + ', ' + Object.keys(s.dias).join(', ') + ')';
-    }).join('; '));
-    if(desc.aplicacao) h += jvLinha('Aplicação', esc(desc.aplicacao) + ' <i>(da descrição)</i>');
-  } else if(saidas.length){
-    h += jvLinha('Saídas', saidas.map(function(s){
-      return esc(s.destino) + ': ' + nq(s.qtd) + (s.un ? ' ' + esc(s.un) : '') + ' em ' + Object.keys(s.dias).join(', ');
-    }).join('; '));
-  }
-  if(foco !== 'serve' && desc.serve) h += jvLinha('Serve para', esc(desc.serve) + ' <i>(da descrição)</i>');
-  h += jvLinha('Última saída', it.ultS ? data(it.ultS) + ' (' + (HOJE - it.ultS) + ' dias)' : 'sem registro');
-  if(pend.length) h += jvLinha('A endereçar', pend.map(function(p){ return 'NF ' + esc(p[6]) + ': ' + nq(p[4]); }).join('; '));
-  h += jvLinha('Contr. Endereço', it.ctrl === true ? 'Sim' : it.ctrl === false ? 'Nao' : 'fora da SBZ');
-  if(GEMINI) h += '<button type="button" class="jgm" data-gemini="' + it.id + '">Pesquisar no Gemini</button>';
-  return h;
-}
-
-function jvVarios(lista_p, foco, cabeca){
-  var mostra = lista_p.slice(0, 8);
-  var h = '<div class="jfoco">' + cabeca + '</div>';
-  h += jvLista(mostra.map(function(it){
-    var extra = '';
-    if(foco === 'aplicacao'){
-      var s = jvSaidas(it), dd = jvDaDescricao(it.d).aplicacao;
-      extra = s.length ? ' · saiu para ' + s.map(function(x){ return esc(x.destino); }).join(', ')
-            : dd ? ' · aplicação: ' + esc(dd) : ' · sem aplicação na base';
-    } else if(it.ends.length) extra = ' · ' + jvLoc(it.ends[0].e) + (it.ends.length > 1 ? ' +' + (it.ends.length - 1) : '');
-    else if(it.saldo > 0) extra = ' · ' + (it.ctrl === false ? 'não controla endereço' : '<b>sem endereço</b>');
-    return jvProd(it) + ' ' + esc(it.d || '(sem descrição)') + ' <span class="jfil">' + FIL[it.f] + '</span>' +
-           '<br><span class="jsub">saldo ' + nq(it.saldo) + extra + '</span>';
-  }));
-  if(lista_p.length > mostra.length)
-    h += '<div class="jnota">E mais ' + (lista_p.length - mostra.length) + '. Para afinar, acrescente uma palavra, a marca ou a filial.</div>';
-  else h += '<div class="jnota">Toque no código para abrir a ficha, ou pergunte sobre um deles.</div>';
-  return h;
-}
-
-function jvRespostaDestino(a){
-  var linhas = [];
-  (D.movimentos || []).forEach(function(m){
-    if(a.destinos.indexOf(m[12]) < 0) return;
-    if(a.fil && FIL[m[0]] !== a.fil) return;
-    var it = itemDe(m[0], m[1]);
-    if(!it) return;
-    if(a.termos.length && !a.termos.every(function(t){ return jvCasa(it, t); })) return;
-    linhas.push({m: m, it: it});
-  });
-  var nomes = a.destinos.slice(0, 4).map(function(d){ return '<b>' + esc(d) + '</b>'; }).join(', ') + (a.destinos.length > 4 ? ' e outros' : '');
-  if(!linhas.length && a.termos.length) return null;
-  if(!linhas.length) return 'Não achei saídas para ' + nomes + (a.termos.length ? ' com “' + esc(a.termos.join(' ')) + '”' : '') +
-    ' nos dias da base (' + jvDiasDaBase() + ').';
-  var ag = {}, ordem = [];
-  linhas.forEach(function(x){
-    var k = x.it.id + '|' + x.m[12];
-    if(!ag[k]){ ag[k] = {it: x.it, destino: x.m[12], qtd: 0, un: x.m[11] || '', dias: {}, de: {}}; ordem.push(k); }
-    ag[k].qtd += x.m[3]; ag[k].dias[jvDiaCurto(x.m[7])] = 1; if(x.m[9]) ag[k].de[x.m[9]] = 1;
-  });
-  JV.ultimos = ordem.map(function(k){ return ag[k].it; });
-  var h = '<div class="jfoco">Para ' + nomes + ' saíram <b>' + ordem.length + '</b> ' +
-          plural(ordem.length, 'item', 'itens') + ' nos dias da base (' + jvDiasDaBase() + '):</div>';
-  h += jvLista(ordem.slice(0, 25).map(function(k){
-    var g = ag[k], de = Object.keys(g.de);
-    return jvProd(g.it) + ' ' + esc(g.it.d || '(sem descrição)') +
-      '<br><span class="jsub">' + nq(g.qtd) + (g.un ? ' ' + esc(g.un) : '') + ' · ' + Object.keys(g.dias).join(', ') +
-      ' · filial ' + FIL[g.it.f] +
-      (a.destinos.length > 1 ? ' · ' + esc(g.destino) : '') + (de.length ? ' · saiu de ' + de.map(jvLoc).join(' ') : '') + '</span>';
-  }));
-  if(ordem.length > 25) h += '<div class="jnota">E mais ' + (ordem.length - 25) + ' itens.</div>';
-  return h;
-}
-
-function jvRespostaEndereco(a){
-  var h = '';
-  a.enderecos.slice(0, 3).forEach(function(L){
-    var its = (PORLOC[L] || []).filter(function(x){ return !a.fil || FIL[x.it.f] === a.fil; });
-    var fils = {}; its.forEach(function(x){ fils[x.it.f] = 1; });
-    var varias = Object.keys(fils).length > 1;
-    h += '<div class="jfoco">' + (its.length
-      ? 'No ' + jvLoc(L) + ' tem <b>' + its.length + '</b> ' + plural(its.length, 'item', 'itens') + ':'
-      : 'O ' + jvLoc(L) + ' está vazio' + (a.fil ? ' na filial ' + a.fil : '') + '.') + '</div>';
-    if(its.length) h += jvLista(its.slice(0, 20).map(function(x){
-      return jvProd(x.it) + ' ' + esc(x.it.d || '(sem descrição)') + '<br><span class="jsub">' + nq(x.q) +
-             ' neste endereço · arm ' + esc(x.arm) + (varias ? ' · filial ' + FIL[x.it.f] : '') + '</span>';
-    }));
-    if(varias) h += '<div class="jnota">Esse endereço existe em mais de uma filial — são prateleiras em lugares diferentes.</div>';
-    JV.ultimos = its.map(function(x){ return x.it; });
-  });
-  return h;
-}
-
-function jvRespostaRua(a){
-  var r = a.ruas[0], locs = (RUAS[r] || []).filter(function(L){
-    return (PORLOC[L] || []).some(function(x){ return !a.fil || FIL[x.it.f] === a.fil; });
-  });
-  var itens = 0;
-  locs.forEach(function(L){ itens += (PORLOC[L] || []).length; });
-  var h = '<div class="jfoco">A rua <b>' + esc(r) + '</b> tem <b>' + locs.length + '</b> endereços com material, ' + itens + ' itens no total.</div>';
-  h += jvLista(locs.slice(0, 15).map(function(L){
-    return jvLoc(L) + ' <span class="jsub">' + (PORLOC[L] || []).length + ' ' + plural((PORLOC[L] || []).length, 'item', 'itens') + '</span>';
-  }));
-  h += '<div class="jnota"><a class="ir" data-rua-ir="' + esc(r) + '">Ver a rua ' + esc(r) + ' na aba Endereços</a> ' +
-       'ou pergunte “o que tem no ' + esc(locs[0] || r) + '”.</div>';
-  return h;
-}
-
-function jvRespostaPendentes(a){
-  var P = (D.pendentes || []).filter(function(p){ return !a.fil || FIL[p[0]] === a.fil; });
-  if(!P.length) return 'Não há produtos pendentes de endereçamento na base' + (a.fil ? ' para a filial ' + a.fil : '') + '.';
-  var nf = a.numeros.concat(a.codigos).map(function(n){ return n.replace(/^0+/, ''); });
-  if(nf.length){
-    var daNota = P.filter(function(p){ return nf.indexOf(String(p[6]).replace(/^0+/, '')) >= 0; });
-    if(daNota.length){
-      var h0 = '<div class="jfoco">A NF <b>' + esc(daNota[0][6]) + '</b> (' + data(daNota[0][7]) + ', filial ' + FIL[daNota[0][0]] +
-               ') tem ' + daNota.length + ' ' + plural(daNota.length, 'item', 'itens') + ' para endereçar:</div>';
-      return h0 + jvLista(daNota.map(function(p){
-        var it = itemDe(p[0], p[1]);
-        return (it ? jvProd(it) : p[1]) + ' ' + esc(DESCS[p[2]] || '') + '<br><span class="jsub">' + nq(p[4]) +
-               ' a endereçar' + (it && it.ends.length ? ' · já tem estoque em ' + jvLoc(it.ends[0].e) : '') + '</span>';
-      }));
-    }
-  }
-  if(a.termos.length){
-    var achados = P.filter(function(p){
-      var it = itemDe(p[0], p[1]);
-      var alvo = it || {idx: p[1] + ' ' + norm(DESCS[p[2]] || '')};
-      return a.termos.every(function(t){ return jvCasa(alvo, t); });
-    });
-    if(!achados.length) return 'Nenhum produto com “' + esc(a.termos.join(' ')) + '” está pendente de endereçamento.';
-    return '<div class="jfoco">' + achados.length + ' ' + plural(achados.length, 'pendência', 'pendências') + ' com “' +
-      esc(a.termos.join(' ')) + '”:</div>' + jvLista(achados.slice(0, 15).map(function(p){
-        var it = itemDe(p[0], p[1]);
-        return (it ? jvProd(it) : p[1]) + ' ' + esc(DESCS[p[2]] || '') + '<br><span class="jsub">NF ' + esc(p[6]) + ' · ' +
-               nq(p[4]) + ' · ' + haQuanto(p[7]) + '</span>';
-      }));
-  }
-  var notas = {}, ordem = [];
-  P.forEach(function(p){
-    var k = p[0] + '|' + p[6];
-    if(!notas[k]){ notas[k] = {f: p[0], nf: p[6], dia: p[7], n: 0}; ordem.push(k); }
-    notas[k].n++;
-    if(p[7] && p[7] < notas[k].dia) notas[k].dia = p[7];
-  });
-  var ns = ordem.map(function(k){ return notas[k]; }).sort(function(x, y){ return (x.dia || 99999) - (y.dia || 99999); });
-  var h = '<div class="jfoco">Há <b>' + P.length + '</b> itens em <b>' + ns.length + '</b> notas esperando endereço. ' +
-          'A mais antiga é a NF ' + esc(ns[0].nf) + ', de ' + data(ns[0].dia) + ' (' + haQuanto(ns[0].dia) + ').</div>';
-  h += jvLista(ns.slice(0, 6).map(function(n){
-    return 'NF ' + esc(n.nf) + ' <span class="jsub">' + data(n.dia) + ' · ' + haQuanto(n.dia) + ' · filial ' + FIL[n.f] +
-           ' · ' + n.n + ' ' + plural(n.n, 'item', 'itens') + '</span>';
-  }));
-  h += '<div class="jnota"><a class="ir" data-aba-ir="pend">Ver tudo na aba Pendentes</a> ou pergunte “nota ' + esc(ns[0].nf.replace(/^0+/, '')) + '”.</div>';
-  return h;
-}
-
-function jvRespostaSemEndereco(a){
-  var l = ITENS.filter(function(it){ return it.semEnd && (!a.fil || FIL[it.f] === a.fil); })
-               .sort(function(x, y){ return y.saldo - x.saldo; });
-  if(!l.length) return 'Nenhum produto com saldo está sem endereço' + (a.fil ? ' na filial ' + a.fil : '') + '.';
-  JV.ultimos = l.slice(0, 8);
-  return jvVarios(l, '', '<b>' + l.length + '</b> produtos com saldo estão sem endereço (com Contr. Endereço = Sim ou fora da SBZ). Os de maior saldo:');
-}
-
-function jvRespostaParados(a){
-  var l = ITENS.filter(function(it){
-    return it.saldo > 0 && (!it.ultS || HOJE - it.ultS > 365) && (!a.fil || FIL[it.f] === a.fil);
-  }).sort(function(x, y){ return SEM_CUSTOS ? y.saldo - x.saldo : y.valor - x.valor; });
-  if(!l.length) return 'Nenhum produto com saldo está parado há mais de um ano.';
-  var h = '<div class="jfoco"><b>' + l.length + '</b> produtos com saldo estão sem saída há mais de um ano. Os de maior ' +
-          (SEM_CUSTOS ? 'saldo' : 'valor') + ':</div>';
-  h += jvLista(l.slice(0, 8).map(function(it){
-    return jvProd(it) + ' ' + esc(it.d || '(sem descrição)') + '<br><span class="jsub">saldo ' + nq(it.saldo) +
-      (SEM_CUSTOS ? '' : ' · ' + nm(it.valor)) + ' · última saída ' + (it.ultS ? data(it.ultS) : 'nunca registrada') + '</span>';
-  }));
-  JV.ultimos = l.slice(0, 8);
-  return h;
-}
-
-function jvAjuda(abertura){
-  return '<div class="jfoco">' + (abertura || 'Eu respondo com os dados da base. Pode perguntar assim:') + '</div>' +
-    '<div class="jv-sug">' +
-      jvPerg('Onde fica o filtro FF5052?') + jvPerg('Quanto tem de diesel?') +
-      jvPerg('O que foi aplicado na EH-07?') + jvPerg('O que tem no A03-B04?') +
-      jvPerg('Pendentes de endereçar') + jvPerg('Produtos sem endereço') +
-    '</div><div class="jnota">' + (GEMINI
-      ? 'Saldo, endereço, saídas e notas eu respondo com a base, na hora. Para “para que serve” e “onde é aplicado”, ' +
-        'pesquiso no Gemini — só a descrição da peça vai para lá.'
-      : 'Funciono sem internet e sem IA: sei o que está na base (saldo, endereço, saídas, ' +
-        'notas, descrição), mas não explico para que serve uma peça além do que a descrição diz.') + '</div>';
-}
-
-function jvResponder(texto){
-  var a = jvAnalisar(texto), q = a.q;
-  JV.alvo = null; JV.foco = a.foco; JV.pesquisa = /PESQUIS|GEMINI|INTERNET|GOOGLE/.test(q);
-  if(!a.fil && S.fil && !/TODAS AS FILIAIS/.test(q)) a.fil = S.fil;
-
-  if(/^\s*$/.test(q) || /AJUDA|O QUE VOCE (SABE|FAZ)|COMO (USA|FUNCIONA)|QUEM E VOCE/.test(q)) return jvAjuda();
-  if(/^ (OI|OLA|BOM DIA|BOA TARDE|BOA NOITE|E AI) ?$/.test(q.replace(/ +$/, ' '))) return jvAjuda('Olá! Pergunte sobre qualquer produto. Por exemplo:');
-  if(/OBRIGAD/.test(q) && a.termos.length < 2) return 'Às ordens.';
-
-  if(/PENDENT|A ENDERECAR|PARA ENDERECAR|PRA ENDERECAR| NF | NOTA /.test(q)) return jvRespostaPendentes(a);
-  if(/SEM ENDERECO|NAO ENDERECAD|SEM LOCAL/.test(q) && !a.codigos.length && a.termos.length < 2) return jvRespostaSemEndereco(a);
-  if(/PARAD|SEM SAIDA|SEM MOVIMENT|ENCALHAD/.test(q) && !a.codigos.length && a.termos.length < 2) return jvRespostaParados(a);
-  if(a.destinos.length && !a.codigos.length){
-    var rd = jvRespostaDestino(a);
-    if(rd) return rd;
-  }
-  if(a.enderecos.length && !a.codigos.length && !a.termos.length) return jvRespostaEndereco(a);
-  if(a.ruas.length && !a.codigos.length && !a.termos.length) return jvRespostaRua(a);
-
-  var achados = [];
-  if(a.codigos.length){
-    achados = ITENS.filter(function(it){ return a.codigos.indexOf(it.c) >= 0 && (!a.fil || FIL[it.f] === a.fil); });
-    if(!achados.length && a.fil) achados = ITENS.filter(function(it){ return a.codigos.indexOf(it.c) >= 0; });
-    achados.sort(function(x, y){ return (y.saldo > 0) - (x.saldo > 0) || x.f - y.f; });
-    if(!achados.length) return 'Não encontrei o código ' + esc(a.codigos.join(', ')) + ' na base.';
-  } else if(a.termos.length){
-    achados = jvBuscar(a.termos, a.fil);
-    if(!achados.length && a.fil){
-      var outras = jvBuscar(a.termos, '');
-      if(outras.length) return 'Na filial ' + a.fil + ' não achei nada com “' + esc(a.termos.join(' ')) + '”. Em outras filiais:' +
-        jvVarios(outras, a.foco, '');
-    }
-    if(!achados.length) return jvAjuda('Não encontrei nada com “' + esc(a.termos.join(' ')) + '”. ' +
-      'Tente pelo código, por outra palavra da descrição, pela marca, por um endereço ou por um equipamento:');
-  } else if(JV.ultimos.length && (a.pronome || a.foco)){
-    achados = JV.ultimos.slice(0, 8);
-  } else {
-    return jvAjuda('Não entendi a pergunta. Pode perguntar assim:');
-  }
-
-  JV.ultimos = achados.slice(0, 8);
-  var aviso = (a.fil && !a.codigos.length) ? '<div class="jnota">Procurando só na filial ' + a.fil + '.</div>' : '';
-  if(achados.length === 1){ JV.alvo = achados[0]; return jvCartao(achados[0], a.foco) + aviso; }
-  var comSaldo = achados.filter(function(it){ return it.saldo > 0; });
-  if(comSaldo.length === 1){
-    var unico = comSaldo[0], outros = achados.filter(function(x){ return x !== unico; });
-    JV.ultimos = [unico]; JV.alvo = unico;
-    var mesmoCodigo = outros.every(function(x){ return x.c === unico.c; });
-    var lista_o = outros.slice(0, 4).map(function(x){ return jvProd(x) + ' (' + FIL[x.f] + ')'; }).join(', ') + (outros.length > 4 ? '…' : '');
-    return jvCartao(unico, a.foco) + '<div class="jnota">' + (mesmoCodigo
-      ? 'O mesmo código também existe ' + (outros.length === 1 ? 'na filial ' + FIL[outros[0].f] : 'em outras filiais') + ', sem saldo.'
-      : (outros.length === 1 ? 'Há outro cadastro parecido' : 'Há outros ' + outros.length + ' cadastros parecidos') +
-        ', sem saldo: ' + lista_o + '.') + '</div>' + aviso;
-  }
-  var mesmos = achados.every(function(it){ return it.c === achados[0].c; });
-  return jvVarios(achados, a.foco, mesmos
-    ? 'O código ' + achados[0].c + ' existe em ' + achados.length + ' filiais (cada uma tem o seu cadastro):'
-    : 'Encontrei <b>' + achados.length + '</b> produtos' + (a.termos.length ? ' com “' + esc(a.termos.join(' ')) + '”' : '') + ':') + aviso;
-}
-
-/* ---------- Gemini: pesquisa na internet para o que a base não sabe ---------- */
 var GEMINI = D.gemini || null;
-if(GEMINI) document.getElementById('jv-status').textContent = 'dados da base + pesquisa no Gemini';
-var JV_GEMINI_REGRAS = 'Você ajuda o almoxarifado de uma operação de mineração no Brasil. Responda sempre em ' +
-  'português do Brasil, de forma curta e prática, para quem trabalha no estoque. Use a pesquisa do Google para ' +
-  'confirmar o que disser. Quando a pesquisa não for conclusiva sobre um número de peça específico, diga isso ' +
-  'claramente em vez de supor.';
+document.getElementById('jv-status').textContent = GEMINI ? 'pesquisa na internet com o Gemini'
+                                                          : 'desligado: falta a chave do Gemini';
 
-function jvPromptGemini(it, pergunta){
-  if(!it) return 'Pergunta do almoxarifado: ' + pergunta;
-  var dd = jvDaDescricao(it.d);
-  var p = 'Peça do estoque, pela descrição do cadastro: "' + it.d + '".';
-  if(dd.aplicacao) p += ' O cadastro indica aplicação em: ' + dd.aplicacao + '.';
-  p += '\n\nPesquise e responda em no máximo 8 linhas:\n' +
-       '1. O que é e para que serve.\n' +
-       '2. Em que máquinas, motores ou equipamentos costuma ser aplicada (marca e modelo, se a pesquisa mostrar).\n' +
-       '3. Se aparecerem na pesquisa, números equivalentes de outras marcas.';
-  if(pergunta && !/^Sobre o /.test(pergunta)) p += '\n\nA pergunta do usuário foi: "' + pergunta + '".';
-  return p;
+var JV_GEMINI_REGRAS = 'Você é o Jarvis, assistente do almoxarifado de uma operação de mineração no Brasil. ' +
+  'Responda sempre em português do Brasil, de forma curta e prática, para quem trabalha no estoque: para que ' +
+  'serve uma peça, onde é aplicada, equivalências entre marcas, cuidados de uso e de armazenagem. Use a pesquisa ' +
+  'do Google para confirmar o que disser. Quando a pesquisa não for conclusiva sobre um número de peça ' +
+  'específico, diga isso claramente em vez de supor. Você não tem acesso ao estoque da empresa: se perguntarem ' +
+  'saldo, endereço ou quantidade, diga que isso está na busca do próprio app.';
+
+/* código interno -> descrição do cadastro, só para o Gemini entender a pergunta */
+function jvComDescricao(texto){
+  var extras = [], vistos = {};
+  (texto.match(/\b\d{7,9}\b/g) || []).forEach(function(c){
+    var cod = c.padStart(9, '0');
+    if(vistos[cod]) return;
+    vistos[cod] = 1;
+    var descs = {};
+    for(var f = 0; f < FIL.length; f++){
+      var it = MAPA[f + '|' + cod];
+      if(it && it.d && it.d.indexOf('(sem') !== 0) descs[it.d] = 1;
+    }
+    var l = Object.keys(descs);
+    if(l.length) extras.push('o código interno ' + cod + ' é "' + l.slice(0, 3).join('" ou "') + '"');
+  });
+  return extras.length ? texto + '\n\n(Para referência: ' + extras.join('; ') + '.)' : texto;
+}
+
+function jvBalao(tipo, conteudo, html){
+  var d = document.createElement('div');
+  d.className = 'jv-m ' + tipo + (html ? ' rico' : '');
+  if(html) d.innerHTML = conteudo; else d.textContent = conteudo;
+  jvMsgs.appendChild(d);
+  jvMsgs.scrollTop = jvMsgs.scrollHeight;
+  return d;
 }
 
 function jvErroGemini(status, msg){
@@ -2103,17 +1661,17 @@ function jvErroGemini(status, msg){
   if(status === 403 && /referer|referrer/i.test(msg))
     return 'A chave do Gemini não aceita pedidos deste endereço (restrição de site). Inclua este endereço nas restrições da chave.';
   if(status === 403) return 'O Gemini recusou o acesso: confira se a API está ativada para essa chave.';
-  if(status === 429) return 'O limite gratuito do Gemini acabou por agora. Tente mais tarde — o resto do Jarvis continua funcionando.';
+  if(status === 429) return 'O limite gratuito do Gemini acabou por agora. Tente mais tarde.';
   if(status >= 500) return 'O Gemini está fora do ar agora. Tente de novo em instantes.';
   return 'O Gemini respondeu com erro ' + status + ': ' + String(msg).slice(0, 140);
 }
 
 function jvLerGemini(d){
-  if(d.promptFeedback && d.promptFeedback.blockReason) throw new Error('O Gemini não quis responder essa pesquisa.');
+  if(d.promptFeedback && d.promptFeedback.blockReason) throw new Error('O Gemini não quis responder essa pergunta.');
   var c = (d.candidates || [])[0] || {};
   var partes = (c.content && c.content.parts) || [];
   var texto = partes.filter(function(p){ return p.text && !p.thought; }).map(function(p){ return p.text; }).join('').trim();
-  if(!texto) throw new Error(c.finishReason === 'SAFETY' ? 'O Gemini não quis responder essa pesquisa.'
+  if(!texto) throw new Error(c.finishReason === 'SAFETY' ? 'O Gemini não quis responder essa pergunta.'
                                                         : 'O Gemini não trouxe resposta. Tente perguntar de outro jeito.');
   var g = c.groundingMetadata || {}, vistos = {};
   var fontes = (g.groundingChunks || []).map(function(x){ return x.web; })
@@ -2122,7 +1680,7 @@ function jvLerGemini(d){
   return {texto: texto, fontes: fontes, sugestao: (g.searchEntryPoint || {}).renderedContent || ''};
 }
 
-async function jvChamarGemini(prompt){
+async function jvChamarGemini(contents){
   var modelos = (GEMINI.modelos || []).slice(), lembrado = store('gemini_modelo');
   if(lembrado && modelos.indexOf(lembrado) > 0){ modelos.splice(modelos.indexOf(lembrado), 1); modelos.unshift(lembrado); }
   for(var i = 0; i < modelos.length; i++){
@@ -2134,7 +1692,7 @@ async function jvChamarGemini(prompt){
         headers: {'Content-Type': 'application/json', 'x-goog-api-key': GEMINI.chave},
         body: JSON.stringify({
           systemInstruction: {parts: [{text: JV_GEMINI_REGRAS}]},
-          contents: [{role: 'user', parts: [{text: prompt}]}],
+          contents: contents,
           tools: [{google_search: {}}],
           generationConfig: {temperature: 0.3}
         })
@@ -2162,16 +1720,22 @@ function jvMd(t){
   return '<div class="gmtx">' + h + '</div>';
 }
 
-async function jvPesquisarGemini(it, pergunta){
-  var bolha = jvBalao('pensando', 'Pesquisando no Gemini' + (it ? ' sobre ' + it.c : '') + '…');
+async function jvPerguntar(texto, mostrar){
+  texto = (texto || '').trim();
+  if(!texto || JV.ocupado || !GEMINI) return;
+  JV.ocupado = true; jvEnviar.disabled = true;
+  jvTexto.value = ''; jvTexto.style.height = '';
+  jvBalao('eu', mostrar || texto);
+  var bolha = jvBalao('pensando', 'Pesquisando no Gemini…');
+  var turno = {role: 'user', parts: [{text: jvComDescricao(texto)}]};
   try{
-    var r = await jvChamarGemini(jvPromptGemini(it, pergunta));
+    var r = await jvChamarGemini(JV.hist.slice(-10).concat([turno]));
     bolha.className = 'jv-m gm rico';
-    var h = '<div class="gmt">GEMINI · pesquisa na internet' + (it ? ' · ' + it.c : '') + '</div>' + jvMd(r.texto);
+    var h = jvMd(r.texto);
     if(r.fontes.length) h += '<div class="gmf">Fontes: ' + r.fontes.map(function(w){
       return '<a href="' + esc(w.uri) + '" target="_blank" rel="noopener noreferrer">' + esc(w.title || 'link') + '</a>';
     }).join(' · ') + '</div>';
-    h += '<div class="jnota">Informação da internet, não da base. Confira antes de usar.</div>';
+    h += '<div class="jnota">Informação da internet. Confira antes de usar.</div>';
     bolha.innerHTML = h;
     if(r.sugestao){   // o Google exige mostrar as sugestões de pesquisa junto da resposta
       var caixa = document.createElement('div');
@@ -2179,55 +1743,50 @@ async function jvPesquisarGemini(it, pergunta){
       caixa.attachShadow({mode: 'open'}).innerHTML = r.sugestao;
       bolha.appendChild(caixa);
     }
+    JV.hist.push(turno, {role: 'model', parts: [{text: r.texto}]});
   }catch(e){
     bolha.className = 'jv-m erro';
     bolha.textContent = (e && e.message) || 'Não consegui pesquisar no Gemini agora.';
   }
   jvMsgs.scrollTop = bolha.offsetTop - 12;
-}
-
-/* ---------- conversa ---------- */
-function jvBalao(tipo, conteudo, html){
-  var d = document.createElement('div');
-  d.className = 'jv-m ' + tipo + (html ? ' rico' : '');
-  if(html) d.innerHTML = conteudo; else d.textContent = conteudo;
-  jvMsgs.appendChild(d);
-  jvMsgs.scrollTop = jvMsgs.scrollHeight;
-  return d;
-}
-
-function jvPerguntar(texto){
-  texto = (texto || '').trim();
-  if(!texto) return;
-  jvTexto.value = ''; jvTexto.style.height = '';
-  jvBalao('eu', texto);
-  var r;
-  try{ r = jvResponder(texto); }catch(e){ r = 'Tive um problema para responder essa. Tente perguntar de outro jeito.'; }
-  var b = jvBalao('ele', r, true);
-  jvMsgs.scrollTop = b.offsetTop - 12;
-  if(GEMINI){
-    var alvo = JV.alvo;
-    var semAplicacao = alvo && !jvSaidas(alvo).length && !jvDaDescricao(alvo.d).aplicacao;
-    if(alvo && (JV.pesquisa || JV.foco === 'serve' || (JV.foco === 'aplicacao' && semAplicacao))){
-      var bt = b.querySelector('.jgm');
-      if(bt){ bt.disabled = true; bt.textContent = 'Pesquisado no Gemini'; }
-      jvPesquisarGemini(alvo, texto);
-    }
-    else if(!alvo && JV.pesquisa) jvPesquisarGemini(null, texto);
-  }
+  JV.ocupado = false; jvEnviar.disabled = false;
+  if(window.innerWidth >= 860) jvTexto.focus();
 }
 
 function jvSobreItem(it){
-  jvBalao('eu', 'Sobre o ' + it.c + ' · filial ' + FIL[it.f]);
-  JV.ultimos = [it]; JV.alvo = it;
-  var b = jvBalao('ele', jvCartao(it, ''), true);
-  jvMsgs.scrollTop = b.offsetTop - 12;
+  if(!it.d || it.d.indexOf('(sem') === 0){
+    jvBalao('eu', 'Sobre o ' + it.c);
+    jvBalao('erro', 'Esse produto veio sem descrição na base, então não tenho o que pesquisar.');
+    return;
+  }
+  jvPerguntar('Para que serve e onde costuma ser aplicada esta peça: "' + it.d + '"? ' +
+              'Se aparecerem na pesquisa, cite números equivalentes de outras marcas.',
+              'Sobre o ' + it.c + ' · ' + it.d);
 }
 
 function jvBoasVindas(){
   jvMsgs.innerHTML = '';
-  jvBalao('ele', jvAjuda('Olá, sou o Jarvis. Pergunte sobre qualquer produto: onde está, quanto tem, ' +
-    'para onde saiu, o que tem num endereço, o que falta endereçar…'), true);
+  JV.hist = [];
+  if(!GEMINI){
+    jvBalao('sis', 'O Jarvis pesquisa na internet pelo Gemini, e ele ainda não está ligado: falta a chave. ' +
+      'O passo a passo está no LEIA-ME, na parte “Ligando o Gemini”. Para saldo e endereço, use a busca do app.');
+    return;
+  }
+  var d = jvBalao('ele', 'Olá, sou o Jarvis. Pesquiso na internet pelo Gemini: para que serve uma peça, ' +
+    'onde é aplicada, equivalências entre marcas, cuidados de uso… Para saldo e endereço, use a busca do app.');
+  var sug = document.createElement('div');
+  sug.className = 'jv-sug';
+  ['Para que serve o filtro Fleetguard FF5052?', 'Qual a diferença entre fluido de freio DOT 3 e DOT 4?',
+   'Qual o equivalente do filtro Donaldson P550148?'].forEach(function(t){
+    var b = document.createElement('button');
+    b.type = 'button'; b.dataset.perg = t; b.textContent = t;
+    sug.appendChild(b);
+  });
+  d.appendChild(sug);
+  var nota = document.createElement('div');
+  nota.className = 'jnota';
+  nota.textContent = 'O que você escrever vai para o Google. Não digite informação sigilosa da empresa.';
+  d.appendChild(nota);
 }
 
 function abrirJarvis(pergunta, item){
@@ -2235,9 +1794,10 @@ function abrirJarvis(pergunta, item){
   document.body.classList.add('jv-aberto');
   if(window.innerWidth < 860) document.body.classList.add('locked');
   if(!jvMsgs.children.length) jvBoasVindas();
-  if(item) jvSobreItem(item);
-  else if(pergunta) jvPerguntar(pergunta);
-  else if(window.innerWidth >= 860) jvTexto.focus();
+  jvTexto.disabled = !GEMINI; jvEnviar.disabled = !GEMINI || JV.ocupado;
+  if(item && GEMINI) jvSobreItem(item);
+  else if(pergunta && GEMINI) jvPerguntar(pergunta);
+  else if(GEMINI && window.innerWidth >= 860) jvTexto.focus();
 }
 
 function fecharJarvis(){
@@ -2248,7 +1808,7 @@ function fecharJarvis(){
 
 document.getElementById('jv-abrir').addEventListener('click', function(){ abrirJarvis(); });
 document.getElementById('jv-fechar').addEventListener('click', fecharJarvis);
-document.getElementById('jv-novo').addEventListener('click', function(){ JV.ultimos = []; jvBoasVindas(); });
+document.getElementById('jv-novo').addEventListener('click', function(){ if(!JV.ocupado) jvBoasVindas(); });
 jvEnviar.addEventListener('click', function(){ jvPerguntar(jvTexto.value); });
 jvTexto.addEventListener('keydown', function(e){
   if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); jvPerguntar(jvTexto.value); }
@@ -2258,34 +1818,7 @@ jvTexto.addEventListener('input', function(){
 });
 jvMsgs.addEventListener('click', function(e){
   var p = e.target.closest('[data-perg]');
-  if(p){ jvPerguntar(p.dataset.perg); return; }
-  var g = e.target.closest('[data-gemini]');
-  if(g){
-    var itg = ITENS[+g.dataset.gemini];
-    g.disabled = true; g.textContent = 'Pesquisado no Gemini';
-    if(itg) jvPesquisarGemini(itg, 'Sobre o ' + itg.c);
-    return;
-  }
-  var a = e.target.closest('[data-abrir]');
-  if(a){
-    var it = ITENS[+a.dataset.abrir];
-    if(!it) return;
-    if(window.innerWidth < 1200) fecharJarvis();
-    abrir(it.id);
-    return;
-  }
-  var r = e.target.closest('[data-rua-ir]');
-  if(r){
-    document.querySelector('[data-tab=end]').click();
-    S.rua = r.dataset.ruaIr; render();
-    if(window.innerWidth < 1200) fecharJarvis();
-    return;
-  }
-  var t = e.target.closest('[data-aba-ir]');
-  if(t){
-    document.querySelector('[data-tab=' + t.dataset.abaIr + ']').click();
-    if(window.innerWidth < 1200) fecharJarvis();
-  }
+  if(p) jvPerguntar(p.dataset.perg);
 });
 
 (function(){
