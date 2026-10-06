@@ -2060,6 +2060,26 @@ function jvTocarBuffer(buf, botao){
   jvMarcarFalando('falando', botao);
 }
 
+function jvLerCota(erro){
+  erro = erro || {};
+  var r = {valor: null, porDia: false, porMinuto: false, modelo: '', espera: ''};
+  (erro.details || []).forEach(function(d){
+    (d.violations || []).forEach(function(v){
+      var id = String(v.quotaId || v.quotaMetric || '');
+      if(r.valor === null && v.quotaValue != null) r.valor = +v.quotaValue;
+      if(/PerDay/i.test(id)) r.porDia = true;
+      if(/PerMinute/i.test(id)) r.porMinuto = true;
+      if(v.quotaDimensions && v.quotaDimensions.model) r.modelo = v.quotaDimensions.model;
+    });
+    if(d.retryDelay) r.espera = String(d.retryDelay);
+  });
+  var msg = String(erro.message || '');
+  if(r.valor === null){ var m = msg.match(/limit:\s*(\d+)/); if(m) r.valor = +m[1]; }
+  if(!r.modelo){ var mo = msg.match(/model:\s*([\w.\-]+)/); if(mo) r.modelo = mo[1]; }
+  if(!r.espera){ var es = msg.match(/retry in ([\d.]+)s/i); if(es) r.espera = Math.ceil(+es[1]) + 's'; }
+  return r;
+}
+
 async function jvGerarVozGemini(texto, voz){
   var acesso = store('gemini_acesso') || jvOrdemAcessos()[0];
   var estilo = 'Leia em português do Brasil, num tom natural de conversa, como um colega de trabalho explicando ' +
@@ -2077,7 +2097,10 @@ async function jvGerarVozGemini(texto, voz){
     if(!resp.ok){
       var msg = String((dados.error || {}).message || '');
       if(resp.status === 404 || /not found|is not supported/i.test(msg)) continue;
-      throw new Error(resp.status + ': ' + msg);
+      var falha = new Error(resp.status + ': ' + msg);
+      falha.status = resp.status;
+      if(resp.status === 429) falha.cota = jvLerCota(dados.error);
+      throw falha;
     }
     var partes = (((dados.candidates || [])[0] || {}).content || {}).parts || [];
     var som = partes.filter(function(x){ return x.inlineData && /audio/i.test(x.inlineData.mimeType || ''); })[0];
@@ -2102,7 +2125,11 @@ function jvFalhaVozGemini(e, pedidoDoUsuario){
   if(JV_FALA.avisouFalha && !pedidoDoUsuario) return;
   JV_FALA.avisouFalha = true;
   var naturais = jvVozesPt().filter(function(v){ return /natural|online/i.test(v.name); });
-  var d = jvBalao('sis', 'A voz natural do Gemini não funcionou na sua conta' +
+  var c = e && e.cota, motivo = 'A voz natural do Gemini não funcionou na sua conta';
+  if(c && c.valor === 0) motivo = 'A voz do Gemini não faz parte do plano gratuito da sua conta: o Google dá limite zero para ela';
+  else if(c && c.porDia) motivo = 'A cota gratuita de voz do Gemini de hoje acabou' + (c.valor ? ' (' + c.valor + ' por dia)' : '') + '. Ela volta amanhã';
+  else if(c && c.porMinuto) motivo = 'Foram muitos pedidos de voz em pouco tempo' + (c.espera ? '; ela volta em ' + c.espera : '');
+  var d = jvBalao('sis', motivo +
     (pedidoDoUsuario ? '.' : ', então estou falando com a voz do navegador.') + ' ' +
     (naturais.length
       ? 'Para uma voz humana sem gastar cota, escolha no seletor uma voz "Natural" — ' +
@@ -2112,7 +2139,10 @@ function jvFalhaVozGemini(e, pedidoDoUsuario){
         'configurações de leitura de texto do aparelho.'));
   var det = document.createElement('div');
   det.className = 'gmdet';
-  det.textContent = 'Detalhe do Google — ' + JV_FALA.geminiErro.slice(0, 260);
+  det.textContent = 'Detalhe do Google — ' + (c
+    ? (e.status || 429) + ' · limite ' + (c.valor === null ? '?' : c.valor) +
+      (c.porDia ? ' por dia' : c.porMinuto ? ' por minuto' : '') + (c.modelo ? ' · ' + c.modelo : '')
+    : JV_FALA.geminiErro.slice(0, 260));
   d.appendChild(det);
 }
 
