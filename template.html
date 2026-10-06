@@ -368,6 +368,7 @@ main{padding:14px 14px 92px}
   border-bottom-left-radius:4px}
 .jv-m .gmtx{white-space:pre-wrap; font-size:13.5px; line-height:1.5}
 .jv-m .gmf{font-size:12px; margin-top:8px; color:var(--muted)}
+.jv-m .gmdet{margin-top:8px; font-family:var(--mono); font-size:11px; line-height:1.45; opacity:.85; word-break:break-word}
 .jv-m .gmf a{color:var(--act); font-weight:600}
 .jv-m .gms{margin-top:8px; overflow-x:auto}
 .btn.jv-perg{width:100%; margin-bottom:10px; color:var(--steel); border-color:var(--loc-edge);
@@ -1681,21 +1682,31 @@ function jvLerGemini(d){
 }
 
 async function jvChamarGemini(contents){
-  var modelos = (GEMINI.modelos || []).slice(), lembrado = store('gemini_modelo');
-  if(lembrado && modelos.indexOf(lembrado) > 0){ modelos.splice(modelos.indexOf(lembrado), 1); modelos.unshift(lembrado); }
-  for(var i = 0; i < modelos.length; i++){
+  /* Cada modelo tem a sua cota, e a pesquisa no Google tem outra à parte.
+     Ordem: cada modelo com pesquisa, depois o mesmo sem pesquisa, depois o próximo.
+     A combinação que funcionou fica lembrada para as próximas perguntas. */
+  var tentativas = [];
+  (GEMINI.modelos || []).forEach(function(m){ tentativas.push({modelo: m, busca: true}, {modelo: m, busca: false}); });
+  // lembra só o modelo: com ele, sempre tenta primeiro com pesquisa (a cota de pesquisa volta no dia seguinte)
+  var lembrado = (store('gemini_modo') || {}).modelo;
+  if(lembrado){
+    var dele = tentativas.filter(function(x){ return x.modelo === lembrado; });
+    if(dele.length) tentativas = dele.concat(tentativas.filter(function(x){ return x.modelo !== lembrado; }));
+  }
+  var pular = {}, recusas = [];
+  for(var i = 0; i < tentativas.length; i++){
+    var t = tentativas[i];
+    if(pular[t.modelo]) continue;
     var ctl = new AbortController(), tempo = setTimeout(function(){ ctl.abort(); }, 45000), resp;
+    var corpo = {systemInstruction: {parts: [{text: JV_GEMINI_REGRAS}]}, contents: contents,
+                 generationConfig: {temperature: 0.3}};
+    if(t.busca) corpo.tools = [{google_search: {}}];
     try{
-      resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelos[i]) +
+      resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(t.modelo) +
                          ':generateContent', {
         method: 'POST', signal: ctl.signal,
         headers: {'Content-Type': 'application/json', 'x-goog-api-key': GEMINI.chave},
-        body: JSON.stringify({
-          systemInstruction: {parts: [{text: JV_GEMINI_REGRAS}]},
-          contents: contents,
-          tools: [{google_search: {}}],
-          generationConfig: {temperature: 0.3}
-        })
+        body: JSON.stringify(corpo)
       });
     }catch(e){
       clearTimeout(tempo);
@@ -1704,10 +1715,22 @@ async function jvChamarGemini(contents){
     }
     clearTimeout(tempo);
     var dados = await resp.json().catch(function(){ return {}; });
-    if(resp.ok){ store('gemini_modelo', modelos[i]); return jvLerGemini(dados); }
+    if(resp.ok){
+      store('gemini_modo', {modelo: t.modelo});
+      var r = jvLerGemini(dados);
+      r.modelo = t.modelo; r.semBusca = !t.busca;
+      return r;
+    }
     var msg = String((dados.error || {}).message || '');
-    if(resp.status === 404 || /not found|is not supported/i.test(msg)) continue;   // tenta o próximo modelo
+    if(resp.status === 404 || /not found|is not supported/i.test(msg)){ pular[t.modelo] = 1; continue; }
+    if(resp.status === 429){ recusas.push(t.modelo + (t.busca ? ' com pesquisa' : ' sem pesquisa') + ': ' + msg); continue; }
+    if(resp.status === 400 && t.busca && /search|grounding|tool/i.test(msg)) continue;   // modelo sem pesquisa no Google
     throw new Error(jvErroGemini(resp.status, msg));
+  }
+  if(recusas.length){
+    var e = new Error('O Google recusou por limite de uso em todos os modelos que tentei.');
+    e.detalhe = recusas[0].slice(0, 260);
+    throw e;
   }
   throw new Error('Nenhum modelo da lista do Gemini respondeu. Atualize GEMINI_MODELOS no build.py.');
 }
@@ -1735,7 +1758,9 @@ async function jvPerguntar(texto, mostrar){
     if(r.fontes.length) h += '<div class="gmf">Fontes: ' + r.fontes.map(function(w){
       return '<a href="' + esc(w.uri) + '" target="_blank" rel="noopener noreferrer">' + esc(w.title || 'link') + '</a>';
     }).join(' · ') + '</div>';
-    h += '<div class="jnota">Informação da internet. Confira antes de usar.</div>';
+    h += '<div class="jnota">' + (r.semBusca
+      ? 'Respondido sem a pesquisa no Google (o limite de pesquisa acabou por agora): é conhecimento geral do Gemini, sem fontes. Confira com mais cuidado.'
+      : 'Informação da internet. Confira antes de usar.') + '</div>';
     bolha.innerHTML = h;
     if(r.sugestao){   // o Google exige mostrar as sugestões de pesquisa junto da resposta
       var caixa = document.createElement('div');
@@ -1747,6 +1772,12 @@ async function jvPerguntar(texto, mostrar){
   }catch(e){
     bolha.className = 'jv-m erro';
     bolha.textContent = (e && e.message) || 'Não consegui pesquisar no Gemini agora.';
+    if(e && e.detalhe){
+      var det = document.createElement('div');
+      det.className = 'gmdet';
+      det.textContent = 'Detalhe do Google — ' + e.detalhe;
+      bolha.appendChild(det);
+    }
   }
   jvMsgs.scrollTop = bolha.offsetTop - 12;
   JV.ocupado = false; jvEnviar.disabled = false;

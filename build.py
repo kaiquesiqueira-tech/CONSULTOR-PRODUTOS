@@ -68,9 +68,12 @@ INCLUIR_CUSTOS = True
 #  pasta, que nunca vai para o GitHub. Sem chave, o Jarvis responde so
 #  com a base.
 #
-#  GEMINI_MODELOS: tentados nessa ordem; o primeiro que existir e usado.
+#  GEMINI_MODELOS: tentados nessa ordem. Cada modelo tem a sua cota gratuita;
+#  se um recusar por limite, o app tenta o proximo (e sem a pesquisa no
+#  Google, que tem cota separada). O que funcionar fica lembrado.
 # ---------------------------------------------------------------------
-GEMINI_MODELOS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"]
+GEMINI_MODELOS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest",
+                  "gemini-flash-lite-latest", "gemini-2.0-flash"]
 
 
 def chave_gemini():
