@@ -364,6 +364,21 @@ main{padding:14px 14px 92px}
 }
 .jv-m.rico{white-space:normal; max-width:94%}
 .jv-m .jnota{font-size:12.5px; color:var(--muted); margin-top:8px}
+.jv-voz .corte{display:none}
+.jv-voz.desligada{color:var(--steel-muted); opacity:.7}
+.jv-voz.desligada .onda{display:none}
+.jv-voz.desligada .corte{display:inline}
+.jv-voz:not(.desligada){color:var(--loc); border-color:rgba(245,197,24,.5)}
+.jv-voz.falando .onda{animation:jvonda 1s ease-in-out infinite}
+@keyframes jvonda{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.jv-voz.falando .onda{animation:none}}
+.jv-ouvir{margin-top:8px; border:1px solid var(--line-2); background:var(--surface-2); color:var(--ink);
+  border-radius:99px; padding:5px 12px; font-size:12.5px; font-weight:600}
+.jv-ouvir:hover{border-color:var(--act); color:var(--act)}
+.jv-ouvir.falando{border-color:var(--alert); color:var(--alert)}
+.jv-vozsel{margin-top:10px; font-size:12.5px; color:var(--muted)}
+.jv-vozsel select{margin-left:4px; max-width:100%; padding:5px 8px; border:1px solid var(--line-2); border-radius:7px;
+  background:var(--surface-2); color:var(--ink); font-family:var(--sans); font-size:12.5px}
 .jv-m.gm{align-self:flex-start; background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--act);
   border-bottom-left-radius:4px}
 .jv-m .gmtx{white-space:pre-wrap; font-size:13.5px; line-height:1.5}
@@ -631,6 +646,7 @@ main{padding:14px 14px 92px}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
     <h2>JARVIS<small id="jv-status">pesquisa na internet com o Gemini</small></h2>
+    <button class="iconbtn jv-voz" id="jv-voz" title="Voz do Jarvis" aria-label="Voz do Jarvis" aria-pressed="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path class="onda" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="onda" d="M19 5a10 10 0 0 1 0 14"/><path class="corte" d="M22 9l-6 6M16 9l6 6"/></svg></button>
     <button class="iconbtn" id="jv-novo" title="Nova conversa" aria-label="Nova conversa">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
     </button>
@@ -1734,7 +1750,10 @@ async function jvRodarModelos(acesso, contents){
     var t = tentativas[i];
     if(pular[t.modelo]) continue;
     var p = JV_ACESSOS[acesso].monta(t.modelo, GEMINI.chave);
-    var corpo = {systemInstruction: {parts: [{text: JV_GEMINI_REGRAS}]}, contents: contents,
+    var regras = JV_GEMINI_REGRAS + (t.busca ? '' : ' IMPORTANTE: nesta resposta a pesquisa do Google NÃO está ' +
+      'disponível. Não diga que pesquisou. Responda com conhecimento geral e deixe claro quando não tiver certeza, ' +
+      'principalmente sobre números de peça e aplicações em modelos específicos.');
+    var corpo = {systemInstruction: {parts: [{text: regras}]}, contents: contents,
                  generationConfig: {temperature: 0.3}};
     if(t.busca){ var ferr = {}; ferr[p.busca] = {}; corpo.tools = [ferr]; }
     var ctl = new AbortController(), tempo = setTimeout(function(){ ctl.abort(); }, 45000), resp;
@@ -1800,12 +1819,14 @@ function jvMd(t){
   h = h.replace(/^#{1,4}\s*(.+)$/gm, '<b>$1</b>');
   h = h.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>');
   h = h.replace(/^[ \t]*[\*\-][ \t]+/gm, '• ');
+  h = h.replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,;:!?)]|$)/g, '$1<i>$2</i>');
   return '<div class="gmtx">' + h + '</div>';
 }
 
 async function jvPerguntar(texto, mostrar){
   texto = (texto || '').trim();
   if(!texto || JV.ocupado || !GEMINI) return;
+  jvDestravarFala(); jvCalar();
   JV.ocupado = true; jvEnviar.disabled = true;
   jvTexto.value = ''; jvTexto.style.height = '';
   jvBalao('eu', mostrar || texto);
@@ -1829,6 +1850,13 @@ async function jvPerguntar(texto, mostrar){
       bolha.appendChild(caixa);
     }
     JV.hist.push(turno, {role: 'model', parts: [{text: r.texto}]});
+    if(JV_FALA.ok){
+      var n = JV_FALA.textos.push(r.texto) - 1;
+      var ouvir = document.createElement('button');
+      ouvir.type = 'button'; ouvir.className = 'jv-ouvir'; ouvir.dataset.ouvir = n; ouvir.textContent = '🔊 Ouvir';
+      bolha.appendChild(ouvir);
+      if(JV_FALA.ligada) jvFalar(r.texto, ouvir);
+    }
   }catch(e){
     bolha.className = 'jv-m erro';
     bolha.textContent = (e && e.message) || 'Não consegui pesquisar no Gemini agora.';
@@ -1878,7 +1906,152 @@ function jvBoasVindas(){
   nota.className = 'jnota';
   nota.textContent = 'O que você escrever vai para o Google. Não digite informação sigilosa da empresa.';
   d.appendChild(nota);
+  var sv = jvSeletorVoz();
+  if(sv) d.appendChild(sv);
 }
+
+/* ---------- voz do Jarvis: leitura em voz alta pelo próprio navegador ---------- */
+var JV_FALA = {ok: 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined',
+               ligada: store('jarvis_fala') !== false, falando: false, destravada: false, textos: []};
+var jvBotaoVoz = document.getElementById('jv-voz');
+
+function jvVozesPt(){
+  if(!JV_FALA.ok) return [];
+  var vs = speechSynthesis.getVoices();
+  var br = vs.filter(function(v){ return /^pt[-_]BR/i.test(v.lang); });
+  return br.length ? br : vs.filter(function(v){ return /^pt/i.test(v.lang); });
+}
+
+function jvMelhorVoz(){
+  var vs = jvVozesPt(), salva = store('jarvis_voz');
+  if(salva){ var achou = vs.filter(function(v){ return v.name === salva; })[0]; if(achou) return achou; }
+  // vozes "naturais" (neurais) soam como gente; entre elas, prefere uma masculina, como o Jarvis do filme
+  var nota = function(v){
+    var n = v.name.toLowerCase(), s = 0;
+    if(/natural|neural|online|premium|enhanced|aprimorad/.test(n)) s += 4;
+    if(/google/.test(n)) s += 3;   // no Chrome, a do Google soa bem mais humana que as da Microsoft
+    if(/antonio|daniel|thiago|donato|fabio|humberto|julio|nicolau|valerio|felipe|luciano/.test(n)) s += 1;
+    return s;
+  };
+  return vs.slice().sort(function(a, b){ return nota(b) - nota(a); })[0] || null;
+}
+
+function jvParaFala(t){
+  return String(t || '')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/[*_#`>]+/g, '')
+    .replace(/^\s*[•\-]\s+/gm, '')
+    .replace(/\s*\n+\s*/g, function(m, i, s){ return /[.!?:;]$/.test(s.slice(0, i).trim()) ? ' ' : '. '; })
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function jvMarcarFalando(sim, botao){
+  JV_FALA.falando = sim;
+  jvBotaoVoz.classList.toggle('falando', sim);
+  document.querySelectorAll('.jv-ouvir').forEach(function(b){
+    var este = sim && b === botao;
+    b.classList.toggle('falando', este);
+    b.textContent = este ? '■ Parar' : '🔊 Ouvir';
+  });
+}
+
+function jvCalar(){
+  if(JV_FALA.ok) speechSynthesis.cancel();
+  jvMarcarFalando(false);
+}
+
+function jvFalar(texto, botao){
+  if(!JV_FALA.ok) return;
+  speechSynthesis.cancel();
+  var limpo = jvParaFala(texto);
+  if(!limpo) return;
+  // em pedaços curtos: alguns navegadores param de falar no meio de textos longos
+  var frases = [], blocos = [], atual = '';
+  (limpo.match(/[^.!?;:]+[.!?;:]*\s*/g) || [limpo]).forEach(function(f){
+    if(f.length <= 170) frases.push(f);
+    else frases = frases.concat(f.match(/[^,]+,?\s*/g) || [f]);   // frase muito longa: quebra nas vírgulas
+  });
+  frases.forEach(function(f){
+    if(atual && (atual + f).length > 170){ blocos.push(atual); atual = f; } else atual += f;
+  });
+  if(atual.trim()) blocos.push(atual);
+  var voz = jvMelhorVoz();
+  blocos.forEach(function(b, i){
+    var u = new SpeechSynthesisUtterance(b.trim());
+    u.lang = voz ? voz.lang : 'pt-BR';
+    if(voz) u.voice = voz;
+    u.rate = 1.05; u.pitch = 1;
+    if(i === blocos.length - 1){ u.onend = function(){ jvMarcarFalando(false); }; }
+    u.onerror = function(){ if(i === blocos.length - 1) jvMarcarFalando(false); };
+    speechSynthesis.speak(u);
+  });
+  jvMarcarFalando(true, botao);
+}
+
+/* celular: a voz só é liberada dentro de um toque; destrava no toque de enviar a pergunta */
+function jvDestravarFala(){
+  if(!JV_FALA.ok || JV_FALA.destravada) return;
+  var u = new SpeechSynthesisUtterance(' ');
+  u.volume = 0;
+  speechSynthesis.speak(u);
+  JV_FALA.destravada = true;
+}
+
+function jvAtualizarBotaoVoz(){
+  jvBotaoVoz.hidden = !JV_FALA.ok;
+  jvBotaoVoz.classList.toggle('desligada', !JV_FALA.ligada);
+  jvBotaoVoz.title = JV_FALA.ligada ? 'Voz ligada: o Jarvis lê as respostas' : 'Voz desligada';
+  jvBotaoVoz.setAttribute('aria-pressed', JV_FALA.ligada ? 'true' : 'false');
+}
+
+jvBotaoVoz.addEventListener('click', function(){
+  JV_FALA.ligada = !JV_FALA.ligada;
+  store('jarvis_fala', JV_FALA.ligada);
+  if(!JV_FALA.ligada) jvCalar();
+  jvAtualizarBotaoVoz();
+  avisar(JV_FALA.ligada ? 'Voz do Jarvis ligada' : 'Voz do Jarvis desligada');
+});
+
+function jvSeletorVoz(){
+  var vs = jvVozesPt();
+  if(!JV_FALA.ok) return null;
+  var caixa = document.createElement('div');
+  caixa.className = 'jv-vozsel';
+  if(!vs.length){
+    caixa.textContent = 'Este navegador não tem voz em português instalada; o Jarvis vai falar com a voz padrão dele.';
+    return caixa;
+  }
+  var atual = jvMelhorVoz();
+  var sel = document.createElement('select');
+  sel.setAttribute('aria-label', 'Voz do Jarvis');
+  vs.forEach(function(v){
+    var o = document.createElement('option');
+    o.value = v.name; o.textContent = v.name.replace(/^Microsoft\s+/, '').replace(/\s*-\s*Portuguese.*$/i, '');
+    if(atual && v.name === atual.name) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change', function(){
+    store('jarvis_voz', sel.value);
+    jvDestravarFala();
+    jvFalar('Olá, eu sou o Jarvis. É assim que eu vou falar com você.');
+  });
+  var rot = document.createElement('label');
+  rot.textContent = 'Voz: ';
+  rot.appendChild(sel);
+  caixa.appendChild(rot);
+  return caixa;
+}
+
+if(JV_FALA.ok && typeof speechSynthesis.addEventListener === 'function'){
+  // a lista de vozes chega depois de a página abrir; refaz o seletor quando chegar
+  speechSynthesis.addEventListener('voiceschanged', function(){
+    var velho = jvMsgs.querySelector('.jv-vozsel');
+    var novo = jvSeletorVoz();
+    if(velho && novo) velho.parentNode.replaceChild(novo, velho);
+  });
+}
+jvAtualizarBotaoVoz();
 
 function abrirJarvis(pergunta, item){
   jvPainel.classList.add('open');
@@ -1892,6 +2065,7 @@ function abrirJarvis(pergunta, item){
 }
 
 function fecharJarvis(){
+  jvCalar();
   jvPainel.classList.remove('open');
   document.body.classList.remove('jv-aberto');
   if(!panel.classList.contains('open')) document.body.classList.remove('locked');
@@ -1899,7 +2073,7 @@ function fecharJarvis(){
 
 document.getElementById('jv-abrir').addEventListener('click', function(){ abrirJarvis(); });
 document.getElementById('jv-fechar').addEventListener('click', fecharJarvis);
-document.getElementById('jv-novo').addEventListener('click', function(){ if(!JV.ocupado) jvBoasVindas(); });
+document.getElementById('jv-novo').addEventListener('click', function(){ if(!JV.ocupado){ jvCalar(); jvBoasVindas(); } });
 jvEnviar.addEventListener('click', function(){ jvPerguntar(jvTexto.value); });
 jvTexto.addEventListener('keydown', function(e){
   if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); jvPerguntar(jvTexto.value); }
@@ -1908,6 +2082,12 @@ jvTexto.addEventListener('input', function(){
   jvTexto.style.height = ''; jvTexto.style.height = Math.min(jvTexto.scrollHeight, 120) + 'px';
 });
 jvMsgs.addEventListener('click', function(e){
+  var o = e.target.closest('[data-ouvir]');
+  if(o){
+    if(o.classList.contains('falando')) jvCalar();
+    else { jvDestravarFala(); jvFalar(JV_FALA.textos[+o.dataset.ouvir], o); }
+    return;
+  }
   var p = e.target.closest('[data-perg]');
   if(p) jvPerguntar(p.dataset.perg);
 });
