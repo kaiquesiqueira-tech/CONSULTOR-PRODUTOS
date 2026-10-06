@@ -76,19 +76,35 @@ GEMINI_MODELOS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-lat
                   "gemini-flash-lite-latest", "gemini-2.0-flash"]
 
 
+def limpar_chave(bruta):
+    """Conserta os erros comuns de colagem: aspas, espacos, quebras de linha
+    e o nome do segredo colado junto ("GEMINI_API_KEY=AIza...")."""
+    k = (bruta or "").strip()
+    for prefixo in ("GEMINI_API_KEY=", "GEMINI_API_KEY:", "API_KEY=", "KEY="):
+        if k.upper().startswith(prefixo):
+            k = k[len(prefixo):]
+    k = k.strip().strip('"').strip("'").strip("`").strip()
+    return "".join(k.split())
+
+
 def chave_gemini():
-    chave = os.environ.get("GEMINI_API_KEY", "").strip()
+    chave = limpar_chave(os.environ.get("GEMINI_API_KEY", ""))
     if chave:
         return chave
     try:
         with open(os.path.join(RAIZ, "gemini_chave.txt"), encoding="utf-8-sig") as f:
             for linha in f:
-                linha = linha.strip()
+                linha = limpar_chave(linha)
                 if linha and not linha.startswith("#"):
                     return linha
     except OSError:
         pass
     return ""
+
+
+def formato_da_chave_ok(k):
+    # chave de API do Google: 39 caracteres comecando com AIza
+    return bool(re.fullmatch(r"AIza[0-9A-Za-z_\-]{35}", k or ""))
 
 # arquivos que o build cria. O servidor so entrega estes, para ninguem
 # na rede baixar as planilhas ou os scripts pelo navegador.
@@ -522,6 +538,13 @@ def principal(saida=None):
     base["appv"] = marca_app
     if chave_gemini():
         base["gemini"] = {"chave": chave_gemini(), "modelos": GEMINI_MODELOS}
+        k = chave_gemini()
+        if not formato_da_chave_ok(k):
+            AVISOS.append(
+                "A chave do Gemini nao parece uma chave de API do Google: ela tem %d caracteres\n"
+                "  e %s com 'AIza'. Uma chave do AI Studio tem 39 caracteres e comeca com 'AIza'.\n"
+                "  Copie a chave de novo no AI Studio e cadastre o segredo outra vez."
+                % (len(k), "comeca" if k.startswith("AIza") else "NAO comeca"))
 
     dados = json.dumps(base, ensure_ascii=False, separators=(",", ":"))
     dados = dados.replace("</", "<\\u002f")  # seguranca ao embutir no HTML
@@ -564,8 +587,11 @@ def principal(saida=None):
         sem = sum(1 for a in base["ativos"] if "e" not in a)
         print("  controla endereco .. %d sim, %d nao, %d sem indicador (itens ativos)" % (sim, nao, sem))
     print("  marca dos dados .... %s" % base["marca"])
-    print("  Gemini ............. %s" % ("ligado" if base.get("gemini") else
-                                         "desligado (sem gemini_chave.txt nem GEMINI_API_KEY)"))
+    if base.get("gemini"):
+        print("  Gemini ............. ligado (formato da chave: %s)" %
+              ("ok" if formato_da_chave_ok(base["gemini"]["chave"]) else "ESTRANHO, veja o aviso abaixo"))
+    else:
+        print("  Gemini ............. desligado (sem gemini_chave.txt nem GEMINI_API_KEY)")
     print("  marca do app ....... %s   (template.html de %s)" % (marca_app, quando_modelo))
     if base.get("semCustos"):
         print("  custos ............. FORA da base (INCLUIR_CUSTOS = False no build.py)")

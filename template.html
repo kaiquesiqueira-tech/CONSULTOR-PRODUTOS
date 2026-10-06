@@ -1657,8 +1657,17 @@ function jvBalao(tipo, conteudo, html){
   return d;
 }
 
+function jvFormatoChave(){
+  var k = GEMINI.chave || '';
+  if(/^AIza[0-9A-Za-z_\-]{35}$/.test(k))
+    return 'O formato da chave está certo, então ela provavelmente foi apagada ou trocada no AI Studio: crie outra lá e cadastre o segredo de novo.';
+  return 'A chave cadastrada tem ' + k.length + ' caracteres e ' + (k.indexOf('AIza') === 0 ? 'começa' : 'não começa') +
+         ' com "AIza" — uma chave do Google tem 39 e começa com "AIza". Copie de novo no AI Studio e cadastre o segredo outra vez.';
+}
+
 function jvErroGemini(status, msg){
-  if(/API key not valid|API_KEY_INVALID/i.test(msg)) return 'A chave do Gemini é inválida. Confira a chave cadastrada.';
+  if(status === 401 || /API key not valid|API_KEY_INVALID/i.test(msg))
+    return 'O Google não reconheceu a chave do Gemini. ' + jvFormatoChave();
   if(status === 403 && /referer|referrer/i.test(msg))
     return 'A chave do Gemini não aceita pedidos deste endereço (restrição de site). Inclua este endereço nas restrições da chave.';
   if(status === 403) return 'O Gemini recusou o acesso: confira se a API está ativada para essa chave.';
