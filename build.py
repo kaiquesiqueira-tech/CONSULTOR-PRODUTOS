@@ -102,9 +102,17 @@ def chave_gemini():
     return ""
 
 
+def formato_da_chave(k):
+    """'AIza' = formato classico, 'AQ.' = formato novo do Google, '' = desconhecido."""
+    if re.fullmatch(r"AIza[0-9A-Za-z_\-]{35}", k or ""):
+        return "AIza"
+    if re.fullmatch(r"AQ\.[0-9A-Za-z_\-.]{20,}", k or ""):
+        return "AQ."
+    return ""
+
+
 def formato_da_chave_ok(k):
-    # chave de API do Google: 39 caracteres comecando com AIza
-    return bool(re.fullmatch(r"AIza[0-9A-Za-z_\-]{35}", k or ""))
+    return formato_da_chave(k) != ""
 
 # arquivos que o build cria. O servidor so entrega estes, para ninguem
 # na rede baixar as planilhas ou os scripts pelo navegador.
@@ -542,9 +550,8 @@ def principal(saida=None):
         if not formato_da_chave_ok(k):
             AVISOS.append(
                 "A chave do Gemini nao parece uma chave de API do Google: ela tem %d caracteres\n"
-                "  e %s com 'AIza'. Uma chave do AI Studio tem 39 caracteres e comeca com 'AIza'.\n"
-                "  Copie a chave de novo no AI Studio e cadastre o segredo outra vez."
-                % (len(k), "comeca" if k.startswith("AIza") else "NAO comeca"))
+                "  e nao comeca nem com 'AIza' (formato classico) nem com 'AQ.' (formato novo).\n"
+                "  Copie a chave de novo no AI Studio e cadastre o segredo outra vez." % len(k))
 
     dados = json.dumps(base, ensure_ascii=False, separators=(",", ":"))
     dados = dados.replace("</", "<\\u002f")  # seguranca ao embutir no HTML
@@ -588,8 +595,9 @@ def principal(saida=None):
         print("  controla endereco .. %d sim, %d nao, %d sem indicador (itens ativos)" % (sim, nao, sem))
     print("  marca dos dados .... %s" % base["marca"])
     if base.get("gemini"):
+        fmt = formato_da_chave(base["gemini"]["chave"])
         print("  Gemini ............. ligado (formato da chave: %s)" %
-              ("ok" if formato_da_chave_ok(base["gemini"]["chave"]) else "ESTRANHO, veja o aviso abaixo"))
+              ("ok, %s" % fmt if fmt else "ESTRANHO, veja o aviso abaixo"))
     else:
         print("  Gemini ............. desligado (sem gemini_chave.txt nem GEMINI_API_KEY)")
     print("  marca do app ....... %s   (template.html de %s)" % (marca_app, quando_modelo))

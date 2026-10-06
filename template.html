@@ -1660,9 +1660,11 @@ function jvBalao(tipo, conteudo, html){
 function jvFormatoChave(){
   var k = GEMINI.chave || '';
   if(/^AIza[0-9A-Za-z_\-]{35}$/.test(k))
-    return 'O formato da chave está certo, então ela provavelmente foi apagada ou trocada no AI Studio: crie outra lá e cadastre o segredo de novo.';
-  return 'A chave cadastrada tem ' + k.length + ' caracteres e ' + (k.indexOf('AIza') === 0 ? 'começa' : 'não começa') +
-         ' com "AIza" — uma chave do Google tem 39 e começa com "AIza". Copie de novo no AI Studio e cadastre o segredo outra vez.';
+    return 'O formato da chave (AIza) está certo, então ela provavelmente foi apagada ou trocada no AI Studio: crie outra lá e cadastre o segredo de novo.';
+  if(/^AQ\./.test(k))
+    return 'A chave está no formato novo do Google (AQ.), com ' + k.length + ' caracteres. Confira se ela foi criada no Google AI Studio ' +
+           '(aistudio.google.com), se não foi apagada, e se o segredo tem a chave inteira.';
+  return 'A chave cadastrada tem ' + k.length + ' caracteres e não começa nem com "AIza" nem com "AQ.". Copie de novo no AI Studio e cadastre o segredo outra vez.';
 }
 
 function jvErroGemini(status, msg){
@@ -1690,66 +1692,107 @@ function jvLerGemini(d){
   return {texto: texto, fontes: fontes, sugestao: (g.searchEntryPoint || {}).renderedContent || ''};
 }
 
-async function jvChamarGemini(contents){
+var JV_GL = 'https://generativelanguage.googleapis.com/v1beta/models/';
+var JV_VX = 'https://aiplatform.googleapis.com/v1/publishers/google/models/';
+var JV_ACESSOS = {
+  cabecalho: {rotulo: 'chave no cabeçalho', monta: function(m, k){
+    return {url: JV_GL + encodeURIComponent(m) + ':generateContent', h: {'x-goog-api-key': k}, busca: 'google_search'}; }},
+  endereco:  {rotulo: 'chave no endereço', monta: function(m, k){
+    return {url: JV_GL + encodeURIComponent(m) + ':generateContent?key=' + encodeURIComponent(k), h: {}, busca: 'google_search'}; }},
+  token:     {rotulo: 'chave como token', monta: function(m, k){
+    return {url: JV_GL + encodeURIComponent(m) + ':generateContent', h: {'Authorization': 'Bearer ' + k}, busca: 'google_search'}; }},
+  vertex:    {rotulo: 'Vertex AI', monta: function(m, k){
+    return {url: JV_VX + encodeURIComponent(m) + ':generateContent?key=' + encodeURIComponent(k), h: {}, busca: 'googleSearch'}; }}
+};
+
+function jvOrdemAcessos(){
+  // chave no formato clássico (AIza) só tem um jeito; formato novo testa os outros
+  if(/^AIza/.test(GEMINI.chave || '')) return ['cabecalho'];
+  var ordem = ['cabecalho', 'endereco', 'token', 'vertex'], lembrado = store('gemini_acesso');
+  if(lembrado && ordem.indexOf(lembrado) > 0){ ordem.splice(ordem.indexOf(lembrado), 1); ordem.unshift(lembrado); }
+  return ordem;
+}
+
+function jvChaveRecusada(status, msg){
+  if(status === 401) return true;
+  if(status === 400 && /API key|API_KEY/i.test(msg)) return true;
+  return status === 403 && !/referer|referrer/i.test(msg);
+}
+
+async function jvRodarModelos(acesso, contents){
   /* Cada modelo tem a sua cota, e a pesquisa no Google tem outra à parte.
-     Ordem: cada modelo com pesquisa, depois o mesmo sem pesquisa, depois o próximo.
-     A combinação que funcionou fica lembrada para as próximas perguntas. */
+     Ordem: cada modelo com pesquisa, depois o mesmo sem pesquisa, depois o próximo. */
   var tentativas = [];
   (GEMINI.modelos || []).forEach(function(m){ tentativas.push({modelo: m, busca: true}, {modelo: m, busca: false}); });
-  // lembra só o modelo: com ele, sempre tenta primeiro com pesquisa (a cota de pesquisa volta no dia seguinte)
   var lembrado = (store('gemini_modo') || {}).modelo;
   if(lembrado){
     var dele = tentativas.filter(function(x){ return x.modelo === lembrado; });
     if(dele.length) tentativas = dele.concat(tentativas.filter(function(x){ return x.modelo !== lembrado; }));
   }
-  var pular = {}, recusas = [];
+  var pular = {}, recusas = [], primeira = true;
   for(var i = 0; i < tentativas.length; i++){
     var t = tentativas[i];
     if(pular[t.modelo]) continue;
-    var ctl = new AbortController(), tempo = setTimeout(function(){ ctl.abort(); }, 45000), resp;
+    var p = JV_ACESSOS[acesso].monta(t.modelo, GEMINI.chave);
     var corpo = {systemInstruction: {parts: [{text: JV_GEMINI_REGRAS}]}, contents: contents,
                  generationConfig: {temperature: 0.3}};
-    if(t.busca) corpo.tools = [{google_search: {}}];
+    if(t.busca){ var ferr = {}; ferr[p.busca] = {}; corpo.tools = [ferr]; }
+    var ctl = new AbortController(), tempo = setTimeout(function(){ ctl.abort(); }, 45000), resp;
+    var cab = {'Content-Type': 'application/json'};
+    Object.keys(p.h).forEach(function(n){ cab[n] = p.h[n]; });
     try{
-      resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(t.modelo) +
-                         ':generateContent', {
-        method: 'POST', signal: ctl.signal,
-        headers: {'Content-Type': 'application/json', 'x-goog-api-key': GEMINI.chave},
-        body: JSON.stringify(corpo)
-      });
+      resp = await fetch(p.url, {method: 'POST', signal: ctl.signal, headers: cab, body: JSON.stringify(corpo)});
     }catch(e){
       clearTimeout(tempo);
-      throw new Error(e && e.name === 'AbortError' ? 'O Gemini demorou demais para responder. Tente de novo.'
-                                                   : 'Sem conexão com o Gemini. Confira a internet.');
+      if(e && e.name === 'AbortError') return {erro: new Error('O Gemini demorou demais para responder. Tente de novo.')};
+      if(primeira) return {chaveRecusada: true, status: 'sem resposta', msg: 'o navegador bloqueou ou não houve conexão'};
+      return {erro: new Error('Sem conexão com o Gemini. Confira a internet.')};
     }
     clearTimeout(tempo);
     var dados = await resp.json().catch(function(){ return {}; });
+    var msg = String((dados.error || {}).message || '');
+    if(primeira && !resp.ok && jvChaveRecusada(resp.status, msg)) return {chaveRecusada: true, status: resp.status, msg: msg};
+    primeira = false;
     if(resp.ok){
       store('gemini_modo', {modelo: t.modelo});
       var r = jvLerGemini(dados);
       r.modelo = t.modelo; r.semBusca = !t.busca;
-      return r;
+      return {r: r};
     }
-    var msg = String((dados.error || {}).message || '');
     var quem = t.modelo + (t.busca ? ' com pesquisa' : ' sem pesquisa') + ' (' + resp.status + '): ' + msg;
     if(resp.status === 404 || /not found|is not supported/i.test(msg)){ pular[t.modelo] = 1; continue; }
-    // limite de uso ou instabilidade do Google: tenta a próxima combinação
     if(resp.status === 429 || resp.status >= 500){ recusas.push({s: resp.status, txt: quem}); continue; }
     if(resp.status === 400 && t.busca && /search|grounding|tool/i.test(msg)) continue;   // modelo sem pesquisa no Google
     var erro = new Error(jvErroGemini(resp.status, msg));
     erro.detalhe = quem.slice(0, 260);
-    throw erro;
+    return {erro: erro};
   }
   if(recusas.length){
-    var so429 = recusas.every(function(r){ return r.s === 429; });
-    var soFalha = recusas.every(function(r){ return r.s >= 500; });
-    var e = new Error(so429 ? 'O Google recusou por limite de uso em todos os modelos que tentei.'
+    var so429 = recusas.every(function(x){ return x.s === 429; });
+    var soFalha = recusas.every(function(x){ return x.s >= 500; });
+    var e2 = new Error(so429 ? 'O Google recusou por limite de uso em todos os modelos que tentei.'
       : soFalha ? 'O Gemini está instável agora: todos os modelos que tentei falharam do lado do Google. Tente de novo em alguns minutos.'
       : 'O Google recusou em todos os modelos que tentei, por limite de uso ou instabilidade. Tente de novo em alguns minutos.');
-    e.detalhe = recusas[0].txt.slice(0, 260);
-    throw e;
+    e2.detalhe = recusas[0].txt.slice(0, 260);
+    return {erro: e2};
   }
-  throw new Error('Nenhum modelo da lista do Gemini respondeu. Atualize GEMINI_MODELOS no build.py.');
+  return {erro: new Error('Nenhum modelo da lista do Gemini respondeu. Atualize GEMINI_MODELOS no build.py.')};
+}
+
+async function jvChamarGemini(contents){
+  var ordem = jvOrdemAcessos(), falhas = [];
+  for(var a = 0; a < ordem.length; a++){
+    var res = await jvRodarModelos(ordem[a], contents);
+    if(res.chaveRecusada){ falhas.push(JV_ACESSOS[ordem[a]].rotulo + ' (' + res.status + '): ' + res.msg); continue; }
+    store('gemini_acesso', ordem[a]);    // o jeito que o Google aceitou fica lembrado
+    if(res.erro) throw res.erro;
+    return res.r;
+  }
+  if(falhas.every(function(f){ return f.indexOf('(sem resposta)') >= 0; }))
+    throw new Error('Sem conexão com o Gemini. Confira a internet.');
+  var e = new Error('O Google não aceitou a chave de nenhum dos jeitos que tentei. ' + jvFormatoChave());
+  e.detalhe = falhas.join('  |  ').slice(0, 600);
+  throw e;
 }
 
 function jvMd(t){
