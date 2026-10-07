@@ -411,6 +411,10 @@ main{padding:14px 14px 92px}
 .imp1:hover{color:var(--loc); border-color:var(--loc)}
 .btn svg{vertical-align:-2px; margin-right:7px}
 #area-impressao{display:none}
+.modos-inv{margin-bottom:12px}
+.ordens{align-items:center}
+.inv-escolha p{margin:0 0 10px; font-size:14px}
+.flag.neg{background:var(--alert); color:#fff}
 .inv-op{display:flex; align-items:center; gap:14px; margin-bottom:12px; flex-wrap:wrap}
 .inv-op .btn{flex:1 1 220px}
 .inv-op label{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted);
@@ -563,6 +567,7 @@ main{padding:14px 14px 92px}
   #area-impressao .t-inv th.c-cod{width:14%}
   #area-impressao .t-inv th.c-arm{width:6%}
   #area-impressao .t-inv th.c-un{width:6%}
+  #area-impressao .t-inv th.c-end{width:13%}
   #area-impressao .t-inv th.c-saiu{width:8%}
   #area-impressao .t-inv th.c-sis{width:10%}
   #area-impressao .t-inv th.c-cont{width:15%}
@@ -759,7 +764,7 @@ var RUAKEYS = Object.keys(RUAS).sort(function(a,b){
 /* ---------- estado ---------- */
 var S = {
   tab:'prod', q:'', fil: store('fil') || '', comSaldo: store('comSaldo')!==false,
-  sel:null, rua:null, ctrl:null, selec:{}, invDia:null, invTipo:null, cega:false, sep: store('sep') || []
+  sel:null, rua:null, ctrl:null, selec:{}, invDia:null, invTipo:null, cega:false, invModo:'rotativo', invOrdem:'endereco', invArm:'', sep: store('sep') || []
 };
 
 /* ---------- filtros ---------- */
@@ -1385,7 +1390,7 @@ function montarInventario(){
   return {dias:dias, tipos:contTipos, produtos:Object.keys(prods).length, grupos:lista_g};
 }
 
-function renderInv(){
+function renderInvRotativo(){
   if(!(D.movimentos || []).length){
     ULTIMOS_INV = [];
     cont.innerHTML = '<span>Inventário rotativo</span>';
@@ -1502,6 +1507,196 @@ function imprimirInventario(grupos){
   window.print();
 }
 
+/* ---------- Inventário completo: 100% de uma filial ---------- */
+var ULTIMO_COMPLETO = null;
+var JV_ORDENS = [['endereco', 'Endereço'], ['codigo', 'Código'], ['descricao', 'Descrição'], ['armazem', 'Armazém']];
+
+function chipsModoInv(){
+  var m = S.invModo || 'rotativo';
+  return '<div class="ruas modos-inv">' +
+    '<button class="rua txt" data-inv-modo="rotativo" aria-pressed="' + (m === 'rotativo') + '">Rotativo · o que saiu</button>' +
+    '<button class="rua txt" data-inv-modo="completo" aria-pressed="' + (m === 'completo') + '">Completo · 100% da filial</button></div>';
+}
+
+function renderInv(){
+  if((S.invModo || 'rotativo') === 'completo') renderInvCompleto(); else renderInvRotativo();
+  lista.insertAdjacentHTML('afterbegin', chipsModoInv());
+}
+
+function montarCompleto(){
+  var termos = S.q ? S.q.split(/\s+/) : [], linhas = [], arms = {}, prods = {}, ends = {}, valor = 0, custo = 0;
+  var semSb2 = SEMSB2.indexOf(S.fil) >= 0;
+  ITENS.forEach(function(it){
+    if(FIL[it.f] !== S.fil || it.zero) return;
+    // códigos "MO...": mão de obra, depreciação e GGF apropriados no Protheus. Não são material físico.
+    if(/^MO|MO$/.test(it.c)){ custo++; return; }
+    var ls = [];
+    it.rows.forEach(function(r){
+      var arm = r[0], soma = 0;
+      r[9].forEach(function(e){ if(e[1] > 0){ ls.push({it: it, L: e[0], arm: arm, q: e[1]}); soma += e[1]; } });
+      var resto = r[1] - soma;
+      if(semSb2) return;
+      // saldo do armazém maior que a soma dos endereços: a diferença também precisa ser contada
+      if(resto > 0.0001) ls.push({it: it, L: '', arm: arm, q: resto, fora: r[9].length > 0});
+      // saldo negativo sem endereço: erro de sistema que o inventário precisa resolver
+      else if(r[1] < -0.0001 && !r[9].length) ls.push({it: it, L: '', arm: arm, q: r[1], neg: true});
+    });
+    if(!ls.length) return;
+    ls.forEach(function(l){
+      arms[l.arm] = 1;
+      if(S.invArm && l.arm !== S.invArm) return;
+      if(termos.length){
+        var alvo = it.idx + ' ' + norm(l.L);
+        for(var i = 0; i < termos.length; i++) if(alvo.indexOf(termos[i]) < 0) return;
+      }
+      linhas.push(l);
+      if(!prods[it.id]){ prods[it.id] = 1; valor += it.valor; }
+      if(l.L) ends[l.L] = 1;
+    });
+  });
+  var cod = function(a, b){ return a.it.c < b.it.c ? -1 : a.it.c > b.it.c ? 1 : 0; };
+  var loc = function(a, b){ return (a.L ? 0 : 1) - (b.L ? 0 : 1) || (a.L < b.L ? -1 : a.L > b.L ? 1 : 0); };
+  var ordem = S.invOrdem || 'endereco';
+  linhas.sort(
+    ordem === 'codigo'    ? function(a, b){ return cod(a, b) || (a.arm < b.arm ? -1 : a.arm > b.arm ? 1 : 0) || loc(a, b); } :
+    ordem === 'descricao' ? function(a, b){
+      var sa = a.it.d.indexOf('(sem') === 0 ? 1 : 0, sb = b.it.d.indexOf('(sem') === 0 ? 1 : 0;
+      return sa - sb || a.it.d.localeCompare(b.it.d, 'pt') || cod(a, b) || loc(a, b); } :
+    ordem === 'armazem'   ? function(a, b){ return (a.arm < b.arm ? -1 : a.arm > b.arm ? 1 : 0) || loc(a, b) || cod(a, b); } :
+                            function(a, b){ return loc(a, b) || (a.arm < b.arm ? -1 : a.arm > b.arm ? 1 : 0) || cod(a, b); });
+  return {linhas: linhas, arms: Object.keys(arms).sort(), produtos: Object.keys(prods).length,
+          enderecos: Object.keys(ends).length, valor: valor, ordem: ordem, custo: custo,
+          negativos: linhas.filter(function(l){ return l.neg; }).length};
+}
+
+function agruparPorEndereco(linhas){
+  var grupos = [], porL = {};
+  linhas.forEach(function(l){
+    var k = l.L || CHAVE_SEM;
+    if(!porL[k]){ porL[k] = {L: k, its: []}; grupos.push(porL[k]); }
+    porL[k].its.push(l);
+  });
+  return grupos;
+}
+
+function cartaoCompleto(l, mostrarEndereco){
+  var it = l.it, sem = !l.L;
+  return '<button class="card' + (sem ? ' aviso' : '') + '" data-id="' + it.id + '">' +
+    '<div class="l1"><span class="code">' + it.c + '</span><span class="fil">arm ' + esc(l.arm) + '</span></div>' +
+    '<p class="desc">' + esc(it.d) + '</p><div class="l3">' +
+    (mostrarEndereco ? (l.L ? '<span class="loc">' + esc(l.L) + '</span>'
+                            : '<span class="loc none">' + (l.fora ? 'fora de endereço' : 'sem endereço') + '</span>') : '') +
+    (sem && l.fora ? '<span class="flag">diferença do saldo</span>' : '') +
+    (l.neg ? '<span class="flag neg">saldo negativo</span>' : '') +
+    '<span class="qty"><b>' + nq(l.q) + '</b><small>no sistema</small></span></div></button>';
+}
+
+function renderInvCompleto(){
+  if(!S.fil){
+    ULTIMO_COMPLETO = null;
+    cont.innerHTML = '<span>Inventário completo</span>';
+    lista.innerHTML = '<div class="inv-escolha"><p>O inventário completo é feito por filial. Escolha qual:</p>' +
+      '<div class="ruas">' + FIL.map(function(f){
+        return '<button class="rua" data-fil-escolha="' + f + '">' + f + '</button>'; }).join('') + '</div>' +
+      '<p class="dica">Ou use os botões de filial no topo do app.</p></div>';
+    return;
+  }
+  var r = montarCompleto();
+  ULTIMO_COMPLETO = r;
+  cont.innerHTML = '<span>' + r.linhas.length.toLocaleString('pt-BR') + ' ' + plural(r.linhas.length, 'linha', 'linhas') +
+    '</span><span>' + r.produtos.toLocaleString('pt-BR') + ' prod. · ' + r.enderecos + ' end.</span>';
+
+  var h = '';
+  if(r.arms.length > 1){
+    h += '<div class="ruas"><button class="rua txt" data-inv-arm="" aria-pressed="' + (!S.invArm) + '">Todos os armazéns</button>' +
+      r.arms.map(function(a){
+        return '<button class="rua" data-inv-arm="' + esc(a) + '" aria-pressed="' + (S.invArm === a) + '">arm ' + esc(a) + '</button>';
+      }).join('') + '</div>';
+  }
+  h += '<div class="ruas ordens"><span class="ctrlrot">Ordenar por</span>' + JV_ORDENS.map(function(o){
+    return '<button class="rua txt" data-inv-ordem="' + o[0] + '" aria-pressed="' + (r.ordem === o[0]) + '">' + o[1] + '</button>';
+  }).join('') + '</div>';
+  if(!SEM_CUSTOS && r.valor) h += '<p class="dica">Valor em estoque nesta contagem: <b>' + nm(r.valor) + '</b></p>';
+  h += '<p class="dica">Todo o saldo da filial ' + S.fil + (S.invArm ? ', armazém ' + esc(S.invArm) : '') +
+       ': uma linha por endereço, mais as linhas de saldo sem endereço ou fora de endereço. ' +
+       'Para contar uma rua só, digite a rua na busca (ex.: A03).</p>';
+  if(SEMSB2.indexOf(S.fil) >= 0)
+    h += '<p class="dica">Esta filial não tem saldo físico na base: o inventário usa só o saldo por endereço.</p>';
+  if(r.negativos)
+    h += '<p class="dica"><b>' + r.negativos + '</b> ' + plural(r.negativos, 'produto está', 'produtos estão') +
+         ' com saldo negativo no sistema. Eles entram no fim da lista, em “Sem endereço”, para serem contados e corrigidos.</p>';
+  if(r.custo)
+    h += '<p class="dica">' + r.custo + ' itens de custo (códigos “MO…”: mão de obra, depreciação e GGF) ficaram de fora: ' +
+         'não são material físico.</p>';
+  if(!r.linhas.length){
+    lista.innerHTML = h + '<p class="empty"><b>Nada para contar</b>Nenhum saldo com esse filtro.</p>';
+    return;
+  }
+  h += '<div class="inv-op"><button class="btn ghost" id="imp-inv-total"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir inventário (' +
+       r.linhas.length.toLocaleString('pt-BR') + ' linhas)</button>' +
+       '<label><input type="checkbox" id="cega"' + (S.cega ? ' checked' : '') + '> Contagem cega</label></div>';
+
+  var LIM = 300, mostradas = 0;
+  if(r.ordem === 'endereco'){
+    agruparPorEndereco(r.linhas).forEach(function(g){
+      if(mostradas >= LIM) return;
+      var sem = g.L === CHAVE_SEM;
+      h += '<div class="locgroup' + (sem ? ' semloc' : '') + '"><h3>' + (sem ? 'Sem endereço' : esc(g.L)) +
+           '<span class="dir">' + g.its.length + ' ' + plural(g.its.length, 'item', 'itens') +
+           (sem ? '' : '<button class="imp1" data-impcomp="' + esc(g.L) + '" title="Imprimir este endereço" ' +
+             'aria-label="Imprimir a contagem do endereço ' + esc(g.L) + '"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>') + '</span></h3>';
+      g.its.forEach(function(l){ if(mostradas < LIM){ h += cartaoCompleto(l, sem); mostradas++; } });
+      h += '</div>';
+    });
+  } else {
+    r.linhas.slice(0, LIM).forEach(function(l){ h += cartaoCompleto(l, true); mostradas++; });
+  }
+  if(r.linhas.length > mostradas)
+    h += '<p class="dica">Mostrando ' + mostradas + ' de ' + r.linhas.length.toLocaleString('pt-BR') +
+         ' linhas na tela. A impressão sai com todas. Para ver menos, use a busca ou escolha um armazém.</p>';
+  lista.innerHTML = h;
+}
+
+function imprimirCompleto(r, soEndereco){
+  if(!r || !r.linhas.length) return;
+  var linhas = soEndereco ? r.linhas.filter(function(l){ return l.L === soEndereco; }) : r.linhas;
+  if(!soEndereco && linhas.length > 400 &&
+     !confirm('Vai imprimir ' + linhas.length.toLocaleString('pt-BR') + ' linhas, umas ' + Math.ceil(linhas.length / 30) +
+              ' páginas. Continuar?')) return;
+  var cega = S.cega, nomeOrdem = JV_ORDENS.filter(function(o){ return o[0] === r.ordem; })[0][1].toLowerCase();
+  var titulo = 'Inventário completo · filial ' + S.fil + (S.invArm ? ' · armazém ' + S.invArm : '') + (soEndereco ? ' · ' + soEndereco : '');
+  var h = '<div class="ph"><b>' + esc(titulo) + '</b><span>' + new Date().toLocaleString('pt-BR') + '</span></div>';
+  h += '<p class="pinfo">' + linhas.length + ' ' + plural(linhas.length, 'linha', 'linhas') + ' de contagem · ordenado por ' +
+       nomeOrdem + (S.q ? ' · busca “' + esc(elQ.value) + '”' : '') + (cega ? ' · contagem cega' : '') + '</p>';
+  var cabec = function(comEnd){
+    return '<table class="t-inv"><thead><tr>' + (comEnd ? '<th class="c-end">Endereço</th>' : '') +
+      '<th class="c-cod">Código</th><th>Descrição</th><th class="c-un">Arm</th>' +
+      (cega ? '' : '<th class="c-sis n">Sistema</th>') + '<th class="c-cont n">Contado</th></tr></thead><tbody>';
+  };
+  var linha = function(l, comEnd){
+    return '<tr>' + (comEnd ? '<td class="m">' + (l.L ? esc(l.L) : l.neg ? 'saldo neg.' : (l.fora ? 'fora de end.' : 'sem end.')) + '</td>' : '') +
+      '<td class="m">' + l.it.c + '</td><td>' + esc(l.it.d) + '</td><td class="m">' + esc(l.arm) + '</td>' +
+      (cega ? '' : '<td class="n m">' + nq(l.q) + '</td>') + '<td class="n"><span class="conta"></span></td></tr>';
+  };
+  if(r.ordem === 'endereco'){
+    agruparPorEndereco(linhas).forEach(function(g){
+      var sem = g.L === CHAVE_SEM;
+      h += '<section class="pg"><h2>' + (sem ? 'SEM ENDEREÇO' : esc(g.L)) + '</h2>' +
+           '<span class="pnf">filial ' + S.fil + (sem ? ' · conferir no armazém' : '') + '</span>' + cabec(false);
+      g.its.forEach(function(l){ h += linha(l, false); });
+      h += '</tbody></table></section>';
+    });
+  } else {
+    h += cabec(true);
+    linhas.forEach(function(l){ h += linha(l, true); });
+    h += '</tbody></table>';
+  }
+  h += '<div class="assina"><span>Contado por</span><span>Conferido por</span><span>Data</span></div>';
+  document.getElementById('area-impressao').innerHTML = h;
+  document.body.classList.add('imprimindo');
+  window.print();
+}
+
 function renderSep(){
   cont.innerHTML = '<span>Lista de separação</span><span>'+S.sep.length+' '+plural(S.sep.length,'item','itens')+'</span>';
   if(!S.sep.length){
@@ -1556,6 +1751,17 @@ lista.addEventListener('click', function(e){
   if(e.target.closest('#imp-end')){ imprimirEnderecos(ULTIMOS_GRUPOS); return; }
   if(e.target.closest('#imp-pend')){ imprimirPendentes(ULTIMOS_PEND); return; }
   if(e.target.closest('#imp-inv')){ imprimirInventario(ULTIMOS_INV); return; }
+  if(e.target.closest('#imp-inv-total')){ imprimirCompleto(ULTIMO_COMPLETO); return; }
+  var ic = e.target.closest('[data-impcomp]');
+  if(ic){ imprimirCompleto(ULTIMO_COMPLETO, ic.dataset.impcomp); return; }
+  var im = e.target.closest('[data-inv-modo]');
+  if(im){ S.invModo = im.dataset.invModo; render(); return; }
+  var io = e.target.closest('[data-inv-ordem]');
+  if(io){ S.invOrdem = io.dataset.invOrdem; render(); return; }
+  var ia = e.target.closest('[data-inv-arm]');
+  if(ia){ S.invArm = ia.dataset.invArm || ''; render(); return; }
+  var fe = e.target.closest('[data-fil-escolha]');
+  if(fe){ S.fil = fe.dataset.filEscolha; S.invArm = ''; renderFiltros(); render(); return; }
   var ui = e.target.closest('[data-impinv]');
   if(ui){ imprimirInventario(ULTIMOS_INV.filter(function(g){ return g.k === ui.dataset.impinv; })); return; }
   if(e.target.closest('#sel-separar')){ separarSelecionados(); return; }
