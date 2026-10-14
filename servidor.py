@@ -36,7 +36,7 @@ PASTA_SAIDA = RAIZ   # o app e gerado na propria pasta do projeto
 #    False = so gera aqui no computador.
 #
 #  Para funcionar, o repositorio precisa ja estar ligado e o login do
-#  GitHub ja feito uma vez (pelo VS Code ou pelo enviar.bat). Este
+#  GitHub ja feito uma vez (pelo VS Code ou pelo publicar.bat). Este
 #  envio automatico nunca pergunta senha.
 # ---------------------------------------------------------------------
 ENVIAR_PARA_O_GITHUB = True
@@ -173,7 +173,7 @@ class Servidor(http.server.SimpleHTTPRequestHandler):
     def _liberado(self):
         """Quando o app e gerado na propria pasta do projeto, so os arquivos
         do site sao servidos. Sem isso qualquer um na rede baixaria as
-        planilhas e o config.txt."""
+        planilhas e os arquivos do projeto."""
         if PASTA_SAIDA != RAIZ:
             return True
         alvo = urllib.parse.unquote(self.path.split("?")[0].split("#")[0]).strip("/")
