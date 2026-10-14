@@ -165,6 +165,8 @@ def meu_ip():
 
 
 class Servidor(http.server.SimpleHTTPRequestHandler):
+    extensions_map = dict(http.server.SimpleHTTPRequestHandler.extensions_map,
+                          **{".webmanifest": "application/manifest+json", ".js": "text/javascript"})
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=PASTA_SAIDA, **kwargs)
 

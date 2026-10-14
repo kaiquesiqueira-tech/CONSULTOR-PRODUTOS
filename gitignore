@@ -2,6 +2,9 @@
 # GitHub Actions, a partir das planilhas da pasta 'dados'.
 index.html
 versao.txt
+sw.js
+manifest.webmanifest
+icone-*.png
 site/
 
 __pycache__/
