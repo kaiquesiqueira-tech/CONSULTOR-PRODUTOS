@@ -63,47 +63,6 @@ PASTA_DADOS = os.path.join(RAIZ, "dados")
 INCLUIR_CUSTOS = True
 
 # ---------------------------------------------------------------------
-#  GEMINI (opcional) - pesquisa na internet para "para que serve" e
-#  "onde e aplicado". A chave vem da variavel GEMINI_API_KEY (e assim
-#  que o GitHub passa o segredo) ou do arquivo gemini_chave.txt aqui na
-#  pasta, que nunca vai para o GitHub. Sem chave, o Jarvis responde so
-#  com a base.
-#
-#  GEMINI_MODELOS: tentados nessa ordem. Cada modelo tem a sua cota gratuita;
-#  se um recusar por limite, o app tenta o proximo (e sem a pesquisa no
-#  Google, que tem cota separada). O que funcionar fica lembrado.
-# ---------------------------------------------------------------------
-GEMINI_MODELOS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest",
-                  "gemini-flash-lite-latest", "gemini-2.0-flash"]
-
-
-def limpar_chave(bruta):
-    """Conserta os erros comuns de colagem: aspas, espacos, quebras de linha
-    e o nome do segredo colado junto ("GEMINI_API_KEY=AIza...")."""
-    k = (bruta or "").strip()
-    for prefixo in ("GEMINI_API_KEY=", "GEMINI_API_KEY:", "API_KEY=", "KEY="):
-        if k.upper().startswith(prefixo):
-            k = k[len(prefixo):]
-    k = k.strip().strip('"').strip("'").strip("`").strip()
-    return "".join(k.split())
-
-
-def chave_gemini():
-    chave = limpar_chave(os.environ.get("GEMINI_API_KEY", ""))
-    if chave:
-        return chave
-    try:
-        with open(os.path.join(RAIZ, "gemini_chave.txt"), encoding="utf-8-sig") as f:
-            for linha in f:
-                linha = limpar_chave(linha)
-                if linha and not linha.startswith("#"):
-                    return linha
-    except OSError:
-        pass
-    return ""
-
-
-# ---------------------------------------------------------------------
 #  APP INSTALAVEL E OFFLINE
 #  O build gera, junto com o index.html, os arquivos que deixam o
 #  consultor ser instalado no celular e funcionar sem internet:
@@ -466,7 +425,7 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(guardadoPrimeiro(req, FONTES));
     return;
   }
-  if (u.origin !== self.location.origin) return;        // Gemini e outros: sempre direto na rede
+  if (u.origin !== self.location.origin) return;        // outros sites: sempre direto na rede
   if (u.pathname.endsWith('/versao.txt')) return;        // aviso de versao nova: sempre da rede
   if (req.mode === 'navigate') { e.respondWith(paginaRedePrimeiro(req)); return; }
   e.respondWith(guardadoPrimeiro(req, VERSAO));
@@ -508,19 +467,6 @@ def gravar_app_instalavel(saida, versao):
     for nome, partes in ICONES.items():
         with open(os.path.join(saida, nome), "wb") as f:
             f.write(base64.b64decode("".join(partes)))
-
-
-def formato_da_chave(k):
-    """'AIza' = formato classico, 'AQ.' = formato novo do Google, '' = desconhecido."""
-    if re.fullmatch(r"AIza[0-9A-Za-z_\-]{35}", k or ""):
-        return "AIza"
-    if re.fullmatch(r"AQ\.[0-9A-Za-z_\-.]{20,}", k or ""):
-        return "AQ."
-    return ""
-
-
-def formato_da_chave_ok(k):
-    return formato_da_chave(k) != ""
 
 # arquivos que o build cria. O servidor so entrega estes, para ninguem
 # na rede baixar as planilhas ou os scripts pelo navegador.
@@ -953,14 +899,6 @@ def principal(saida=None):
     quando_modelo = datetime.datetime.fromtimestamp(
         os.path.getmtime(modelo)).strftime("%d/%m/%Y %H:%M")
     base["appv"] = marca_app
-    if chave_gemini():
-        base["gemini"] = {"chave": chave_gemini(), "modelos": GEMINI_MODELOS}
-        k = chave_gemini()
-        if not formato_da_chave_ok(k):
-            AVISOS.append(
-                "A chave do Gemini nao parece uma chave de API do Google: ela tem %d caracteres\n"
-                "  e nao comeca nem com 'AIza' (formato classico) nem com 'AQ.' (formato novo).\n"
-                "  Copie a chave de novo no AI Studio e cadastre o segredo outra vez." % len(k))
 
     dados = json.dumps(base, ensure_ascii=False, separators=(",", ":"))
     dados = dados.replace("</", "<\\u002f")  # seguranca ao embutir no HTML
@@ -1004,12 +942,6 @@ def principal(saida=None):
         sem = sum(1 for a in base["ativos"] if "e" not in a)
         print("  controla endereco .. %d sim, %d nao, %d sem indicador (itens ativos)" % (sim, nao, sem))
     print("  marca dos dados .... %s" % base["marca"])
-    if base.get("gemini"):
-        fmt = formato_da_chave(base["gemini"]["chave"])
-        print("  Gemini ............. ligado (formato da chave: %s)" %
-              ("ok, %s" % fmt if fmt else "ESTRANHO, veja o aviso abaixo"))
-    else:
-        print("  Gemini ............. desligado (sem gemini_chave.txt nem GEMINI_API_KEY)")
     print("  marca do app ....... %s   (template.html de %s)" % (marca_app, quando_modelo))
     if base.get("semCustos"):
         print("  custos ............. FORA da base (INCLUIR_CUSTOS = False no build.py)")

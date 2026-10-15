@@ -315,83 +315,6 @@ main{padding:14px 14px 92px}
   pointer-events:none; max-width:92vw; text-align:center; border-left:3px solid var(--loc);
 }
 .toast.on{opacity:1}
-/* Jarvis */
-.jv-abrir{flex:none; display:flex; align-items:center; gap:6px; height:34px; padding:0 12px; border-radius:8px;
-  border:1px solid rgba(245,197,24,.55); background:transparent; color:var(--loc); font-weight:700;
-  font-size:13px; letter-spacing:.04em}
-.jv-abrir:hover{background:rgba(245,197,24,.1); border-color:var(--loc)}
-.jv{position:fixed; inset:0; z-index:65; display:flex; flex-direction:column; background:var(--bg);
-  transform:translateY(100%); visibility:hidden; transition:transform .22s cubic-bezier(.32,.72,0,1)}
-.jv.open{transform:none; visibility:visible}
-@media (prefers-reduced-motion:reduce){.jv{transition:none}}
-@media (min-width:860px){
-  .jv{inset:auto 24px 24px auto; width:430px; height:min(660px, calc(100vh - 48px)); border-radius:14px;
-    border:1px solid var(--line); box-shadow:0 24px 60px -20px rgba(0,0,0,.55); overflow:hidden}
-}
-.jv-head{background:var(--steel); color:var(--steel-ink); border-bottom:3px solid var(--loc); padding:12px 14px;
-  padding-top:max(12px, env(safe-area-inset-top)); display:flex; align-items:center; gap:10px}
-.jv-head h2{margin:0; font-size:16px; font-weight:700; flex:1; letter-spacing:.08em; color:var(--loc)}
-.jv-head h2 small{display:block; font-size:11px; font-weight:500; color:var(--steel-muted); letter-spacing:0; margin-top:2px}
-.jv-msgs{flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; -webkit-overflow-scrolling:touch}
-.jv-m{max-width:88%; padding:10px 12px; border-radius:12px; font-size:14px; line-height:1.5; white-space:pre-wrap;
-  overflow-wrap:anywhere}
-.jv-m.eu{align-self:flex-end; background:var(--act); color:var(--act-ink); border-bottom-right-radius:4px}
-.jv-m.ele{align-self:flex-start; background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--loc);
-  border-bottom-left-radius:4px}
-.jv-m.pensando{align-self:flex-start; color:var(--muted); font-size:13px; font-style:italic; padding:4px 2px}
-.jv-m.sis{align-self:stretch; max-width:100%; background:var(--surface); border:1px dashed var(--line-2);
-  color:var(--muted); font-size:13.5px}
-.jv-m.erro{align-self:stretch; max-width:100%; background:var(--alert-soft); color:var(--alert); font-size:13.5px}
-.jv-m a.cod{font-family:var(--mono); color:var(--act); font-weight:600; text-decoration:underline; cursor:pointer}
-.jv-sug{display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-top:10px; white-space:normal}
-.jv-sug button{border:1px solid var(--line-2); background:var(--surface-2); color:var(--ink); border-radius:99px;
-  padding:7px 12px; font-size:13px; font-weight:600; text-align:left}
-.jv-sug button:hover{border-color:var(--act); color:var(--act)}
-.jv-form{display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-  border-top:1px solid var(--line); background:var(--surface)}
-.jv-form textarea{flex:1; resize:none; border:1px solid var(--line-2); border-radius:10px; padding:11px 12px;
-  font-family:var(--sans); font-size:16px; line-height:1.35; background:var(--surface-2); color:var(--ink);
-  max-height:120px; min-height:46px}
-@media (min-width:860px){ .jv-form textarea{font-size:14px} }
-.jv-form textarea:focus{outline:none; border-color:var(--act)}
-.jv-form textarea:disabled{opacity:.55}
-.jv-form button{flex:none; width:48px; border-radius:10px; border:none; background:var(--act); color:var(--act-ink);
-  display:grid; place-items:center}
-.jv-form button:disabled{opacity:.4; cursor:default}
-@media (min-width:1200px){
-  .jv{inset:var(--top-h,116px) 0 0 auto; width:440px; height:auto; border-radius:0; border:none;
-    border-left:1px solid var(--line); box-shadow:-14px 0 30px -24px rgba(0,0,0,.5)}
-  .jv .jv-head{padding-top:12px}
-  body.jv-aberto main{max-width:none; margin:0 440px 0 0}
-}
-.jv-m.rico{white-space:normal; max-width:94%}
-.jv-m .jnota{font-size:12.5px; color:var(--muted); margin-top:8px}
-.jv-voz .corte{display:none}
-.jv-voz.desligada{color:var(--steel-muted); opacity:.7}
-.jv-voz.desligada .onda{display:none}
-.jv-voz.desligada .corte{display:inline}
-.jv-voz:not(.desligada){color:var(--loc); border-color:rgba(245,197,24,.5)}
-.jv-voz.falando .onda{animation:jvonda 1s ease-in-out infinite}
-@keyframes jvonda{50%{opacity:.25}}
-@media (prefers-reduced-motion:reduce){.jv-voz.falando .onda{animation:none}}
-.jv-ouvir{margin-top:8px; border:1px solid var(--line-2); background:var(--surface-2); color:var(--ink);
-  border-radius:99px; padding:5px 12px; font-size:12.5px; font-weight:600}
-.jv-ouvir:hover{border-color:var(--act); color:var(--act)}
-.jv-ouvir.falando{border-color:var(--alert); color:var(--alert)}
-.jv-vozsel{margin-top:10px; font-size:12.5px; color:var(--muted)}
-.jv-vozdica{margin-top:6px; font-size:11.5px; color:var(--muted)}
-.jv-vozsel select{margin-left:4px; max-width:calc(100% - 44px); padding:5px 8px; border:1px solid var(--line-2); border-radius:7px;
-  background:var(--surface-2); color:var(--ink); font-family:var(--sans); font-size:12.5px}
-.jv-m.gm{align-self:flex-start; background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--act);
-  border-bottom-left-radius:4px}
-.jv-m .gmtx{white-space:pre-wrap; font-size:13.5px; line-height:1.5}
-.jv-m .gmf{font-size:12px; margin-top:8px; color:var(--muted)}
-.jv-m .gmdet{margin-top:8px; font-family:var(--mono); font-size:11px; line-height:1.45; opacity:.85; word-break:break-word}
-.jv-m .gmf a{color:var(--act); font-weight:600}
-.jv-m .gms{margin-top:8px; overflow-x:auto}
-.btn.jv-perg{width:100%; margin-bottom:10px; color:var(--steel); border-color:var(--loc-edge);
-  background:rgba(245,197,24,.12)}
-.btn.jv-perg svg{vertical-align:-2px; margin-right:6px}
 @media (min-width:860px){ .toast{bottom:28px} }
 .ctrlrow{margin-top:-4px; align-items:center}
 .ctrlrot{flex:none; font-size:12px; font-weight:700; color:var(--muted); margin-right:2px; white-space:nowrap}
@@ -532,7 +455,7 @@ main{padding:14px 14px 92px}
 
 /* ============ impressao ============ */
 @media print{
-  .top,.tabs,.btnrow,.sep .x,.sep .chk,.count,.rodape,.jv,.jv-abrir,.toast{display:none !important}
+  .top,.tabs,.btnrow,.sep .x,.sep .chk,.count,.rodape,.toast{display:none !important}
   .qtyin,.obsin{display:none !important}
   .so-imprime{display:block}
   .so-imprime.qtd{display:inline-block; margin-left:auto; font-family:var(--mono);
@@ -594,7 +517,7 @@ main{padding:14px 14px 92px}
 
 /* ================================================================
    Atualização visual: a lista vira uma lista de separação.
-   Linhas numa superfície só, placas de corredor por endereço, e a
+   Linhas numa superfície só,placas de corredor por endereço,e a
    etiqueta de prateleira como o elemento que marca o app.
    ================================================================ */
 :root{ --trilho:#2A2614; }
@@ -605,10 +528,10 @@ main{padding:14px 14px 92px}
   background:var(--loc); border-left:4px solid var(--trilho); border-radius:2px;
 }
 
-/* resumo: números em fonte normal, alinhados */
+/* resumo: números em fonte normal,alinhados */
 .count span:last-child{font-family:var(--sans); font-weight:600; font-variant-numeric:tabular-nums}
 
-/* produtos em linhas, separadas por um fio */
+/* produtos em linhas,separadas por um fio */
 .rows{background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden}
 .rows > * + *{border-top:1px solid var(--line)}
 .linha-sel{gap:0; background:var(--surface)}
@@ -616,38 +539,38 @@ main{padding:14px 14px 92px}
 .marca:hover{background:var(--surface-2)}
 .linha-sel.on{background:var(--act-soft)}
 .linha-sel.on .marca{background:transparent}
-.linha-sel .card, .rows > .card, .locgroup > .card{
+.linha-sel .card,.rows > .card,.locgroup > .card{
   border:0; border-radius:0; box-shadow:none; background:transparent; padding:12px 14px;
 }
 .linha-sel .card{padding-left:2px}
 .linha-sel.on .card{box-shadow:none}
-.linha-sel .card:hover, .rows > .card:hover, .locgroup > .card:hover{background:var(--surface-2)}
+.linha-sel .card:hover,.rows > .card:hover,.locgroup > .card:hover{background:var(--surface-2)}
 .card:active{transform:none}
-.linha-sel .card:active, .rows > .card:active, .locgroup > .card:active{background:var(--line)}
-/* avisos: um traço à esquerda da linha, em vez de uma borda em cada cartão */
-.linha-sel .card.aviso, .rows > .card.aviso, .locgroup > .card.aviso{box-shadow:inset 3px 0 0 var(--alert)}
-.linha-sel .card.zero, .rows > .card.zero{background:transparent}
+.linha-sel .card:active,.rows > .card:active,.locgroup > .card:active{background:var(--line)}
+/* avisos: um traço à esquerda da linha,em vez de uma borda em cada cartão */
+.linha-sel .card.aviso,.rows > .card.aviso,.locgroup > .card.aviso{box-shadow:inset 3px 0 0 var(--alert)}
+.linha-sel .card.zero,.rows > .card.zero{background:transparent}
 .linha-sel .card.zero .desc{color:var(--muted)}
 
-/* endereço: a placa do corredor em cima, os itens embaixo, numa peça só */
+/* endereço: a placa do corredor em cima,os itens embaixo,numa peça só */
 .locgroup{background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:12px}
 .locgroup > h3{margin:0; border-radius:0; border-left:0; padding:9px 10px 9px 14px; font-size:15px}
 .locgroup > .card{border-top:1px solid var(--line)}
 .locgroup > h3 + .card{border-top:0}
 
-/* a etiqueta de prateleira: amarela, com o trilho escuro do porta-etiqueta */
+/* a etiqueta de prateleira: amarela,com o trilho escuro do porta-etiqueta */
 .loc{
   font-size:13.5px; letter-spacing:.06em; padding:4px 9px 4px 8px; border-radius:3px;
   border-left:5px solid var(--trilho); box-shadow:inset 0 -2px 0 rgba(0,0,0,.16);
 }
 .loc.none{border-left-width:1px}
 
-/* quantidade: número grande, de leitura rápida */
+/* quantidade: número grande,de leitura rápida */
 .qty b{font-family:var(--sans); font-size:22px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
 .qty small{font-weight:500}
 .desc{margin-bottom:8px}
 
-/* enquanto a base carrega: o esqueleto da lista, sem animação */
+/* enquanto a base carrega: o esqueleto da lista,sem animação */
 .carregando .esq{height:84px; padding:14px; display:flex; flex-direction:column; gap:8px}
 .carregando .esq i{display:block; height:11px; border-radius:3px; background:var(--surface-2)}
 .carregando .esq i:nth-child(1){width:28%}
@@ -666,7 +589,7 @@ main{padding:14px 14px 92px}
 .instalar p{margin:0; font-size:12px; color:var(--muted); text-align:center; max-width:320px}
 @media print{ .semrede,.instalar{display:none !important} }
 
-/* pendentes: a nota fiscal é a placa, os itens dela embaixo, numa peça só */
+/* pendentes: a nota fiscal é a placa,os itens dela embaixo,numa peça só */
 .nfgroup{background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:12px}
 .nfgroup > h3{margin:0; border:0; border-radius:0; border-left:4px solid var(--act); border-bottom:1px solid var(--line);
   background:var(--surface-2); padding:9px 12px}
@@ -685,25 +608,22 @@ main{padding:14px 14px 92px}
 /* computador: o nome do app encolhe (com reticências) para as abas e botões sempre caberem */
 @media (min-width:860px){
   .brand{flex:0 1 auto; min-width:150px}
-  .brandrow > .tabs, .brandrow > .jv-abrir, .brandrow > .iconbtn{flex:none}
+  .brandrow > .tabs, .brandrow > .iconbtn{flex:none}
 }
-/* telas médias (notebook pequeno, tablet deitado): abas compactas, sem ícone */
+/* telas médias (notebook pequeno, tablet deitado): abas compactas,sem ícone */
 @media (min-width:860px) and (max-width:1099px){
   .brandrow{gap:10px}
   .brand{min-width:100px}
   .brand span{display:none}
   .tab svg{display:none}
   .tab{padding-left:10px; padding-right:10px}
-  .jv-abrir{padding:0 10px}
 }
-/* botão do Jarvis na ficha: legível nos dois temas */
-.btn.jv-perg{color:var(--ink)}
 
 /* linhas mais enxutas: cabe mais produto por tela */
-.linha-sel .card, .rows > .card, .locgroup > .card{padding:10px 14px}
+.linha-sel .card,.rows > .card,.locgroup > .card{padding:10px 14px}
 .linha-sel .card{padding-left:2px}
-.linha-sel .card .l1, .rows > .card .l1, .locgroup > .card .l1{margin-bottom:2px}
-.linha-sel .card .desc, .rows > .card .desc, .locgroup > .card .desc{margin-bottom:7px}
+.linha-sel .card .l1,.rows > .card .l1,.locgroup > .card .l1{margin-bottom:2px}
+.linha-sel .card .desc,.rows > .card .desc,.locgroup > .card .desc{margin-bottom:7px}
 @media (max-width:520px){ .dica-sel{display:none} }
 
 /* tema escuro: o trilho da etiqueta precisa aparecer no fundo escuro */
@@ -733,7 +653,6 @@ main{padding:14px 14px 92px}
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Separação<span class="n" id="sepn" hidden>0</span></button>
     </nav>
-    <button class="jv-abrir" id="jv-abrir" title="Perguntar ao Jarvis"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>JARVIS</button>
     <button class="iconbtn" id="theme" title="Alternar tema" aria-label="Alternar tema">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
     </button>
@@ -773,25 +692,6 @@ main{padding:14px 14px 92px}
   </div>
 </main>
 
-<section class="jv" id="jv" aria-label="Jarvis">
-  <div class="jv-head">
-    <button class="iconbtn" id="jv-fechar" aria-label="Fechar o Jarvis">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-    </button>
-    <h2>JARVIS<small id="jv-status">pesquisa na internet com o Gemini</small></h2>
-    <button class="iconbtn jv-voz" id="jv-voz" title="Voz do Jarvis" aria-label="Voz do Jarvis" aria-pressed="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path class="onda" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="onda" d="M19 5a10 10 0 0 1 0 14"/><path class="corte" d="M22 9l-6 6M16 9l6 6"/></svg></button>
-    <button class="iconbtn" id="jv-novo" title="Nova conversa" aria-label="Nova conversa">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
-    </button>
-  </div>
-  <div class="jv-msgs" id="jv-msgs" aria-live="polite"></div>
-  <div class="jv-form">
-    <textarea id="jv-texto" rows="1" placeholder="Pergunte sobre uma peça…" aria-label="Pergunta para o Jarvis"></textarea>
-    <button type="button" id="jv-enviar" aria-label="Enviar">
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
-    </button>
-  </div>
-</section>
 
 <div id="area-impressao"></div>
 
@@ -1036,8 +936,7 @@ function abrir(id){
 
   h += '<div class="btnrow">'+
     '<button class="btn" id="addsep">Separar</button>'+
-    '<button class="btn ghost" id="copiar">Copiar código</button></div>' +
-    '<button class="btn ghost jv-perg" id="jv-perg"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>Perguntar ao Jarvis sobre este produto</button>';
+    '<button class="btn ghost" id="copiar">Copiar código</button></div>';
 
   var linhaCtrl = '<div class="locrow"><span style="color:var(--muted);font-size:13px">Indicador da SBZ</span>' +
     '<span style="margin-left:auto">' + etiquetaControle(it) + '</span></div>';
@@ -1094,9 +993,6 @@ function abrir(id){
   document.querySelector('.col2').classList.add('on');
   if(window.innerWidth < 860) document.body.classList.add('locked');
   document.getElementById('addsep').addEventListener('click', function(){ addSep(it); });
-  document.getElementById('jv-perg').addEventListener('click', function(){
-    abrirJarvis(null, it);
-  });
   document.getElementById('copiar').addEventListener('click', function(e){
     var botao = e.currentTarget;
     copiarTexto(it.c).then(function(){
@@ -1115,7 +1011,6 @@ document.querySelector('.col2').addEventListener('click', function(e){
   if(e.target===this && document.getElementById('main').classList.contains('single')) fechar();
 });
 document.addEventListener('keydown', function(e){
-  if(e.key==='Escape' && jvPainel.classList.contains('open')){ fecharJarvis(); return; }
   if(e.key==='Escape' && panel.classList.contains('open')) fechar();
   var foco = (document.activeElement || {}).tagName;
   if(e.key==='/' && foco!=='INPUT' && foco!=='TEXTAREA'){ e.preventDefault(); elQ.focus(); elQ.select(); }
@@ -1694,7 +1589,7 @@ function imprimirInventario(grupos){
 
 /* ---------- Inventário completo: 100% de uma filial ---------- */
 var ULTIMO_COMPLETO = null;
-var JV_ORDENS = [['endereco', 'Endereço'], ['codigo', 'Código'], ['descricao', 'Descrição'], ['armazem', 'Armazém']];
+var ORDENS_INV = [['endereco', 'Endereço'], ['codigo', 'Código'], ['descricao', 'Descrição'], ['armazem', 'Armazém']];
 
 function chipsModoInv(){
   var m = S.invModo || 'rotativo';
@@ -1815,7 +1710,7 @@ function renderInvCompleto(){
         return '<button class="rua" data-inv-arm="' + esc(a) + '" aria-pressed="' + (S.invArm === a) + '">arm ' + esc(a) + '</button>';
       }).join('') + '</div>';
   }
-  h += '<div class="ruas ordens"><span class="ctrlrot">Ordenar por</span>' + JV_ORDENS.map(function(o){
+  h += '<div class="ruas ordens"><span class="ctrlrot">Ordenar por</span>' + ORDENS_INV.map(function(o){
     return '<button class="rua txt" data-inv-ordem="' + o[0] + '" aria-pressed="' + (r.ordem === o[0]) + '">' + o[1] + '</button>';
   }).join('') + '</div>';
   if(!SEM_CUSTOS && r.valor) h += '<p class="dica">Valor em estoque nesta contagem: <b>' + nm(r.valor) + '</b></p>';
@@ -1865,7 +1760,7 @@ function imprimirCompleto(r, soEndereco){
   if(!soEndereco && linhas.length > 400 &&
      !confirm('Vai imprimir ' + linhas.length.toLocaleString('pt-BR') + ' linhas, umas ' + Math.ceil(linhas.length / 30) +
               ' páginas. Continuar?')) return;
-  var cega = S.cega, nomeOrdem = JV_ORDENS.filter(function(o){ return o[0] === r.ordem; })[0][1].toLowerCase();
+  var cega = S.cega, nomeOrdem = ORDENS_INV.filter(function(o){ return o[0] === r.ordem; })[0][1].toLowerCase();
   var titulo = 'Inventário completo · ' + (soEndereco ? 'filial ' + FIL[linhas[0].it.f] + ' · ' + linhas[0].L : invFilTexto()) +
                (S.invArm ? ' · armazém ' + S.invArm : '');
   var multi = r.multi && !soEndereco;
@@ -2044,665 +1939,6 @@ function medirTopo(){
   document.documentElement.style.setProperty('--top-h', document.querySelector('.top').offsetHeight+'px');
 }
 window.addEventListener('resize', medirTopo);
-/* ======================================================================
-   JARVIS — pesquisa na internet com o Gemini.
-   Não consulta a base: para saldo, endereço e saídas, use a busca do app.
-   A pergunta vai para o Google como foi escrita. Códigos internos de 7 a 9
-   dígitos ganham a descrição do cadastro, para o Gemini saber o que é.
-   ====================================================================== */
-var JV = {hist: [], ocupado: false};
-var jvPainel = document.getElementById('jv'), jvMsgs = document.getElementById('jv-msgs');
-var jvTexto = document.getElementById('jv-texto'), jvEnviar = document.getElementById('jv-enviar');
-var GEMINI = D.gemini || null;
-document.getElementById('jv-status').textContent = GEMINI ? 'pesquisa na internet com o Gemini'
-                                                          : 'desligado: falta a chave do Gemini';
-
-var JV_GEMINI_REGRAS = 'Você é o Jarvis, assistente do almoxarifado de uma operação de mineração no Brasil. ' +
-  'Responda sempre em português do Brasil, de forma curta e prática, para quem trabalha no estoque: para que ' +
-  'serve uma peça, onde é aplicada, equivalências entre marcas, cuidados de uso e de armazenagem. Use a pesquisa ' +
-  'do Google para confirmar o que disser. Quando a pesquisa não for conclusiva sobre um número de peça ' +
-  'específico, diga isso claramente em vez de supor. Você não tem acesso ao estoque da empresa: se perguntarem ' +
-  'saldo, endereço ou quantidade, diga que isso está na busca do próprio app.';
-
-/* código interno -> descrição do cadastro, só para o Gemini entender a pergunta */
-function jvComDescricao(texto){
-  garantirZerados();
-  var extras = [], vistos = {};
-  (texto.match(/\b\d{7,9}\b/g) || []).forEach(function(c){
-    var cod = c.padStart(9, '0');
-    if(vistos[cod]) return;
-    vistos[cod] = 1;
-    var descs = {};
-    for(var f = 0; f < FIL.length; f++){
-      var it = MAPA[f + '|' + cod];
-      if(it && it.d && it.d.indexOf('(sem') !== 0) descs[it.d] = 1;
-    }
-    var l = Object.keys(descs);
-    if(l.length) extras.push('o código interno ' + cod + ' é "' + l.slice(0, 3).join('" ou "') + '"');
-  });
-  return extras.length ? texto + '\n\n(Para referência: ' + extras.join('; ') + '.)' : texto;
-}
-
-function jvBalao(tipo, conteudo, html){
-  var d = document.createElement('div');
-  d.className = 'jv-m ' + tipo + (html ? ' rico' : '');
-  if(html) d.innerHTML = conteudo; else d.textContent = conteudo;
-  jvMsgs.appendChild(d);
-  jvMsgs.scrollTop = jvMsgs.scrollHeight;
-  return d;
-}
-
-function jvFormatoChave(){
-  var k = GEMINI.chave || '';
-  if(/^AIza[0-9A-Za-z_\-]{35}$/.test(k))
-    return 'O formato da chave (AIza) está certo, então ela provavelmente foi apagada ou trocada no AI Studio: crie outra lá e cadastre o segredo de novo.';
-  if(/^AQ\./.test(k))
-    return 'A chave está no formato novo do Google (AQ.), com ' + k.length + ' caracteres. Confira se ela foi criada no Google AI Studio ' +
-           '(aistudio.google.com), se não foi apagada, e se o segredo tem a chave inteira.';
-  return 'A chave cadastrada tem ' + k.length + ' caracteres e não começa nem com "AIza" nem com "AQ.". Copie de novo no AI Studio e cadastre o segredo outra vez.';
-}
-
-function jvErroGemini(status, msg){
-  if(status === 401 || /API key not valid|API_KEY_INVALID/i.test(msg))
-    return 'O Google não reconheceu a chave do Gemini. ' + jvFormatoChave();
-  if(status === 403 && /referer|referrer/i.test(msg))
-    return 'A chave do Gemini não aceita pedidos deste endereço (restrição de site). Inclua este endereço nas restrições da chave.';
-  if(status === 403) return 'O Gemini recusou o acesso: confira se a API está ativada para essa chave.';
-  if(status === 429) return 'O limite gratuito do Gemini acabou por agora. Tente mais tarde.';
-  if(status >= 500) return 'O Gemini está fora do ar agora. Tente de novo em instantes.';
-  return 'O Gemini respondeu com erro ' + status + ': ' + String(msg).slice(0, 140);
-}
-
-function jvLerGemini(d){
-  if(d.promptFeedback && d.promptFeedback.blockReason) throw new Error('O Gemini não quis responder essa pergunta.');
-  var c = (d.candidates || [])[0] || {};
-  var partes = (c.content && c.content.parts) || [];
-  var texto = partes.filter(function(p){ return p.text && !p.thought; }).map(function(p){ return p.text; }).join('').trim();
-  if(!texto) throw new Error(c.finishReason === 'SAFETY' ? 'O Gemini não quis responder essa pergunta.'
-                                                        : 'O Gemini não trouxe resposta. Tente perguntar de outro jeito.');
-  var g = c.groundingMetadata || {}, vistos = {};
-  var fontes = (g.groundingChunks || []).map(function(x){ return x.web; })
-    .filter(function(w){ if(!w || !/^https:\/\//.test(w.uri || '') || vistos[w.title]) return false; vistos[w.title] = 1; return true; })
-    .slice(0, 5);
-  return {texto: texto, fontes: fontes, sugestao: (g.searchEntryPoint || {}).renderedContent || ''};
-}
-
-var JV_GL = 'https://generativelanguage.googleapis.com/v1beta/models/';
-var JV_VX = 'https://aiplatform.googleapis.com/v1/publishers/google/models/';
-var JV_ACESSOS = {
-  cabecalho: {rotulo: 'chave no cabeçalho', monta: function(m, k){
-    return {url: JV_GL + encodeURIComponent(m) + ':generateContent', h: {'x-goog-api-key': k}, busca: 'google_search'}; }},
-  endereco:  {rotulo: 'chave no endereço', monta: function(m, k){
-    return {url: JV_GL + encodeURIComponent(m) + ':generateContent?key=' + encodeURIComponent(k), h: {}, busca: 'google_search'}; }},
-  token:     {rotulo: 'chave como token', monta: function(m, k){
-    return {url: JV_GL + encodeURIComponent(m) + ':generateContent', h: {'Authorization': 'Bearer ' + k}, busca: 'google_search'}; }},
-  vertex:    {rotulo: 'Vertex AI', monta: function(m, k){
-    return {url: JV_VX + encodeURIComponent(m) + ':generateContent?key=' + encodeURIComponent(k), h: {}, busca: 'googleSearch'}; }}
-};
-
-function jvOrdemAcessos(){
-  // chave no formato clássico (AIza) só tem um jeito; formato novo testa os outros
-  if(/^AIza/.test(GEMINI.chave || '')) return ['cabecalho'];
-  var ordem = ['cabecalho', 'endereco', 'token', 'vertex'], lembrado = store('gemini_acesso');
-  if(lembrado && ordem.indexOf(lembrado) > 0){ ordem.splice(ordem.indexOf(lembrado), 1); ordem.unshift(lembrado); }
-  return ordem;
-}
-
-function jvChaveRecusada(status, msg){
-  if(status === 401) return true;
-  if(status === 400 && /API key|API_KEY/i.test(msg)) return true;
-  return status === 403 && !/referer|referrer/i.test(msg);
-}
-
-async function jvRodarModelos(acesso, contents){
-  /* Cada modelo tem a sua cota, e a pesquisa no Google tem outra à parte.
-     Ordem: cada modelo com pesquisa, depois o mesmo sem pesquisa, depois o próximo. */
-  var tentativas = [];
-  (GEMINI.modelos || []).forEach(function(m){ tentativas.push({modelo: m, busca: true}, {modelo: m, busca: false}); });
-  var lembrado = (store('gemini_modo') || {}).modelo;
-  if(lembrado){
-    var dele = tentativas.filter(function(x){ return x.modelo === lembrado; });
-    if(dele.length) tentativas = dele.concat(tentativas.filter(function(x){ return x.modelo !== lembrado; }));
-  }
-  var pular = {}, recusas = [], primeira = true;
-  for(var i = 0; i < tentativas.length; i++){
-    var t = tentativas[i];
-    if(pular[t.modelo]) continue;
-    var p = JV_ACESSOS[acesso].monta(t.modelo, GEMINI.chave);
-    var regras = JV_GEMINI_REGRAS + (t.busca ? '' : ' IMPORTANTE: nesta resposta a pesquisa do Google NÃO está ' +
-      'disponível. Não diga que pesquisou. Responda com conhecimento geral e deixe claro quando não tiver certeza, ' +
-      'principalmente sobre números de peça e aplicações em modelos específicos.');
-    var corpo = {systemInstruction: {parts: [{text: regras}]}, contents: contents,
-                 generationConfig: {temperature: 0.3}};
-    if(t.busca){ var ferr = {}; ferr[p.busca] = {}; corpo.tools = [ferr]; }
-    var ctl = new AbortController(), tempo = setTimeout(function(){ ctl.abort(); }, 45000), resp;
-    var cab = {'Content-Type': 'application/json'};
-    Object.keys(p.h).forEach(function(n){ cab[n] = p.h[n]; });
-    try{
-      resp = await fetch(p.url, {method: 'POST', signal: ctl.signal, headers: cab, body: JSON.stringify(corpo)});
-    }catch(e){
-      clearTimeout(tempo);
-      if(e && e.name === 'AbortError') return {erro: new Error('O Gemini demorou demais para responder. Tente de novo.')};
-      if(primeira) return {chaveRecusada: true, status: 'sem resposta', msg: 'o navegador bloqueou ou não houve conexão'};
-      return {erro: new Error('Sem conexão com o Gemini. Confira a internet.')};
-    }
-    clearTimeout(tempo);
-    var dados = await resp.json().catch(function(){ return {}; });
-    var msg = String((dados.error || {}).message || '');
-    if(primeira && !resp.ok && jvChaveRecusada(resp.status, msg)) return {chaveRecusada: true, status: resp.status, msg: msg};
-    primeira = false;
-    if(resp.ok){
-      store('gemini_modo', {modelo: t.modelo});
-      var r = jvLerGemini(dados);
-      r.modelo = t.modelo; r.semBusca = !t.busca;
-      return {r: r};
-    }
-    var quem = t.modelo + (t.busca ? ' com pesquisa' : ' sem pesquisa') + ' (' + resp.status + '): ' + msg;
-    if(resp.status === 404 || /not found|is not supported/i.test(msg)){ pular[t.modelo] = 1; continue; }
-    if(resp.status === 429 || resp.status >= 500){ recusas.push({s: resp.status, txt: quem}); continue; }
-    if(resp.status === 400 && t.busca && /search|grounding|tool/i.test(msg)) continue;   // modelo sem pesquisa no Google
-    var erro = new Error(jvErroGemini(resp.status, msg));
-    erro.detalhe = quem.slice(0, 260);
-    return {erro: erro};
-  }
-  if(recusas.length){
-    var so429 = recusas.every(function(x){ return x.s === 429; });
-    var soFalha = recusas.every(function(x){ return x.s >= 500; });
-    var e2 = new Error(so429 ? 'O Google recusou por limite de uso em todos os modelos que tentei.'
-      : soFalha ? 'O Gemini está instável agora: todos os modelos que tentei falharam do lado do Google. Tente de novo em alguns minutos.'
-      : 'O Google recusou em todos os modelos que tentei, por limite de uso ou instabilidade. Tente de novo em alguns minutos.');
-    e2.detalhe = recusas[0].txt.slice(0, 260);
-    return {erro: e2};
-  }
-  return {erro: new Error('Nenhum modelo da lista do Gemini respondeu. Atualize GEMINI_MODELOS no build.py.')};
-}
-
-async function jvChamarGemini(contents){
-  var ordem = jvOrdemAcessos(), falhas = [];
-  for(var a = 0; a < ordem.length; a++){
-    var res = await jvRodarModelos(ordem[a], contents);
-    if(res.chaveRecusada){ falhas.push(JV_ACESSOS[ordem[a]].rotulo + ' (' + res.status + '): ' + res.msg); continue; }
-    store('gemini_acesso', ordem[a]);    // o jeito que o Google aceitou fica lembrado
-    if(res.erro) throw res.erro;
-    return res.r;
-  }
-  if(falhas.every(function(f){ return f.indexOf('(sem resposta)') >= 0; }))
-    throw new Error('Sem conexão com o Gemini. Confira a internet.');
-  var e = new Error('O Google não aceitou a chave de nenhum dos jeitos que tentei. ' + jvFormatoChave());
-  e.detalhe = falhas.join('  |  ').slice(0, 600);
-  throw e;
-}
-
-function jvMd(t){
-  var h = esc(t);
-  h = h.replace(/^#{1,4}\s*(.+)$/gm, '<b>$1</b>');
-  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>');
-  h = h.replace(/^[ \t]*[\*\-][ \t]+/gm, '• ');
-  h = h.replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,;:!?)]|$)/g, '$1<i>$2</i>');
-  return '<div class="gmtx">' + h + '</div>';
-}
-
-async function jvPerguntar(texto, mostrar){
-  texto = (texto || '').trim();
-  if(!texto || JV.ocupado || !GEMINI) return;
-  jvDestravarFala(); jvCalar();
-  JV.ocupado = true; jvEnviar.disabled = true;
-  jvTexto.value = ''; jvTexto.style.height = '';
-  jvBalao('eu', mostrar || texto);
-  var bolha = jvBalao('pensando', 'Pesquisando no Gemini…');
-  var turno = {role: 'user', parts: [{text: jvComDescricao(texto)}]};
-  try{
-    var r = await jvChamarGemini(JV.hist.slice(-10).concat([turno]));
-    bolha.className = 'jv-m gm rico';
-    var h = jvMd(r.texto);
-    if(r.fontes.length) h += '<div class="gmf">Fontes: ' + r.fontes.map(function(w){
-      return '<a href="' + esc(w.uri) + '" target="_blank" rel="noopener noreferrer">' + esc(w.title || 'link') + '</a>';
-    }).join(' · ') + '</div>';
-    h += '<div class="jnota">' + (r.semBusca
-      ? 'Respondido sem a pesquisa no Google (o limite de pesquisa acabou por agora): é conhecimento geral do Gemini, sem fontes. Confira com mais cuidado.'
-      : 'Informação da internet. Confira antes de usar.') + '</div>';
-    bolha.innerHTML = h;
-    if(r.sugestao){   // o Google exige mostrar as sugestões de pesquisa junto da resposta
-      var caixa = document.createElement('div');
-      caixa.className = 'gms';
-      caixa.attachShadow({mode: 'open'}).innerHTML = r.sugestao;
-      bolha.appendChild(caixa);
-    }
-    JV.hist.push(turno, {role: 'model', parts: [{text: r.texto}]});
-    if(JV_FALA.ok){
-      var n = JV_FALA.textos.push(r.texto) - 1;
-      var ouvir = document.createElement('button');
-      ouvir.type = 'button'; ouvir.className = 'jv-ouvir'; ouvir.dataset.ouvir = n; ouvir.textContent = '🔊 Ouvir';
-      bolha.appendChild(ouvir);
-      if(JV_FALA.ligada) jvFalar(r.texto, ouvir, n);
-    }
-  }catch(e){
-    bolha.className = 'jv-m erro';
-    bolha.textContent = (e && e.message) || 'Não consegui pesquisar no Gemini agora.';
-    if(e && e.detalhe){
-      var det = document.createElement('div');
-      det.className = 'gmdet';
-      det.textContent = 'Detalhe do Google — ' + e.detalhe;
-      bolha.appendChild(det);
-    }
-  }
-  jvMsgs.scrollTop = bolha.offsetTop - 12;
-  JV.ocupado = false; jvEnviar.disabled = false;
-  if(window.innerWidth >= 860) jvTexto.focus();
-}
-
-function jvSobreItem(it){
-  if(!it.d || it.d.indexOf('(sem') === 0){
-    jvBalao('eu', 'Sobre o ' + it.c);
-    jvBalao('erro', 'Esse produto veio sem descrição na base, então não tenho o que pesquisar.');
-    return;
-  }
-  jvPerguntar('Para que serve e onde costuma ser aplicada esta peça: "' + it.d + '"? ' +
-              'Se aparecerem na pesquisa, cite números equivalentes de outras marcas.',
-              'Sobre o ' + it.c + ' · ' + it.d);
-}
-
-function jvBoasVindas(){
-  jvMsgs.innerHTML = '';
-  JV.hist = [];
-  if(!GEMINI){
-    jvBalao('sis', 'O Jarvis pesquisa na internet pelo Gemini, e ele ainda não está ligado: falta a chave. ' +
-      'O passo a passo está no LEIA-ME, na parte “Ligando o Gemini”. Para saldo e endereço, use a busca do app.');
-    return;
-  }
-  var d = jvBalao('ele', 'Olá, sou o Jarvis. Pesquiso na internet pelo Gemini: para que serve uma peça, ' +
-    'onde é aplicada, equivalências entre marcas, cuidados de uso… Para saldo e endereço, use a busca do app.');
-  var sug = document.createElement('div');
-  sug.className = 'jv-sug';
-  ['Para que serve o filtro Fleetguard FF5052?', 'Qual a diferença entre fluido de freio DOT 3 e DOT 4?',
-   'Qual o equivalente do filtro Donaldson P550148?'].forEach(function(t){
-    var b = document.createElement('button');
-    b.type = 'button'; b.dataset.perg = t; b.textContent = t;
-    sug.appendChild(b);
-  });
-  d.appendChild(sug);
-  var nota = document.createElement('div');
-  nota.className = 'jnota';
-  nota.textContent = 'O que você escrever vai para o Google. Não digite informação sigilosa da empresa.';
-  d.appendChild(nota);
-  var sv = jvSeletorVoz();
-  if(sv) d.appendChild(sv);
-}
-
-/* ---------- voz do Jarvis ----------
-   Principal: a voz do Gemini, gerada por IA, que soa como gente conversando.
-   Reserva: a voz do próprio navegador, usada se a do Gemini falhar ou a cota acabar. */
-var JV_FALA = {
-  nav: 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined',
-  audio: !!(window.AudioContext || window.webkitAudioContext),
-  ligada: store('jarvis_fala') !== false, falando: false, destravada: false,
-  textos: [], audios: {}, ctx: null, fonte: null, vez: 0, geminiFalhou: false, avisouFalha: false
-};
-JV_FALA.ok = JV_FALA.nav || (JV_FALA.audio && !!GEMINI);
-var jvBotaoVoz = document.getElementById('jv-voz');
-var JV_VOZES_GEMINI = [
-  ['Charon', 'Charon — masculina, calma'], ['Orus', 'Orus — masculina, firme'], ['Puck', 'Puck — masculina, animada'],
-  ['Kore', 'Kore — feminina, firme'], ['Aoede', 'Aoede — feminina, leve']
-];
-var JV_MODELOS_VOZ = ['gemini-2.5-flash-preview-tts', 'gemini-2.5-flash-tts', 'gemini-2.5-pro-preview-tts'];
-
-function jvVozesPt(){
-  if(!JV_FALA.nav) return [];
-  var vs = speechSynthesis.getVoices();
-  var br = vs.filter(function(v){ return /^pt[-_]BR/i.test(v.lang); });
-  return br.length ? br : vs.filter(function(v){ return /^pt/i.test(v.lang); });
-}
-
-function jvMelhorVozNav(){
-  var vs = jvVozesPt(), salva = String(store('jarvis_voz') || '');
-  if(salva.indexOf('nav:') === 0){
-    var achou = vs.filter(function(v){ return v.name === salva.slice(4); })[0];
-    if(achou) return achou;
-  }
-  var nota = function(v){
-    var n = v.name.toLowerCase(), s = 0;
-    if(/natural|neural|online|premium|enhanced|aprimorad/.test(n)) s += 4;
-    if(/google/.test(n)) s += 3;
-    if(/antonio|daniel|thiago|donato|fabio|humberto|julio|nicolau|valerio|felipe|luciano/.test(n)) s += 1;
-    return s;
-  };
-  return vs.slice().sort(function(a, b){ return nota(b) - nota(a); })[0] || null;
-}
-
-/* a voz escolhida: "gemini:Charon" ou "nav:Nome da voz" */
-function jvVozEscolhida(){
-  var s = String(store('jarvis_voz') || '');
-  var gemOk = GEMINI && JV_FALA.audio && !JV_FALA.geminiFalhou;
-  if(s.indexOf('gemini:') === 0 && gemOk) return s;
-  if(s.indexOf('nav:') === 0 && JV_FALA.nav) return s;
-  if(gemOk) return 'gemini:Charon';
-  var v = jvMelhorVozNav();
-  return v ? 'nav:' + v.name : '';
-}
-
-function jvParaFala(t){
-  return String(t || '')
-    .replace(/https?:\/\/\S+/g, '')
-    .replace(/[*_#`>]+/g, '')
-    .replace(/^\s*[•\-]\s+/gm, '')
-    .replace(/\s*\n+\s*/g, function(m, i, s){ return /[.!?:;]$/.test(s.slice(0, i).trim()) ? ' ' : '. '; })
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-}
-
-function jvMarcarFalando(estado, botao){
-  // estado: false, 'carregando' ou 'falando'
-  JV_FALA.falando = !!estado;
-  jvBotaoVoz.classList.toggle('falando', !!estado);
-  document.querySelectorAll('.jv-ouvir').forEach(function(b){
-    var este = estado && b === botao;
-    b.classList.toggle('falando', !!este);
-    b.textContent = !este ? '🔊 Ouvir' : estado === 'carregando' ? '… Preparando a voz' : '■ Parar';
-  });
-}
-
-function jvCalar(){
-  JV_FALA.vez++;                         // qualquer áudio que ainda esteja chegando é descartado
-  if(JV_FALA.nav) speechSynthesis.cancel();
-  if(JV_FALA.fonte){ try{ JV_FALA.fonte.stop(); }catch(e){} JV_FALA.fonte = null; }
-  if(JV_FALA.manter){ clearInterval(JV_FALA.manter); JV_FALA.manter = null; }
-  jvMarcarFalando(false);
-}
-
-/* celular e Chrome: som só é liberado dentro de um toque. Destrava no toque de enviar. */
-function jvDestravarFala(){
-  if(JV_FALA.audio){
-    if(!JV_FALA.ctx) JV_FALA.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if(JV_FALA.ctx.state === 'suspended') JV_FALA.ctx.resume();
-  }
-  if(JV_FALA.nav && !JV_FALA.destravada){
-    var u = new SpeechSynthesisUtterance(' ');
-    u.volume = 0;
-    speechSynthesis.speak(u);
-    JV_FALA.destravada = true;
-  }
-}
-
-/* ----- voz do navegador, sem picotar ----- */
-function jvFalarNavegador(texto, botao){
-  if(!JV_FALA.nav) return;
-  var limpo = jvParaFala(texto), nome = String(jvVozEscolhida());
-  if(!limpo) return;
-  var voz = nome.indexOf('nav:') === 0 ? jvVozesPt().filter(function(v){ return 'nav:' + v.name === nome; })[0] : null;
-  voz = voz || jvMelhorVozNav();
-  var blocos = [limpo];
-  // só as vozes do Google no Chrome cortam textos longos; nelas, divide no fim das frases
-  if(voz && /google/i.test(voz.name) && limpo.length > 220){
-    blocos = []; var atual = '';
-    (limpo.match(/[^.!?]+[.!?]*\s*/g) || [limpo]).forEach(function(f){
-      if(atual && (atual + f).length > 220){ blocos.push(atual); atual = f; } else atual += f;
-    });
-    if(atual.trim()) blocos.push(atual);
-  }
-  speechSynthesis.cancel();
-  blocos.forEach(function(b, i){
-    var u = new SpeechSynthesisUtterance(b.trim());
-    u.lang = voz ? voz.lang : 'pt-BR';
-    if(voz) u.voice = voz;
-    u.rate = 1; u.pitch = 1;
-    if(i === blocos.length - 1){
-      u.onend = function(){ jvMarcarFalando(false); };
-      u.onerror = function(){ jvMarcarFalando(false); };
-    }
-    speechSynthesis.speak(u);
-  });
-  jvMarcarFalando('falando', botao);
-}
-
-/* ----- voz do Gemini ----- */
-function jvTocarPcm(base64, taxa){
-  var bin = atob(base64), n = Math.floor(bin.length / 2);
-  var ctx = JV_FALA.ctx || (JV_FALA.ctx = new (window.AudioContext || window.webkitAudioContext)());
-  var buf = ctx.createBuffer(1, n, taxa), canal = buf.getChannelData(0);
-  for(var i = 0; i < n; i++){
-    var v = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8);   // 16 bits, little-endian
-    canal[i] = (v >= 32768 ? v - 65536 : v) / 32768;
-  }
-  return buf;
-}
-
-function jvTocarBuffer(buf, botao){
-  var ctx = JV_FALA.ctx;
-  if(ctx.state === 'suspended') ctx.resume();
-  var fonte = ctx.createBufferSource();
-  fonte.buffer = buf;
-  fonte.connect(ctx.destination);
-  fonte.onended = function(){ if(JV_FALA.fonte === fonte){ JV_FALA.fonte = null; jvMarcarFalando(false); } };
-  JV_FALA.fonte = fonte;
-  fonte.start();
-  jvMarcarFalando('falando', botao);
-}
-
-function jvLerCota(erro){
-  erro = erro || {};
-  var r = {valor: null, porDia: false, porMinuto: false, modelo: '', espera: ''};
-  (erro.details || []).forEach(function(d){
-    (d.violations || []).forEach(function(v){
-      var id = String(v.quotaId || v.quotaMetric || '');
-      if(r.valor === null && v.quotaValue != null) r.valor = +v.quotaValue;
-      if(/PerDay/i.test(id)) r.porDia = true;
-      if(/PerMinute/i.test(id)) r.porMinuto = true;
-      if(v.quotaDimensions && v.quotaDimensions.model) r.modelo = v.quotaDimensions.model;
-    });
-    if(d.retryDelay) r.espera = String(d.retryDelay);
-  });
-  var msg = String(erro.message || '');
-  if(r.valor === null){ var m = msg.match(/limit:\s*(\d+)/); if(m) r.valor = +m[1]; }
-  if(!r.modelo){ var mo = msg.match(/model:\s*([\w.\-]+)/); if(mo) r.modelo = mo[1]; }
-  if(!r.espera){ var es = msg.match(/retry in ([\d.]+)s/i); if(es) r.espera = Math.ceil(+es[1]) + 's'; }
-  return r;
-}
-
-async function jvGerarVozGemini(texto, voz){
-  var acesso = store('gemini_acesso') || jvOrdemAcessos()[0];
-  var estilo = 'Leia em português do Brasil, num tom natural de conversa, como um colega de trabalho explicando ' +
-               'com calma para outro: ';
-  for(var i = 0; i < JV_MODELOS_VOZ.length; i++){
-    var p = JV_ACESSOS[acesso].monta(JV_MODELOS_VOZ[i], GEMINI.chave);
-    var cab = {'Content-Type': 'application/json'};
-    Object.keys(p.h).forEach(function(k){ cab[k] = p.h[k]; });
-    var resp = await fetch(p.url, {method: 'POST', headers: cab, body: JSON.stringify({
-      contents: [{parts: [{text: estilo + texto}]}],
-      generationConfig: {responseModalities: ['AUDIO'],
-                         speechConfig: {voiceConfig: {prebuiltVoiceConfig: {voiceName: voz}}}}
-    })});
-    var dados = await resp.json().catch(function(){ return {}; });
-    if(!resp.ok){
-      var msg = String((dados.error || {}).message || '');
-      if(resp.status === 404 || /not found|is not supported/i.test(msg)) continue;
-      var falha = new Error(resp.status + ': ' + msg);
-      falha.status = resp.status;
-      if(resp.status === 429) falha.cota = jvLerCota(dados.error);
-      throw falha;
-    }
-    var partes = (((dados.candidates || [])[0] || {}).content || {}).parts || [];
-    var som = partes.filter(function(x){ return x.inlineData && /audio/i.test(x.inlineData.mimeType || ''); })[0];
-    if(!som) throw new Error('o Gemini não devolveu áudio');
-    var taxa = +((som.inlineData.mimeType.match(/rate=(\d+)/) || [])[1] || 24000);
-    return jvTocarPcm(som.inlineData.data, taxa);
-  }
-  throw new Error('nenhum modelo de voz do Gemini disponível');
-}
-
-function jvAtualizarSeletores(){
-  document.querySelectorAll('.jv-vozsel').forEach(function(velho){
-    var novo = jvSeletorVoz();
-    if(novo) velho.parentNode.replaceChild(novo, velho);
-  });
-}
-
-function jvFalhaVozGemini(e, pedidoDoUsuario){
-  JV_FALA.geminiFalhou = true;
-  JV_FALA.geminiErro = String((e && e.message) || e || 'erro desconhecido');
-  jvAtualizarSeletores();
-  if(JV_FALA.avisouFalha && !pedidoDoUsuario) return;
-  JV_FALA.avisouFalha = true;
-  var naturais = jvVozesPt().filter(function(v){ return /natural|online/i.test(v.name); });
-  var c = e && e.cota, motivo = 'A voz natural do Gemini não funcionou na sua conta';
-  if(c && c.valor === 0) motivo = 'A voz do Gemini não faz parte do plano gratuito da sua conta: o Google dá limite zero para ela';
-  else if(c && c.porDia) motivo = 'A cota gratuita de voz do Gemini de hoje acabou' + (c.valor ? ' (' + c.valor + ' por dia)' : '') + '. Ela volta amanhã';
-  else if(c && c.porMinuto) motivo = 'Foram muitos pedidos de voz em pouco tempo' + (c.espera ? '; ela volta em ' + c.espera : '');
-  var d = jvBalao('sis', motivo +
-    (pedidoDoUsuario ? '.' : ', então estou falando com a voz do navegador.') + ' ' +
-    (naturais.length
-      ? 'Para uma voz humana sem gastar cota, escolha no seletor uma voz "Natural" — ' +
-        naturais.slice(0, 2).map(function(v){ return v.name.replace(/^Microsoft\s+/, '').split(' ')[0]; }).join(' ou ') + '.'
-      : 'Para uma voz bem mais humana sem gastar cota, abra o consultor no Microsoft Edge: ele tem vozes "Natural" ' +
-        '(Antonio, Francisca) que soam como gente. No celular, instale a voz em português de alta qualidade nas ' +
-        'configurações de leitura de texto do aparelho.'));
-  var det = document.createElement('div');
-  det.className = 'gmdet';
-  det.textContent = 'Detalhe do Google — ' + (c
-    ? (e.status || 429) + ' · limite ' + (c.valor === null ? '?' : c.valor) +
-      (c.porDia ? ' por dia' : c.porMinuto ? ' por minuto' : '') + (c.modelo ? ' · ' + c.modelo : '')
-    : JV_FALA.geminiErro.slice(0, 260));
-  d.appendChild(det);
-}
-
-async function jvFalar(texto, botao, chave, semReserva){
-  if(!JV_FALA.ok || !texto) return;
-  jvCalar();
-  if(semReserva) JV_FALA.geminiFalhou = false;     // escolheu uma voz do Gemini no seletor: tenta de novo
-  var escolha = semReserva ? String(store('jarvis_voz') || '') : jvVozEscolhida();
-  if(escolha.indexOf('gemini:') === 0 && !JV_FALA.geminiFalhou){
-    var vez = JV_FALA.vez, voz = escolha.slice(7), id = chave != null ? chave + '|' + voz : null;
-    try{
-      var buf = id && JV_FALA.audios[id];
-      if(!buf){
-        jvMarcarFalando('carregando', botao);
-        buf = await jvGerarVozGemini(jvParaFala(texto), voz);
-        if(id) JV_FALA.audios[id] = buf;          // "Ouvir" de novo não gasta cota
-      }
-      if(vez !== JV_FALA.vez) return;              // calaram enquanto o áudio chegava
-      jvTocarBuffer(buf, botao);
-      return;
-    }catch(e){
-      if(vez !== JV_FALA.vez) return;
-      jvMarcarFalando(false);
-      jvFalhaVozGemini(e, semReserva);             // nesta sessão, vai direto para a voz do navegador
-      if(semReserva) return;                       // amostra do seletor: não disfarça com outra voz
-    }
-  }
-  jvFalarNavegador(texto, botao);
-}
-
-function jvAtualizarBotaoVoz(){
-  jvBotaoVoz.hidden = !JV_FALA.ok;
-  jvBotaoVoz.classList.toggle('desligada', !JV_FALA.ligada);
-  jvBotaoVoz.title = JV_FALA.ligada ? 'Voz ligada: o Jarvis lê as respostas' : 'Voz desligada';
-  jvBotaoVoz.setAttribute('aria-pressed', JV_FALA.ligada ? 'true' : 'false');
-}
-
-jvBotaoVoz.addEventListener('click', function(){
-  JV_FALA.ligada = !JV_FALA.ligada;
-  store('jarvis_fala', JV_FALA.ligada);
-  if(!JV_FALA.ligada) jvCalar();
-  jvAtualizarBotaoVoz();
-  avisar(JV_FALA.ligada ? 'Voz do Jarvis ligada' : 'Voz do Jarvis desligada');
-});
-
-function jvSeletorVoz(){
-  if(!JV_FALA.ok) return null;
-  var caixa = document.createElement('div');
-  caixa.className = 'jv-vozsel';
-  var sel = document.createElement('select'), atual = jvVozEscolhida();
-  sel.setAttribute('aria-label', 'Voz do Jarvis');
-  if(GEMINI && JV_FALA.audio){
-    var g = document.createElement('optgroup');
-    g.label = JV_FALA.geminiFalhou ? 'Voz do Gemini — não funcionou na sua conta' : 'Voz natural do Gemini (usa a cota)';
-    JV_VOZES_GEMINI.forEach(function(v){
-      var o = document.createElement('option');
-      o.value = 'gemini:' + v[0]; o.textContent = v[1];
-      if(o.value === atual) o.selected = true;
-      g.appendChild(o);
-    });
-    sel.appendChild(g);
-  }
-  var vs = jvVozesPt();
-  if(vs.length){
-    var n = document.createElement('optgroup');
-    n.label = 'Voz do navegador (sem cota)';
-    vs.forEach(function(v){
-      var o = document.createElement('option');
-      o.value = 'nav:' + v.name;
-      o.textContent = v.name.replace(/^Microsoft\s+/, '').replace(/\s*-\s*Portuguese.*$/i, '');
-      if(o.value === atual) o.selected = true;
-      n.appendChild(o);
-    });
-    sel.appendChild(n);
-  }
-  if(!sel.options.length) return null;
-  sel.addEventListener('change', function(){
-    store('jarvis_voz', sel.value);
-    jvDestravarFala();
-    // amostra na voz escolhida; se for do Gemini e falhar, mostra o motivo em vez de tocar outra voz
-    jvFalar('Olá, eu sou o Jarvis. É assim que eu vou falar com você.', null, null, sel.value.indexOf('gemini:') === 0);
-  });
-  var rot = document.createElement('label');
-  rot.textContent = 'Voz: ';
-  rot.appendChild(sel);
-  caixa.appendChild(rot);
-  if(!vs.some(function(v){ return /natural|online/i.test(v.name); })){
-    var dica = document.createElement('div');
-    dica.className = 'jv-vozdica';
-    dica.textContent = 'Dica: no Microsoft Edge aparecem vozes “Natural”, que soam como gente e não gastam cota.';
-    caixa.appendChild(dica);
-  }
-  return caixa;
-}
-
-if(JV_FALA.nav && typeof speechSynthesis.addEventListener === 'function'){
-  speechSynthesis.addEventListener('voiceschanged', function(){
-    var velho = jvMsgs.querySelector('.jv-vozsel');
-    var novo = jvSeletorVoz();
-    if(velho && novo) velho.parentNode.replaceChild(novo, velho);
-  });
-}
-jvAtualizarBotaoVoz();
-
-function abrirJarvis(pergunta, item){
-  jvPainel.classList.add('open');
-  document.body.classList.add('jv-aberto');
-  if(window.innerWidth < 860) document.body.classList.add('locked');
-  if(!jvMsgs.children.length) jvBoasVindas();
-  jvTexto.disabled = !GEMINI; jvEnviar.disabled = !GEMINI || JV.ocupado;
-  if(item && GEMINI) jvSobreItem(item);
-  else if(pergunta && GEMINI) jvPerguntar(pergunta);
-  else if(GEMINI && window.innerWidth >= 860) jvTexto.focus();
-}
-
-function fecharJarvis(){
-  jvCalar();
-  jvPainel.classList.remove('open');
-  document.body.classList.remove('jv-aberto');
-  if(!panel.classList.contains('open')) document.body.classList.remove('locked');
-}
-
-document.getElementById('jv-abrir').addEventListener('click', function(){ abrirJarvis(); });
-document.getElementById('jv-fechar').addEventListener('click', fecharJarvis);
-document.getElementById('jv-novo').addEventListener('click', function(){ if(!JV.ocupado){ jvCalar(); jvBoasVindas(); } });
-jvEnviar.addEventListener('click', function(){ jvPerguntar(jvTexto.value); });
-jvTexto.addEventListener('keydown', function(e){
-  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); jvPerguntar(jvTexto.value); }
-});
-jvTexto.addEventListener('input', function(){
-  jvTexto.style.height = ''; jvTexto.style.height = Math.min(jvTexto.scrollHeight, 120) + 'px';
-});
-jvMsgs.addEventListener('click', function(e){
-  var o = e.target.closest('[data-ouvir]');
-  if(o){
-    if(o.classList.contains('falando')) jvCalar();
-    else { jvDestravarFala(); jvFalar(JV_FALA.textos[+o.dataset.ouvir], o, +o.dataset.ouvir); }
-    return;
-  }
-  var p = e.target.closest('[data-perg]');
-  if(p) jvPerguntar(p.dataset.perg);
-});
 
 (function(){
   var n = (D.pendentes || []).length, b = document.getElementById('pendn');
@@ -2719,7 +1955,7 @@ jvMsgs.addEventListener('click', function(e){
   function marcarRede(){
     aviso.hidden = navigator.onLine;
     aviso.textContent = 'Sem internet. Você está vendo a base de ' + dia + ', guardada neste aparelho. ' +
-                        'Busca, endereços e inventário funcionam; o Jarvis precisa de internet.';
+                        'Busca, endereços, pendentes, inventário e separação funcionam normalmente.';
     medirTopo();
   }
   window.addEventListener('online', marcarRede);

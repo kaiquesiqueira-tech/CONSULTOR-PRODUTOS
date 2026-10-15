@@ -104,120 +104,6 @@ SBZ), cada um com a quantidade ao lado.
 
 ---
 
-## Jarvis, o assistente
-
-No topo do consultor tem o botão **JARVIS**. Ele pesquisa na internet pelo
-**Gemini**, do Google, e responde o que a base não sabe: para que serve uma
-peça, onde ela costuma ser aplicada, equivalências entre marcas, cuidados de
-uso e de armazenagem. As respostas vêm com as fontes da pesquisa.
-
-Na ficha de cada produto tem também o botão **Perguntar ao Jarvis sobre este
-produto**, que pesquisa a descrição daquele produto.
-
-O Jarvis **não consulta a base**: saldo, endereço, saídas e notas estão na
-busca e nas abas do próprio app. A única coisa que ele usa do cadastro é a
-descrição de um código interno citado na pergunta — o Google não sabe o que é
-"010200005", então o Jarvis acrescenta "FILTRO FLEETGUARD FF5052" para o
-Gemini saber o que pesquisar.
-
-Ele lembra da conversa: depois de perguntar sobre uma peça, dá para emendar
-"e qual o equivalente da Donaldson?". O botão de seta circular começa uma
-conversa nova.
-
-Sem a chave do Gemini, o Jarvis abre avisando que está desligado.
-
-### A voz do Jarvis
-
-O Jarvis **lê as respostas em voz alta** assim que elas chegam. Existem duas
-vozes, e o seletor **Voz**, na abertura da conversa, escolhe entre elas:
-
-- **Voz natural do Gemini** (a principal): gerada pela IA do Google, soa como
-  uma pessoa conversando. Usa a mesma chave do Gemini e gasta a cota gratuita,
-  que para voz costuma ser pequena. Opções: Charon (padrão, masculina, calma),
-  Orus, Puck, Kore e Aoede. A resposta leva alguns segundos a mais para começar
-  a ser falada, porque o áudio é gerado na hora — o botão mostra "Preparando a
-  voz" enquanto isso.
-- **Voz do navegador** (a reserva): grátis e sem cota, mas mais robótica. No
-  Edge, as vozes "naturais" (Antonio, Francisca) são as melhores; no Chrome, a
-  do Google.
-
-Se a voz do Gemini falhar ou a cota acabar, o Jarvis escreve no chat o motivo
-que o Google deu ("Detalhe do Google") e passa sozinho para a voz do navegador.
-O seletor marca o grupo do Gemini como "não funcionou na sua conta". Escolher
-uma voz do Gemini de novo tenta outra vez e, se falhar, mostra o motivo — não
-toca outra voz no lugar.
-
-**Voz humana sem gastar cota:** abra o consultor no **Microsoft Edge** e escolha
-uma voz "Natural" no seletor (Antonio ou Francisca). São vozes neurais, que
-soam como gente, e funcionam em qualquer computador com Edge. No celular
-Android, instale a voz do Google em português de alta qualidade nas
-configurações de "Conversão de texto em voz". No iPhone, baixe a voz
-"Luciana (Aprimorada)" em Ajustes > Acessibilidade > Conteúdo Falado > Vozes.
-
-- O botão de **alto-falante** no topo do painel liga e desliga a voz.
-- Cada resposta tem o botão **Ouvir**, para escutar de novo. Na voz do Gemini,
-  repetir não gasta cota: o áudio fica guardado.
-- Fechar o painel, mandar outra pergunta ou começar uma conversa nova cala a
-  fala anterior — inclusive uma que ainda estava sendo preparada.
-
----
-
-## Ligando o Gemini
-
-O Gemini é opcional. Sem ele, o Jarvis funciona normalmente só com a base.
-
-### O que vai para o Google
-
-**A pergunta, do jeito que foi escrita**, mais a descrição de algum código
-interno que ela cite. Nunca vai saldo, custo, endereço ou filial. Mas o que
-você digitar vai: não escreva no Jarvis nada que seja sigiloso da empresa.
-
-### Uma vez só
-
-1. Entre em <https://aistudio.google.com> com uma conta Google e crie uma
-   chave de API. É gratuita. Ela começa com "AIza" (formato antigo) ou com
-   "AQ." (formato novo) — o app aceita os dois.
-2. **Não ative cobrança** no projeto do Google dessa chave. Assim ela fica no
-   plano gratuito e ninguém consegue gerar custo com ela.
-3. Recomendado: no Google Cloud Console, nas credenciais, restrinja a chave
-   para a "Generative Language API" e para os sites que vão usá-la — o seu
-   site do GitHub (`https://SEUUSUARIO.github.io/*`) e, se usar o servidor
-   local, `http://localhost:8080/*`.
-4. No repositório do GitHub: **Settings > Secrets and variables > Actions >
-   New repository secret**. Nome: `GEMINI_API_KEY`. Valor: a chave.
-5. Publique de novo. O topo do painel do Jarvis passa a mostrar "dados da base +
-   pesquisa no Gemini".
-
-Para o servidor local (`iniciar.bat`), crie também o arquivo
-`gemini_chave.txt` na pasta do projeto com a chave na primeira linha. Ele
-nunca vai para o GitHub.
-
-### O que você precisa saber
-
-- **A chave fica visível no código do site.** O Gemini é chamado direto do
-  navegador, e o site é público. Por isso os passos 2 e 3: sem cobrança, o pior
-  caso é alguém gastar a sua cota gratuita e o Gemini parar até o dia seguinte;
-  com a restrição de site, a chave não funciona em páginas de outras pessoas.
-- **No plano gratuito, o Google pode usar o que é enviado** para melhorar os
-  produtos dele. É mais um motivo para não digitar nada sigiloso.
-- **O plano gratuito tem limite de pedidos por minuto e por dia.** Quando
-  acabar, o Jarvis avisa e o resto continua funcionando.
-- **A resposta vem da internet**, não da base. Confira antes de comprar ou
-  trocar peça por causa dela.
-- Os modelos usados estão no topo do `build.py`, em `GEMINI_MODELOS`. Cada um
-  tem a sua cota gratuita, e a pesquisa no Google tem outra à parte. Se um
-  modelo recusar por limite, o app tenta o mesmo sem a pesquisa e depois o
-  próximo da lista, e fica lembrando o que funcionou. Quando a resposta vem sem
-  a pesquisa, o balão avisa e não traz fontes.
-- Chaves no formato novo ("AQ.") podem precisar ser enviadas ao Google de
-  outro jeito. Na primeira pergunta, o app testa os jeitos que o Google aceita
-  (cabeçalho, endereço, token e Vertex AI) e lembra o que funcionou.
-- Se todos recusarem, o Jarvis mostra o "Detalhe do Google" com o motivo
-  exato. Se aparecer "limit: 0", aquele modelo não tem cota gratuita na sua
-  conta — mande o print que dá para ajustar a lista.
-
----
-
 ## Instalar no celular e usar sem internet
 
 O consultor pode ser **instalado** como um app, com ícone próprio — a etiqueta
@@ -232,7 +118,7 @@ abriu no aparelho.
 
 Sem internet, aparece um aviso no topo dizendo de quando é a base que está na
 tela. Busca, Endereços, Pendentes, Inventário e Separação funcionam
-normalmente; o Jarvis precisa de internet.
+normalmente.
 
 Com internet, o app busca sempre a versão nova primeiro, então ele **não fica
 preso numa base velha**: quando você publica planilhas novas, a versão nova
@@ -262,8 +148,6 @@ dados/            as planilhas exportadas do sistema  ← você mexe aqui
 template.html     a aparência e o funcionamento do app
 build.py          lê as planilhas e gera o app
 servidor.py       vigia a pasta, regera, publica na rede e envia ao GitHub
-gemini_chave.txt  a chave do Gemini para o servidor local — opcional, e
-                  nunca vai para o GitHub
 iniciar.bat       liga tudo aqui no computador
 publicar.bat      gera o app e manda para o GitHub em um clique (dá para
                   fazer o mesmo pelo painel do VS Code)

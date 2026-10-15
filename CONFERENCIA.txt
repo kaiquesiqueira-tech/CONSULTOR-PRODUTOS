@@ -1,11 +1,11 @@
 CONFERENCIA DOS ARQUIVOS - Consulta de Estoque
-Gerado em 14/10/2026. Versao do app: v85b95
+Gerado em 15/10/2026. Versao do app: v055c0 (sem o Jarvis)
 
 O PROJETO TEM 17 ARQUIVOS (fora este, os gerados e as suas planilhas).
 
 O JEITO MAIS RAPIDO DE CONFERIR
   Gere o app (iniciar.bat ou publicar.bat) e olhe o rodape da lista de produtos.
-  Se aparecer "app v85b95", o seu template.html e identico a este.
+  Se aparecer "app v055c0", o seu template.html e identico a este.
 
 ARQUIVO POR ARQUIVO
   O tamanho em bytes aparece no Windows em: botao direito no arquivo > Propriedades
@@ -17,13 +17,13 @@ ARQUIVO POR ARQUIVO
   ----------------------------------------------------------------
   .gitattributes                               76   7E3F38235B
   .gitignore                                  581   02BF403360
-  build.py                                 62.700   2C6A1AB9D1
+  build.py                                 59.841   4788EE84D6
   iniciar.bat                                 395   0BA2750DB6
-  LEIA-ME.md                               25.021   9A8B6547EC
+  LEIA-ME.md                               18.973   448BD7329F
   publicar.bat                              3.163   CE227F7243
   requirements.txt                            195   88192F98DC
   servidor.py                               8.935   411FCB8702
-  template.html                           147.855   85B959D408
+  template.html                           107.476   055C0D330B
   verificar.bat                               184   905CEF4326
   verificar.py                              7.101   D5B1614CF7
   .vscode\extensions.json                      95   AA06405E97
@@ -31,16 +31,17 @@ ARQUIVO POR ARQUIVO
   .vscode\settings.json                       853   168E4974EF
   .vscode\tasks.json                        1.275   901E8FB511
   dados\LEIA-ME.txt                           426   D237BA2B52
-  .github\workflows\publicar.yml            1.992   331A36EB10
+  .github\workflows\publicar.yml            1.768   9EBE9EFABF
 
 SE NA SUA PASTA EXISTIR, PODE APAGAR (sao de versoes antigas e nada usa):
-  enviar.bat, config.txt, vigia.log, as pastas dist e docs, jarvis_chave.txt
+  enviar.bat, config.txt, vigia.log, as pastas dist e docs, jarvis_chave.txt,
+  gemini_chave.txt
 
 NAO ENTRAM NA COMPARACAO (sao gerados pelo build e mudam a cada vez):
   index.html, versao.txt, sw.js, manifest.webmanifest, icone-*.png
 
 NAO VEM NESTE PACOTE (sao seus):
-  as planilhas da pasta dados, e o gemini_chave.txt se voce tiver um.
+  as planilhas da pasta dados.
 
 Se um arquivo tiver o tamanho um pouco MAIOR que o daqui, e os dois funcionarem igual,
 provavelmente e so a quebra de linha do Windows (o Git pode trocar ao baixar o
