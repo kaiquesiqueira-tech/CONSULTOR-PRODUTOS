@@ -1,5 +1,5 @@
 CONFERENCIA DOS ARQUIVOS - Consulta de Estoque
-Gerado em 15/10/2026. Versao do app: v055c0 (sem o Jarvis)
+Gerado em 21/10/2026. Versao do app: v055c0
 
 O PROJETO TEM 17 ARQUIVOS (fora este, os gerados e as suas planilhas).
 
@@ -17,12 +17,12 @@ ARQUIVO POR ARQUIVO
   ----------------------------------------------------------------
   .gitattributes                               76   7E3F38235B
   .gitignore                                  581   02BF403360
-  build.py                                 59.841   4788EE84D6
-  iniciar.bat                                 395   0BA2750DB6
-  LEIA-ME.md                               18.973   448BD7329F
-  publicar.bat                              3.163   CE227F7243
+  build.py                                 60.563   D3F4AF72EC
+  iniciar.bat                                 766   5CE52CE8ED
+  LEIA-ME.md                               19.594   476C543D1F
+  publicar.bat                              3.534   67EF8E6851
   requirements.txt                            195   88192F98DC
-  servidor.py                               8.935   411FCB8702
+  servidor.py                               8.975   CD11431777
   template.html                           107.476   055C0D330B
   verificar.bat                               184   905CEF4326
   verificar.py                              7.101   D5B1614CF7

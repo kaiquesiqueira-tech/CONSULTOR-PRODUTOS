@@ -344,6 +344,15 @@ No seu repositório, aba **Actions**. Cada envio vira uma linha ali.
 **Precisa de internet?** Não. A única coisa que vem da internet é a fonte do
 texto; sem conexão o app usa a fonte do sistema e funciona igual.
 
+**A janela preta parece travada e só anda quando clico nela?** É o "Modo de
+Edição Rápida" do Windows: um clique dentro da janela do Prompt de Comando pausa
+o programa até você apertar uma tecla — o título da janela muda para
+"Selecionar". O `publicar.bat` e o `iniciar.bat` já desligam isso sozinhos, só
+na janela deles. Se acontecer em outra janela, aperte **Esc**. Para desligar de
+vez em todas as janelas: botão direito na barra de título → **Padrões** →
+desmarque **Modo de Edição Rápida**. (Sem ele, para copiar texto da janela, use
+botão direito na barra de título → Editar → Marcar.)
+
 **Dá para mandar o app para alguém?** Sim. O `index.html` é um arquivo só, com
 os dados dentro. Mande por e-mail ou copie para a área de trabalho e a pessoa
 abre com duplo clique, sem instalar nada. Só não se atualiza sozinho.

@@ -527,6 +527,24 @@ def ler_planilha(caminho):
 # --------------------------------------------------------------------------
 # conversoes
 # --------------------------------------------------------------------------
+def desligar_selecao_no_console():
+    """No Windows, o "Modo de Edicao Rapida" do Prompt de Comando pausa o programa
+    quando alguem clica dentro da janela, ate apertar uma tecla. Desliga so nesta
+    janela. Em qualquer outro lugar (Linux, GitHub, VS Code) nao faz nada."""
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        k = ctypes.windll.kernel32
+        k.GetStdHandle.restype = ctypes.c_void_p          # no Windows 64 bits o identificador e um ponteiro
+        h = ctypes.c_void_p(k.GetStdHandle(-10))
+        modo = ctypes.c_uint()
+        if k.GetConsoleMode(h, ctypes.byref(modo)):
+            k.SetConsoleMode(h, (modo.value | 0x80) & ~0x40)
+    except Exception:
+        pass
+
+
 def chave(valor, largura):
     if pd.isna(valor):
         return ""

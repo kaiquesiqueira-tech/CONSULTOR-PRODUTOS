@@ -207,6 +207,7 @@ class ServidorTCP(socketserver.ThreadingTCPServer):
 
 
 def principal():
+    build.desligar_selecao_no_console()
     os.makedirs(PASTA_DADOS, exist_ok=True)
     gerar("Gerando o app pela primeira vez...")
 

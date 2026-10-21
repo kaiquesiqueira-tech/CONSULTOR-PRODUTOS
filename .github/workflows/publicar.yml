@@ -43,10 +43,6 @@ jobs:
 
       - name: Gerar o app a partir das planilhas
         run: python build.py --saida site
-        env:
-          # segredo cadastrado em Settings > Secrets and variables > Actions.
-          # Se nao existir, o app sai sem o Gemini e o Jarvis usa so a base.
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Conferir que o app foi gerado
         run: |
