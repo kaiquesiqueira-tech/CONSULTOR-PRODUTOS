@@ -1,7 +1,7 @@
 /* Gerado pelo build.py. Guarda o consultor no aparelho para funcionar sem internet.
    Com internet: busca sempre a versao nova primeiro (e guarda a copia).
    Sem internet, ou com a rede muito lenta: entrega a copia guardada. */
-const VERSAO = 'estoque-6df53-055c0';
+const VERSAO = 'estoque-3fa3c-1d08b';
 const FONTES = 'estoque-fontes';
 const PAGINA = new URL('index.html', self.registration.scope).href;
 const ESSENCIAIS = ['index.html', 'manifest.webmanifest', 'icone-192.png', 'icone-512.png',
@@ -29,6 +29,7 @@ self.addEventListener('fetch', (e) => {
   }
   if (u.origin !== self.location.origin) return;        // outros sites: sempre direto na rede
   if (u.pathname.endsWith('/versao.txt')) return;        // aviso de versao nova: sempre da rede
+  if (u.pathname.indexOf('/base/') >= 0) return;         // envio de planilhas: sempre direto ao servidor
   if (req.mode === 'navigate') { e.respondWith(paginaRedePrimeiro(req)); return; }
   e.respondWith(guardadoPrimeiro(req, VERSAO));
 });

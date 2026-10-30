@@ -427,6 +427,7 @@ self.addEventListener('fetch', (e) => {
   }
   if (u.origin !== self.location.origin) return;        // outros sites: sempre direto na rede
   if (u.pathname.endsWith('/versao.txt')) return;        // aviso de versao nova: sempre da rede
+  if (u.pathname.indexOf('/base/') >= 0) return;         // envio de planilhas: sempre direto ao servidor
   if (req.mode === 'navigate') { e.respondWith(paginaRedePrimeiro(req)); return; }
   e.respondWith(guardadoPrimeiro(req, VERSAO));
 });
@@ -522,6 +523,75 @@ def ler_planilha(caminho):
     if {"TP Movimento", "Qtd. Saida"} <= colunas:
         return "SD3R", df, None
     return None, None, "colunas nao reconhecidas"
+
+
+# --------------------------------------------------------------------------
+# atualizar a base pelo app: o que cada planilha e, e o que ela substitui
+# --------------------------------------------------------------------------
+TIPOS = {"SB2": "Saldo fisico", "SBF": "Saldo por endereco", "SDA": "A enderecar",
+         "SD3": "Movimentacoes (SD3)", "SD3R": "Relacao de movimentacoes", "SBZ": "Indicadores (SBZ)"}
+ARQUIVOS_LIDOS = []   # o que o ultimo build leu: [{"n": nome, "t": tipo, "f": [filiais]}]
+
+
+def filiais_da_planilha(df):
+    if df is None or "Filial" not in df.columns:
+        return []
+    # celula vazia vira "" ou "000000": nenhuma das duas e filial
+    return sorted(set(c for c in (chave(v, 6) for v in df["Filial"]) if c and c.strip("0")))
+
+
+def analisar_planilha(caminho):
+    """Tipo e filiais de uma planilha, sem montar nada. Usado para conferir um envio."""
+    tipo, df, erro = ler_planilha(caminho)
+    return {"n": os.path.basename(caminho), "t": tipo, "f": filiais_da_planilha(df) if tipo else [], "erro": erro}
+
+
+def mesma_familia(novo, atual):
+    return novo == atual or (novo == "SD3" and atual == "SD3R")
+
+
+def plano_de_troca(novos, atuais):
+    """Cada planilha nova substitui as atuais do mesmo tipo cujas filiais ela cobre
+    inteiras, e a que tiver o mesmo nome. A mesma regra existe no app (atualizar
+    pelo GitHub): se mudar aqui, mude la tambem."""
+    saem, avisos, vistos = [], [], set()
+    for novo in novos:
+        fn = set(novo["f"])
+        for atual in atuais:
+            if atual["n"] in vistos:
+                continue
+            fa = set(atual.get("f") or [])
+            if atual["n"] == novo["n"]:
+                saem.append(dict(atual, por=novo["n"], motivo="mesmo nome"))
+                vistos.add(atual["n"])
+            elif atual.get("t") and mesma_familia(novo["t"], atual["t"]) and fa <= fn:
+                saem.append(dict(atual, por=novo["n"], motivo="mesmo tipo e filiais"))
+                vistos.add(atual["n"])
+            elif atual.get("t") and mesma_familia(novo["t"], atual["t"]) and fa & fn:
+                avisos.append("%s cobre so parte das filiais de %s (%s): a antiga fica. Para trocar de vez, "
+                              "exporte todas essas filiais juntas." % (novo["n"], atual["n"], ", ".join(sorted(fa - fn))))
+    return {"entram": novos, "saem": saem, "avisos": avisos}
+
+
+def repositorio():
+    """Repositorio e ramo do GitHub, para o app saber para onde mandar as planilhas."""
+    nome = os.environ.get("GITHUB_REPOSITORY", "")
+    ramo = os.environ.get("GITHUB_REF_NAME", "")
+    if not nome:
+        try:
+            import subprocess
+            url = subprocess.run(["git", "remote", "get-url", "origin"], cwd=RAIZ, capture_output=True,
+                                 text=True, timeout=5).stdout.strip()
+            m = re.search(r"github\.com[:/]+([^/]+/[^/]+?)(?:\.git)?/?$", url)
+            if m:
+                nome = m.group(1)
+                ramo = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=RAIZ, capture_output=True,
+                                      text=True, timeout=5).stdout.strip()
+        except Exception:
+            pass
+    if not nome:
+        return None
+    return {"nome": nome, "ramo": ramo or "main"}
 
 
 # --------------------------------------------------------------------------
@@ -859,11 +929,14 @@ def principal(saida=None):
         return 1
 
     del AVISOS[:]
+    lidos = []
     partes_sb2, partes_sbf, partes_sda, partes_sd3, partes_sd3r, partes_sbz = [], [], [], [], [], []
     print("Lendo planilhas de 'dados':")
     for caminho in arquivos:
         nome = os.path.basename(caminho)
         tipo, df, erro = ler_planilha(caminho)
+        if tipo:
+            lidos.append({"n": nome, "t": tipo, "f": filiais_da_planilha(df)})
         quando = datetime.datetime.fromtimestamp(os.path.getmtime(caminho)).strftime("%d/%m/%Y %H:%M")
         if tipo == "SB2":
             partes_sb2.append(df)
@@ -917,6 +990,9 @@ def principal(saida=None):
     quando_modelo = datetime.datetime.fromtimestamp(
         os.path.getmtime(modelo)).strftime("%d/%m/%Y %H:%M")
     base["appv"] = marca_app
+    base["arquivos"] = lidos
+    base["repo"] = repositorio()
+    ARQUIVOS_LIDOS[:] = lidos
 
     dados = json.dumps(base, ensure_ascii=False, separators=(",", ":"))
     dados = dados.replace("</", "<\\u002f")  # seguranca ao embutir no HTML

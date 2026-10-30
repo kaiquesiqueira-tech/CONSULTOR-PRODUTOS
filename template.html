@@ -455,7 +455,7 @@ main{padding:14px 14px 92px}
 
 /* ============ impressao ============ */
 @media print{
-  .top,.tabs,.btnrow,.sep .x,.sep .chk,.count,.rodape,.toast{display:none !important}
+  .top,.tabs,.btnrow,.sep .x,.sep .chk,.count,.rodape,.toast,.att{display:none !important}
   .qtyin,.obsin{display:none !important}
   .so-imprime{display:block}
   .so-imprime.qtd{display:inline-block; margin-left:auto; font-family:var(--mono);
@@ -629,6 +629,72 @@ main{padding:14px 14px 92px}
 /* tema escuro: o trilho da etiqueta precisa aparecer no fundo escuro */
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --trilho:#5C5220; } }
 :root[data-theme="dark"]{ --trilho:#5C5220; }
+
+/* ---------- atualizar a base ---------- */
+.att{position:fixed; inset:0; z-index:70; background:rgba(8,14,18,.55); display:flex; align-items:flex-end; justify-content:center}
+.att[hidden]{display:none}
+.att-caixa{background:var(--bg); width:100%; max-height:100%; overflow:auto; display:flex; flex-direction:column;
+  border-radius:14px 14px 0 0; padding-bottom:env(safe-area-inset-bottom)}
+@media (min-width:700px){ .att{align-items:center} .att-caixa{width:560px; max-height:88vh; border-radius:14px; box-shadow:0 30px 70px -20px rgba(0,0,0,.6)} }
+.att-cab{position:sticky; top:0; z-index:1; display:flex; align-items:center; gap:10px; background:var(--steel); color:var(--steel-ink);
+  border-bottom:3px solid var(--loc); padding:12px 14px}
+.att-cab h2{flex:1; margin:0; font-size:16px; font-weight:700}
+.att-corpo{padding:16px; display:flex; flex-direction:column; gap:12px}
+.att-intro{margin:0; font-size:13.5px; line-height:1.5; color:var(--muted)}
+.att-intro b{color:var(--ink)}
+.att-atual{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:13px}
+.att-atual summary{cursor:pointer; font-weight:600}
+.att-atual ul, .att-plano{list-style:none; margin:8px 0 0; padding:0}
+.att-atual li, .att-plano li{display:flex; flex-direction:column; gap:1px; padding:7px 0; border-top:1px solid var(--line); font-size:13px}
+.att-atual li span, .att-plano li span{color:var(--muted); font-size:12px}
+.att-solta{display:flex; flex-direction:column; align-items:center; gap:4px; padding:22px 14px; border:2px dashed var(--line-2);
+  border-radius:12px; background:var(--surface); cursor:pointer; text-align:center}
+.att-solta:hover, .att-solta.sobre{border-color:var(--act); background:var(--act-soft)}
+.att-solta input{position:absolute; width:1px; height:1px; opacity:0}
+.att-solta b{color:var(--act); font-size:15px}
+.att-solta span{color:var(--muted); font-size:12.5px}
+.att-lista{list-style:none; margin:0; padding:0; background:var(--surface); border:1px solid var(--line); border-radius:10px}
+.att-lista li{display:flex; align-items:center; gap:8px; padding:8px 10px; font-size:13px}
+.att-lista li + li{border-top:1px solid var(--line)}
+.att-nome{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600}
+.att-tam{color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums}
+.att-tirar{border:0; background:transparent; color:var(--muted); font-size:18px; line-height:1; padding:2px 6px; border-radius:6px}
+.att-tirar:hover{background:var(--surface-2); color:var(--alert)}
+.att-dest{border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
+.att-dest legend{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.06em}
+.att-dest label{display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border:1px solid var(--line); border-radius:10px;
+  background:var(--surface); cursor:pointer}
+.att-dest label:has(input:checked){border-color:var(--act); box-shadow:inset 0 0 0 1px var(--act)}
+.att-dest input{margin-top:3px; accent-color:var(--act)}
+.att-dest b{display:block; font-size:14px}
+.att-dest small{display:block; color:var(--muted); font-size:12.5px; line-height:1.4}
+.att-token{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:8px; font-size:13px}
+.att-token p{margin:0}
+.att-token input{padding:10px 12px; border:1px solid var(--line-2); border-radius:9px; background:var(--surface-2); color:var(--ink);
+  font-family:var(--mono); font-size:14px}
+.att-token ol{margin:8px 0 0; padding-left:18px; line-height:1.5}
+.att-token a{color:var(--act)}
+.att-token-ok{margin:0; font-size:13px; color:var(--muted)}
+.att-link{border:0; background:none; color:var(--act); text-decoration:underline; padding:0; font-size:13px; cursor:pointer}
+.att-acoes{display:flex; gap:10px; justify-content:flex-end}
+.att-acoes .btn{flex:0 1 auto; min-width:140px}
+.att-erro{margin:0; background:var(--alert-soft); color:var(--alert); border:1px solid var(--alert); border-radius:10px; padding:10px 12px; font-size:13.5px}
+.att-aviso{background:var(--surface); border:1px solid var(--line-2); border-left:4px solid var(--alert); border-radius:8px; padding:10px 12px; font-size:13px}
+.att-h{margin:4px 0 0; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted)}
+.att-plano{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:0 12px; margin:0}
+.att-plano li:first-child{border-top:0}
+.att-plano li.entra b::before{content:'+ '; color:var(--act)}
+.att-plano li.sai b::before{content:'− '; color:var(--alert)}
+.att-plano li.recusa b{color:var(--muted)}
+.att-vazio{margin:0; font-size:13px; color:var(--muted)}
+.att-andando{display:flex; flex-direction:column; align-items:center; gap:12px; padding:30px 10px; text-align:center}
+.att-andando p{margin:0; font-size:14px}
+.att-roda{width:34px; height:34px; border-radius:50%; border:3px solid var(--line-2); border-top-color:var(--act); animation:attgira .9s linear infinite}
+@keyframes attgira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.att-roda{animation:none}}
+.att-ok{background:var(--act-soft); border:1px solid var(--act); border-radius:10px; padding:12px 14px}
+.att-ok b{color:var(--act)}
+.att-ok p{margin:6px 0 0; font-size:13.5px; line-height:1.5}
 </style>
 </head>
 <body>
@@ -653,6 +719,7 @@ main{padding:14px 14px 92px}
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Separação<span class="n" id="sepn" hidden>0</span></button>
     </nav>
+    <button class="iconbtn" id="att-abrir" title="Atualizar a base" aria-label="Atualizar a base"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></button>
     <button class="iconbtn" id="theme" title="Alternar tema" aria-label="Alternar tema">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
     </button>
@@ -692,6 +759,18 @@ main{padding:14px 14px 92px}
   </div>
 </main>
 
+
+<section class="att" id="att" role="dialog" aria-modal="true" aria-labelledby="att-titulo" hidden>
+  <div class="att-caixa">
+    <div class="att-cab">
+      <h2 id="att-titulo">Atualizar a base</h2>
+      <button class="iconbtn" id="att-fechar" aria-label="Fechar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="att-corpo" id="att-corpo"></div>
+  </div>
+</section>
 
 <div id="area-impressao"></div>
 
@@ -1011,6 +1090,7 @@ document.querySelector('.col2').addEventListener('click', function(e){
   if(e.target===this && document.getElementById('main').classList.contains('single')) fechar();
 });
 document.addEventListener('keydown', function(e){
+  if(e.key==='Escape' && !attJanela.hidden){ attFechar(); return; }
   if(e.key==='Escape' && panel.classList.contains('open')) fechar();
   var foco = (document.activeElement || {}).tagName;
   if(e.key==='/' && foco!=='INPUT' && foco!=='TEXTAREA'){ e.preventDefault(); elQ.focus(); elQ.select(); }
@@ -1944,6 +2024,371 @@ window.addEventListener('resize', medirTopo);
   var n = (D.pendentes || []).length, b = document.getElementById('pendn');
   if(b){ b.textContent = n; b.hidden = n === 0; }
 })();
+/* ======================================================================
+   ATUALIZAR A BASE pelo app.
+   Dois caminhos: o computador do servidor (rede da empresa, sem senha) ou o
+   GitHub (de qualquer lugar, com um token salvo no aparelho). Nos dois, cada
+   planilha nova substitui a antiga do mesmo tipo e das mesmas filiais, e nada
+   acontece antes de você conferir e confirmar.
+   ====================================================================== */
+var ATT_TIPOS = {SB2: 'Saldo físico', SBF: 'Saldo por endereço', SDA: 'A endereçar',
+                 SD3: 'Movimentações (SD3)', SD3R: 'Relação de movimentações', SBZ: 'Indicadores (SBZ)'};
+var ATT_LEITOR = {src: 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+                  integridade: 'sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw'};
+var ATT = {arqs: [], destino: '', servidor: null, repo: null, plano: null, lote: '', etapa: 'escolher',
+           msg: '', resultado: null, buffers: {}, listaRepo: null};
+var attJanela = document.getElementById('att'), attCorpo = document.getElementById('att-corpo');
+
+function attRepo(){
+  if(D.repo && D.repo.nome) return {nome: D.repo.nome, ramo: D.repo.ramo || ''};
+  var h = location.hostname;
+  if(/\.github\.io$/i.test(h)){
+    var dono = h.split('.')[0], seg = location.pathname.split('/').filter(Boolean)[0];
+    return {nome: dono + '/' + (seg && seg !== 'index.html' ? seg : h), ramo: ''};
+  }
+  return null;
+}
+function attAcentos(s){   // o servidor escreve sem acento (por causa da janela do Windows); aqui volta o acento
+  return String(s || '').replace(/\bnao\b/g, 'não').replace(/\bso\b/g, 'só').replace(/cabecalho/g, 'cabeçalho')
+    .replace(/possivel/g, 'possível').replace(/\bja\b/g, 'já').replace(/invalido/g, 'inválido');
+}
+function attTam(n){ return n > 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+function attRotulo(a){
+  return (ATT_TIPOS[a.t] || 'não reconhecida') + (a.f && a.f.length ? ' · ' + (a.f.length > 4 ? a.f.length + ' filiais' : a.f.join(', ')) : '');
+}
+
+function attAbrir(){
+  attJanela.hidden = false; document.body.classList.add('locked');
+  ATT.etapa = 'escolher'; ATT.plano = null; ATT.resultado = null; ATT.msg = '';
+  ATT.repo = attRepo();
+  attRender();
+  if(location.protocol.indexOf('http') === 0){
+    fetch('base/status', {cache: 'no-store'}).then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){ ATT.servidor = j && j.ok ? j : null; if(!ATT.destino) ATT.destino = ATT.servidor ? 'servidor' : (ATT.repo ? 'github' : ''); attRender(); })
+      .catch(function(){ ATT.servidor = null; if(!ATT.destino && ATT.repo) ATT.destino = 'github'; attRender(); });
+  }
+}
+function attFechar(){
+  if(ATT.etapa === 'enviando' || ATT.etapa === 'conferindo') return;   // não interrompe no meio
+  attJanela.hidden = true;
+  if(!panel.classList.contains('open')) document.body.classList.remove('locked');
+}
+
+function attRender(){
+  var h = '', e = ATT.etapa;
+  if(e === 'escolher'){
+    var atuais = D.arquivos || [];
+    h += '<p class="att-intro">Anexe as exportações do Protheus (.xlsx). Cada planilha nova substitui a antiga ' +
+         '<b>do mesmo tipo e das mesmas filiais</b>. Antes de trocar, o app mostra o que entra e o que sai.</p>';
+    h += '<details class="att-atual"><summary>Base atual: ' + D.gerado.split('-').reverse().join('/') + ', ' + atuais.length + ' ' +
+         plural(atuais.length, 'planilha', 'planilhas') + '</summary><ul>' + atuais.map(function(a){
+           return '<li><b>' + esc(a.n) + '</b><span>' + esc(attRotulo(a)) + '</span></li>'; }).join('') + '</ul></details>';
+    h += '<label class="att-solta" id="att-solta"><input type="file" id="att-arq" multiple accept=".xlsx,.xls,.xlsm">' +
+         '<b>Escolher planilhas</b><span>ou arraste os arquivos para cá</span></label>';
+    if(ATT.arqs.length){
+      h += '<ul class="att-lista">' + ATT.arqs.map(function(a, i){
+        return '<li><span class="att-nome">' + esc(a.name) + '</span><span class="att-tam">' + attTam(a.size) + '</span>' +
+               '<button type="button" class="att-tirar" data-att-tirar="' + i + '" aria-label="Tirar ' + esc(a.name) + '">×</button></li>';
+      }).join('') + '</ul>';
+    }
+    // destino
+    var opcoes = [];
+    if(ATT.servidor) opcoes.push(['servidor', 'Computador do servidor', 'Sem senha. O computador monta a base e publica para todos.']);
+    if(ATT.repo) opcoes.push(['github', 'GitHub', 'De qualquer lugar. Precisa de um token salvo neste aparelho. Todos veem em uns 2 minutos.']);
+    if(!opcoes.length){
+      h += '<p class="att-aviso">Daqui não dá para enviar: abra o consultor pelo <b>site do GitHub</b> ou pelo ' +
+           '<b>computador do servidor</b> (iniciar.bat). Aberto direto do arquivo, não há para onde mandar.</p>';
+    } else {
+      h += '<fieldset class="att-dest"><legend>Enviar por</legend>' + opcoes.map(function(o){
+        return '<label><input type="radio" name="att-dest" value="' + o[0] + '"' + (ATT.destino === o[0] ? ' checked' : '') + '>' +
+               '<span><b>' + o[1] + '</b><small>' + o[2] + '</small></span></label>'; }).join('') + '</fieldset>';
+    }
+    if(ATT.destino === 'github') h += attBlocoToken();
+    if(ATT.msg) h += '<p class="att-erro">' + esc(ATT.msg) + '</p>';
+    var pode = ATT.arqs.length && ATT.destino && (ATT.destino !== 'github' || store('gh_token'));
+    h += '<div class="att-acoes"><button type="button" class="btn" id="att-conferir"' + (pode ? '' : ' disabled') + '>Conferir</button></div>';
+  } else if(e === 'conferindo' || e === 'enviando'){
+    h += '<div class="att-andando"><div class="att-roda" aria-hidden="true"></div><p>' + esc(ATT.msg) + '</p></div>';
+  } else if(e === 'plano'){
+    var p = ATT.plano;
+    h += '<h3 class="att-h">Vão entrar</h3>' + (p.entram.length ? '<ul class="att-plano">' + p.entram.map(function(a){
+           return '<li class="entra"><b>' + esc(a.n) + '</b><span>' + esc(attRotulo(a)) + '</span></li>'; }).join('') + '</ul>'
+         : '<p class="att-vazio">Nenhuma planilha reconhecida.</p>');
+    h += '<h3 class="att-h">Vão sair</h3>' + (p.saem.length ? '<ul class="att-plano">' + p.saem.map(function(a){
+           return '<li class="sai"><b>' + esc(a.n) + '</b><span>' + esc(attRotulo(a)) + ' · trocada por ' + esc(a.por) + ' (' + esc(a.motivo) + ')</span></li>'; }).join('') + '</ul>'
+         : '<p class="att-vazio">Nenhuma: as novas entram junto com as que já existem.</p>');
+    if(p.recusados && p.recusados.length){
+      h += '<h3 class="att-h">Não reconhecidas (ficam de fora)</h3><ul class="att-plano">' + p.recusados.map(function(a){
+        return '<li class="recusa"><b>' + esc(a.n) + '</b><span>' + esc(attAcentos(a.erro) || 'colunas não reconhecidas') + '</span></li>'; }).join('') + '</ul>';
+    }
+    if(p.avisos && p.avisos.length) h += '<div class="att-aviso">' + p.avisos.map(function(x){ return esc(attAcentos(x)); }).join('<br>') + '</div>';
+    h += '<p class="att-intro">' + (ATT.destino === 'servidor'
+         ? 'As que saem não são apagadas: vão para <b>dados/_substituidos</b> no computador do servidor.'
+         : 'As que saem continuam no histórico do GitHub, se precisar recuperar.') + '</p>';
+    h += '<div class="att-acoes"><button type="button" class="btn ghost" id="att-voltar">Voltar</button>' +
+         '<button type="button" class="btn" id="att-confirmar"' + (p.entram.length ? '' : ' disabled') + '>Confirmar e atualizar</button></div>';
+  } else if(e === 'pronto'){
+    var r = ATT.resultado;
+    h += '<div class="att-ok"><b>Planilhas enviadas.</b><p>' + (ATT.destino === 'servidor'
+         ? 'O computador do servidor está montando a base nova' + (r && r.github ? ' e vai publicar no GitHub' : '') + '. '
+         : 'O GitHub está montando a base nova, leva uns 2 minutos. ') +
+         'Este aparelho recarrega sozinho quando ela ficar pronta; os outros também.</p></div>';
+    if(r && r.sairam && r.sairam.length) h += '<p class="att-intro">Substituídas: ' + r.sairam.map(esc).join(', ') + (r.copia ? ' (cópias em ' + esc(r.copia) + ')' : '') + '.</p>';
+    h += '<div class="att-acoes"><button type="button" class="btn" id="att-ok">Fechar</button></div>';
+  } else if(e === 'erro'){
+    h += '<p class="att-erro">' + esc(ATT.msg) + '</p><div class="att-acoes"><button type="button" class="btn" id="att-voltar">Voltar</button></div>';
+  }
+  attCorpo.innerHTML = h;
+}
+
+function attBlocoToken(){
+  if(store('gh_token')) return '<p class="att-token-ok">Token do GitHub salvo neste aparelho. ' +
+    '<button type="button" class="att-link" id="att-esquecer">Esquecer o token</button></p>';
+  return '<div class="att-token"><p><b>Este aparelho precisa de um token do GitHub</b> (uma vez só). Ele fica guardado só aqui.</p>' +
+    '<input type="password" id="att-token" placeholder="Cole o token (começa com github_pat_)" autocomplete="off" spellcheck="false">' +
+    '<button type="button" class="btn ghost" id="att-salvar-token">Salvar neste aparelho</button>' +
+    '<details><summary>Como criar o token</summary><ol>' +
+    '<li>Entre em <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>.</li>' +
+    '<li>Dê um nome (ex.: consultor) e uma validade.</li>' +
+    '<li>Em <b>Repository access</b>, escolha <b>Only select repositories</b> e marque <b>' + esc(ATT.repo ? ATT.repo.nome.split('/')[1] : 'o repositório do consultor') + '</b>.</li>' +
+    '<li>Em <b>Permissions</b> → <b>Contents</b>, escolha <b>Read and write</b>.</li>' +
+    '<li>Clique em <b>Generate token</b>, copie e cole aqui. Não mande o token para ninguém.</li></ol></details></div>';
+}
+
+/* ---------- ler as planilhas no navegador (caminho do GitHub) ---------- */
+function attCarregarLeitor(){
+  if(window.XLSX) return Promise.resolve();
+  return new Promise(function(ok, nao){
+    var s = document.createElement('script');
+    s.src = ATT_LEITOR.src; s.integrity = ATT_LEITOR.integridade; s.crossOrigin = 'anonymous';
+    s.onload = ok;
+    s.onerror = function(){ nao(new Error('Não consegui carregar o leitor de planilhas. Confira a internet e tente de novo.')); };
+    document.head.appendChild(s);
+  });
+}
+function attTipoPorColunas(c){   // a mesma regra, na mesma ordem, do build.py
+  var tem = function(l){ return l.every(function(x){ return c.indexOf(x) >= 0; }); };
+  if(tem(['Endereco', 'Prioridade', 'Quantidade'])) return 'SBF';
+  if(tem(['Saldo Atual', 'Nome Cientif'])) return 'SB2';
+  if(tem(['Qtd Original', 'Saldo', 'Documento'])) return 'SDA';
+  if(tem(['Contr.Endere', 'Codigo'])) return 'SBZ';
+  if(tem(['TP Movimento', 'Endereco', 'Quantidade'])) return 'SD3';
+  if(tem(['TP Movimento', 'Qtd. Saida'])) return 'SD3R';
+  return null;
+}
+function attAnalisar(nome, buf){
+  var wb = XLSX.read(buf, {type: 'array', dense: true});
+  var linhas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header: 1, raw: true, defval: null, blankrows: true});
+  var cab = -1;
+  for(var i = 0; i < Math.min(15, linhas.length); i++){
+    var v = (linhas[i] || []).filter(function(x){ return x !== null && x !== undefined; }).map(function(x){ return String(x).trim(); });
+    if(v.indexOf('Filial') >= 0 && (v.indexOf('Produto') >= 0 || v.indexOf('Codigo') >= 0)){ cab = i; break; }
+  }
+  if(cab < 0) return {n: nome, t: null, f: [], erro: "não achei o cabeçalho (linha com 'Filial' e 'Produto')"};
+  var cols = (linhas[cab] || []).map(function(x){ return x === null || x === undefined ? '' : String(x).trim(); });
+  var t = attTipoPorColunas(cols);
+  if(!t) return {n: nome, t: null, f: [], erro: 'colunas não reconhecidas'};
+  var k = cols.indexOf('Filial'), fs = {};
+  for(var j = cab + 1; j < linhas.length; j++){
+    var x = (linhas[j] || [])[k];
+    if(x === null || x === undefined) continue;
+    var s = (typeof x === 'number' && Number.isInteger(x)) ? String(x) : String(x).trim();
+    if(!s) continue;
+    s = s.padStart(6, '0');
+    if(/[^0]/.test(s)) fs[s] = 1;                // célula vazia ou "000000" não é filial
+  }
+  return {n: nome, t: t, f: Object.keys(fs).sort(), erro: null};
+}
+function attPlano(novos, atuais){   // a mesma regra do build.py (plano_de_troca)
+  var saem = [], avisos = [], vistos = {};
+  novos.forEach(function(nv){
+    atuais.forEach(function(a){
+      if(vistos[a.n]) return;
+      var fa = a.f || [], familia = a.t && (nv.t === a.t || (nv.t === 'SD3' && a.t === 'SD3R'));
+      var cobre = fa.every(function(x){ return nv.f.indexOf(x) >= 0; });
+      var falta = fa.filter(function(x){ return nv.f.indexOf(x) < 0; });
+      if(a.n === nv.n){ saem.push({n: a.n, t: a.t, f: fa, por: nv.n, motivo: 'mesmo nome'}); vistos[a.n] = 1; }
+      else if(familia && cobre){ saem.push({n: a.n, t: a.t, f: fa, por: nv.n, motivo: 'mesmo tipo e filiais'}); vistos[a.n] = 1; }
+      else if(familia && falta.length < fa.length)
+        avisos.push(nv.n + ' cobre só parte das filiais de ' + a.n + ' (' + falta.join(', ') + '): a antiga fica. ' +
+                    'Para trocar de vez, exporte todas essas filiais juntas.');
+    });
+  });
+  return {entram: novos, saem: saem, avisos: avisos};
+}
+
+/* ---------- GitHub ---------- */
+async function attGh(metodo, rota, corpo){
+  var r = await fetch('https://api.github.com/repos/' + ATT.repo.nome + rota, {
+    method: metodo, cache: 'no-store',
+    headers: {'Authorization': 'Bearer ' + store('gh_token'), 'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json'},
+    body: corpo ? JSON.stringify(corpo) : undefined
+  });
+  var j = await r.json().catch(function(){ return {}; });
+  if(!r.ok){
+    var e = new Error(r.status === 401 ? 'O GitHub recusou o token: ele está errado ou venceu. Esqueça o token e cadastre um novo.'
+      : r.status === 403 ? 'O token não tem permissão para gravar. Confira se ele tem Contents: Read and write neste repositório.'
+      : r.status === 404 ? 'O GitHub não achou o repositório ' + ATT.repo.nome + ' para este token. Confira se o token dá acesso a ele.'
+      : 'O GitHub respondeu com erro ' + r.status + ': ' + (j.message || ''));
+    e.status = r.status; throw e;
+  }
+  return j;
+}
+function attBase64(buf){
+  var b = new Uint8Array(buf), s = '';
+  for(var i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+async function attConferirGithub(){
+  // primeiro confirma que o token enxerga o repositório: sem isso, "pasta dados vazia" e "sem acesso" parecem iguais
+  ATT.msg = 'Conferindo o repositório…'; attRender();
+  var info = await attGh('GET', '');
+  if(info.permissions && info.permissions.push === false)
+    throw new Error('Sua conta só pode ler este repositório, não gravar. Peça acesso de escrita ao dono do repositório.');
+  if(!ATT.repo.ramo) ATT.repo.ramo = info.default_branch || 'main';
+  ATT.msg = 'Conferindo o que está no GitHub…'; attRender();
+  var lista = [];
+  try{ lista = await attGh('GET', '/contents/dados?ref=' + encodeURIComponent(ATT.repo.ramo)); }
+  catch(e){ if(e.status !== 404) throw e; }
+  ATT.listaRepo = {};
+  (Array.isArray(lista) ? lista : []).forEach(function(x){ if(x.type === 'file') ATT.listaRepo[x.name] = x.sha; });
+  ATT.msg = 'Carregando o leitor de planilhas…'; attRender();
+  await attCarregarLeitor();
+  var novos = [], recusados = [];
+  for(var i = 0; i < ATT.arqs.length; i++){
+    var a = ATT.arqs[i];
+    ATT.msg = 'Lendo ' + a.name + ' (' + (i + 1) + ' de ' + ATT.arqs.length + ')…'; attRender();
+    await new Promise(function(ok){ setTimeout(ok, 30); });     // deixa a tela mostrar o recado antes de ler
+    var buf = await a.arrayBuffer();
+    var info = attAnalisar(a.name, buf);
+    if(info.t){ novos.push(info); ATT.buffers[a.name] = buf; } else recusados.push(info);
+  }
+  // o que está hoje no GitHub: tipo e filiais vêm do último build; o resto só sai se tiver o mesmo nome
+  var conhecidos = {};
+  (D.arquivos || []).forEach(function(a){ conhecidos[a.n] = a; });
+  var atuais = Object.keys(ATT.listaRepo).filter(function(n){ return /\.xls[xm]?$/i.test(n); })
+    .map(function(n){ return conhecidos[n] || {n: n, t: null, f: []}; });
+  var p = attPlano(novos, atuais);
+  p.recusados = recusados;
+  return p;
+}
+async function attAplicarGithub(tentativa){
+  ATT.msg = 'Preparando o envio…'; attRender();
+  var ref = await attGh('GET', '/git/ref/heads/' + encodeURIComponent(ATT.repo.ramo));
+  if(!ref.object || !ref.object.sha) throw new Error('O GitHub respondeu algo inesperado ao ler o ramo ' + ATT.repo.ramo + '.');
+  var commit = await attGh('GET', '/git/commits/' + ref.object.sha);
+  if(!commit.tree || !commit.tree.sha) throw new Error('O GitHub respondeu algo inesperado ao ler a última versão.');
+  var arvore = [], entram = ATT.plano.entram.map(function(a){ return a.n; });
+  for(var i = 0; i < ATT.plano.entram.length; i++){
+    var a = ATT.plano.entram[i];
+    ATT.msg = 'Enviando ' + a.n + ' (' + (i + 1) + ' de ' + entram.length + ')…'; attRender();
+    var blob = await attGh('POST', '/git/blobs', {content: attBase64(ATT.buffers[a.n]), encoding: 'base64'});
+    arvore.push({path: 'dados/' + a.n, mode: '100644', type: 'blob', sha: blob.sha});
+  }
+  ATT.plano.saem.forEach(function(s){
+    if(ATT.listaRepo[s.n] && entram.indexOf(s.n) < 0) arvore.push({path: 'dados/' + s.n, mode: '100644', type: 'blob', sha: null});
+  });
+  ATT.msg = 'Gravando no GitHub…'; attRender();
+  var nova = await attGh('POST', '/git/trees', {base_tree: commit.tree.sha, tree: arvore});
+  var novo = await attGh('POST', '/git/commits', {message: 'atualiza base pelo app: ' + entram.join(', '),
+                                                  tree: nova.sha, parents: [ref.object.sha]});
+  try{
+    await attGh('PATCH', '/git/refs/heads/' + encodeURIComponent(ATT.repo.ramo), {sha: novo.sha});
+  }catch(e){
+    if(e.status === 422 && !tentativa) return attAplicarGithub(true);   // alguém publicou no meio: refaz uma vez
+    throw e;
+  }
+  return {ok: true, sairam: ATT.plano.saem.map(function(s){ return s.n; })};
+}
+
+/* ---------- computador do servidor ---------- */
+async function attPost(rota, corpo){
+  var r = await fetch(rota, {method: 'POST', body: corpo || null, cache: 'no-store'});
+  var j = await r.json().catch(function(){ return {}; });
+  if(!r.ok || j.ok === false) throw new Error(attAcentos(j.erro) || ('O servidor respondeu com erro ' + r.status + '.'));
+  return j;
+}
+async function attConferirServidor(){
+  ATT.lote = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  for(var i = 0; i < ATT.arqs.length; i++){
+    var a = ATT.arqs[i];
+    ATT.msg = 'Mandando ' + a.name + ' para o computador do servidor (' + (i + 1) + ' de ' + ATT.arqs.length + ')…'; attRender();
+    await attPost('base/receber?lote=' + ATT.lote + '&nome=' + encodeURIComponent(a.name), a);
+  }
+  ATT.msg = 'O servidor está lendo as planilhas…'; attRender();
+  return attPost('base/conferir?lote=' + ATT.lote);
+}
+
+async function attConferir(){
+  if(!navigator.onLine && ATT.destino === 'github'){ ATT.msg = 'Sem internet: o envio pelo GitHub precisa de conexão.'; attRender(); return; }
+  ATT.etapa = 'conferindo'; ATT.msg = 'Começando…'; attRender();
+  try{
+    ATT.plano = ATT.destino === 'servidor' ? await attConferirServidor() : await attConferirGithub();
+    ATT.etapa = 'plano';
+  }catch(e){ ATT.etapa = 'erro'; ATT.msg = attMensagem(e); }
+  attRender();
+}
+function attMensagem(e){
+  var m = (e && e.message) || String(e);
+  if(e && e.status) return m;                                   // mensagens do GitHub já vêm explicadas
+  if(/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'Sem conexão com ' + (ATT.destino === 'servidor' ? 'o computador do servidor' : 'o GitHub') + '. Confira a rede e tente de novo.';
+  if(e instanceof TypeError) return 'Algo deu errado no envio (' + m + '). Nada foi trocado; tente de novo.';
+  return m;
+}
+async function attConfirmar(){
+  ATT.etapa = 'enviando'; ATT.msg = 'Atualizando…'; attRender();
+  try{
+    if(ATT.destino === 'servidor'){
+      ATT.msg = 'O servidor está trocando as planilhas…'; attRender();
+      ATT.resultado = await attPost('base/aplicar?lote=' + ATT.lote);
+    } else {
+      ATT.resultado = await attAplicarGithub(false);
+    }
+    ATT.etapa = 'pronto'; ATT.arqs = []; ATT.buffers = {};
+  }catch(e){ ATT.etapa = 'erro'; ATT.msg = attMensagem(e); }
+  attRender();
+}
+
+/* ---------- cliques ---------- */
+function attAcrescentar(lista){
+  Array.prototype.forEach.call(lista || [], function(f){
+    if(!/\.xls[xm]?$/i.test(f.name) || /^~\$/.test(f.name)) return;
+    ATT.arqs = ATT.arqs.filter(function(x){ return x.name !== f.name; });
+    ATT.arqs.push(f);
+  });
+  ATT.msg = ''; attRender();
+}
+document.getElementById('att-abrir').addEventListener('click', attAbrir);
+document.getElementById('att-fechar').addEventListener('click', attFechar);
+attJanela.addEventListener('click', function(e){ if(e.target === attJanela) attFechar(); });
+attCorpo.addEventListener('change', function(e){
+  if(e.target.id === 'att-arq'){ attAcrescentar(e.target.files); e.target.value = ''; }
+  if(e.target.name === 'att-dest'){ ATT.destino = e.target.value; ATT.msg = ''; attRender(); }
+});
+attCorpo.addEventListener('click', function(e){
+  var t = e.target.closest('button'); if(!t) return;
+  if(t.dataset.attTirar !== undefined){ ATT.arqs.splice(+t.dataset.attTirar, 1); attRender(); }
+  else if(t.id === 'att-conferir') attConferir();
+  else if(t.id === 'att-confirmar') attConfirmar();
+  else if(t.id === 'att-voltar'){ ATT.etapa = 'escolher'; ATT.msg = ''; attRender(); }
+  else if(t.id === 'att-ok') attFechar();
+  else if(t.id === 'att-esquecer'){ store('gh_token', null); try{ localStorage.removeItem('estq_gh_token'); }catch(x){} attRender(); }
+  else if(t.id === 'att-salvar-token'){
+    var v = (document.getElementById('att-token').value || '').trim();
+    if(!/^(github_pat_|ghp_)\w{20,}$/.test(v)){ ATT.msg = 'Isso não parece um token do GitHub (começa com github_pat_).'; attRender(); return; }
+    store('gh_token', v); ATT.msg = ''; attRender();
+  }
+});
+['dragover', 'dragenter'].forEach(function(ev){
+  attCorpo.addEventListener(ev, function(e){ var z = e.target.closest && e.target.closest('#att-solta'); if(z){ e.preventDefault(); z.classList.add('sobre'); } });
+});
+attCorpo.addEventListener('dragleave', function(e){ var z = e.target.closest && e.target.closest('#att-solta'); if(z) z.classList.remove('sobre'); });
+attCorpo.addEventListener('drop', function(e){
+  var z = e.target.closest && e.target.closest('#att-solta'); if(!z) return;
+  e.preventDefault(); z.classList.remove('sobre'); attAcrescentar(e.dataTransfer.files);
+});
+
 /* ---------- app instalável e offline ---------- */
 (function(){
   // o service worker guarda o app no aparelho. Só existe em https ou localhost.

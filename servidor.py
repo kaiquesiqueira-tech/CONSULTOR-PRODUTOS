@@ -25,6 +25,9 @@ import http.server
 import socketserver
 import subprocess
 import urllib.parse
+import re
+import json
+import shutil
 
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 PASTA_DADOS = os.path.join(RAIZ, "dados")
@@ -164,6 +167,90 @@ def meu_ip():
         return None
 
 
+# ---------------------------------------------------------------------
+#  ATUALIZAR A BASE PELO APP
+#  O app manda as planilhas para ca. Elas esperam em dados/_recebidos ate
+#  voce confirmar no app. Ao confirmar, as antigas do mesmo tipo e filiais
+#  vao para dados/_substituidos/<data-hora> (nada e apagado) e as novas
+#  entram em dados. A vigia percebe, monta o app e envia ao GitHub.
+# ---------------------------------------------------------------------
+PASTA_RECEBIDOS = os.path.join(PASTA_DADOS, "_recebidos")
+PASTA_SUBSTITUIDOS = os.path.join(PASTA_DADOS, "_substituidos")
+TAMANHO_MAXIMO = 80 * 1024 * 1024
+TRAVA_ENVIO = threading.Lock()
+
+
+def _lote_valido(lote):
+    return bool(re.fullmatch(r"[A-Za-z0-9]{6,40}", lote or ""))
+
+
+def _nome_valido(nome):
+    nome = os.path.basename((nome or "").replace("\\", "/")).strip()
+    if not nome or nome.startswith(("~$", ".")) or not nome.lower().endswith((".xlsx", ".xlsm", ".xls")):
+        return ""
+    return nome
+
+
+def atuais_na_pasta():
+    """Tipo e filiais das planilhas que estao hoje em dados (do ultimo build; le na hora o que for novo)."""
+    conhecidos = {a["n"]: a for a in build.ARQUIVOS_LIDOS}
+    return [conhecidos.get(os.path.basename(c)) or build.analisar_planilha(c) for c in build.achar_planilhas()]
+
+
+def conferir_lote(lote):
+    pasta = os.path.join(PASTA_RECEBIDOS, lote)
+    novos, recusados = [], []
+    for nome in sorted(os.listdir(pasta)) if os.path.isdir(pasta) else []:
+        info = build.analisar_planilha(os.path.join(pasta, nome))
+        (novos if info["t"] else recusados).append(info)
+    plano = build.plano_de_troca(novos, atuais_na_pasta())
+    plano["recusados"] = recusados
+    return plano
+
+
+def aplicar_lote(lote):
+    plano = conferir_lote(lote)        # confere de novo: nao confia no que o app mandou
+    if not plano["entram"]:
+        return {"ok": False, "erro": "Nenhuma planilha reconhecida para entrar."}
+    copia = os.path.join(PASTA_SUBSTITUIDOS, time.strftime("%Y-%m-%d_%H-%M-%S"))
+    sairam = []
+    for item in plano["saem"]:
+        origem = os.path.join(PASTA_DADOS, item["n"])
+        if os.path.exists(origem):
+            os.makedirs(copia, exist_ok=True)
+            shutil.move(origem, os.path.join(copia, item["n"]))
+            sairam.append(item["n"])
+    for item in plano["entram"]:
+        destino = os.path.join(PASTA_DADOS, item["n"])
+        if os.path.exists(destino):
+            os.makedirs(copia, exist_ok=True)
+            shutil.move(destino, os.path.join(copia, item["n"]))
+        shutil.move(os.path.join(PASTA_RECEBIDOS, lote, item["n"]), destino)
+        os.utime(destino, None)        # a mais nova fica por ultimo na leitura
+    shutil.rmtree(os.path.join(PASTA_RECEBIDOS, lote), ignore_errors=True)
+    print("\n[%s] Planilhas recebidas pelo app: %s" % (time.strftime("%H:%M:%S"),
+                                                      ", ".join(i["n"] for i in plano["entram"])))
+    if sairam:
+        print("  Substituidas (guardadas em %s): %s" % (os.path.relpath(copia, RAIZ), ", ".join(sairam)))
+    return {"ok": True, "entraram": [i["n"] for i in plano["entram"]], "sairam": sairam,
+            "copia": os.path.relpath(copia, RAIZ) if sairam else "", "avisos": plano["avisos"],
+            "recusados": [i["n"] for i in plano["recusados"]],
+            "github": ENVIAR_PARA_O_GITHUB and os.path.isdir(os.path.join(RAIZ, ".git"))}
+
+
+def limpar_recebidos_velhos():
+    """Envios que ninguem confirmou ha mais de um dia."""
+    if not os.path.isdir(PASTA_RECEBIDOS):
+        return
+    for nome in os.listdir(PASTA_RECEBIDOS):
+        caminho = os.path.join(PASTA_RECEBIDOS, nome)
+        try:
+            if time.time() - os.path.getmtime(caminho) > 86400:
+                shutil.rmtree(caminho, ignore_errors=True)
+        except OSError:
+            pass
+
+
 class Servidor(http.server.SimpleHTTPRequestHandler):
     extensions_map = dict(http.server.SimpleHTTPRequestHandler.extensions_map,
                           **{".webmanifest": "application/manifest+json", ".js": "text/javascript"})
@@ -181,7 +268,62 @@ class Servidor(http.server.SimpleHTTPRequestHandler):
             return True
         return alvo in build.ARQUIVOS_DO_SITE
 
+    def _json(self, status, obj):
+        corpo = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(corpo)))
+        self.end_headers()
+        self.wfile.write(corpo)
+
+    def do_POST(self):
+        u = urllib.parse.urlparse(self.path)
+        rota = u.path.strip("/")
+        q = urllib.parse.parse_qs(u.query)
+        lote = (q.get("lote") or [""])[0]
+        if rota not in ("base/receber", "base/conferir", "base/aplicar"):
+            self.send_error(404, "Nao disponivel")
+            return
+        if not _lote_valido(lote):
+            self._json(400, {"ok": False, "erro": "Envio invalido."})
+            return
+        try:
+            if rota == "base/receber":
+                nome = _nome_valido((q.get("nome") or [""])[0])
+                tamanho = int(self.headers.get("Content-Length") or 0)
+                if not nome:
+                    self.close_connection = True
+                    self._json(400, {"ok": False, "erro": "So planilhas do Excel (.xlsx, .xls, .xlsm)."})
+                    return
+                if tamanho <= 0 or tamanho > TAMANHO_MAXIMO:
+                    self.close_connection = True
+                    self._json(413, {"ok": False, "erro": "Arquivo vazio ou maior que 80 MB."})
+                    return
+                pasta = os.path.join(PASTA_RECEBIDOS, lote)
+                os.makedirs(pasta, exist_ok=True)
+                falta = tamanho
+                with open(os.path.join(pasta, nome), "wb") as f:
+                    while falta > 0:
+                        pedaco = self.rfile.read(min(1 << 20, falta))
+                        if not pedaco:
+                            break
+                        f.write(pedaco)
+                        falta -= len(pedaco)
+                self._json(200, {"ok": falta == 0, "nome": nome})
+            elif rota == "base/conferir":
+                with TRAVA_ENVIO:
+                    self._json(200, dict(conferir_lote(lote), ok=True))
+            else:
+                with TRAVA_ENVIO:
+                    self._json(200, aplicar_lote(lote))
+        except Exception as erro:
+            self._json(500, {"ok": False, "erro": "O servidor nao conseguiu processar: %s" % erro})
+
     def do_GET(self):
+        if urllib.parse.urlparse(self.path).path.strip("/") == "base/status":
+            self._json(200, {"ok": True, "arquivos": atuais_na_pasta(),
+                             "github": ENVIAR_PARA_O_GITHUB and os.path.isdir(os.path.join(RAIZ, ".git"))})
+            return
         if not self._liberado():
             self.send_error(404, "Nao disponivel")
             return
@@ -209,6 +351,7 @@ class ServidorTCP(socketserver.ThreadingTCPServer):
 def principal():
     build.desligar_selecao_no_console()
     os.makedirs(PASTA_DADOS, exist_ok=True)
+    limpar_recebidos_velhos()
     gerar("Gerando o app pela primeira vez...")
 
     if not os.path.exists(os.path.join(PASTA_SAIDA, "index.html")):

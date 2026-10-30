@@ -1,11 +1,11 @@
 CONFERENCIA DOS ARQUIVOS - Consulta de Estoque
-Gerado em 21/10/2026. Versao do app: v055c0
+Gerado em 30/10/2026. Versao do app: v1d08b
 
 O PROJETO TEM 17 ARQUIVOS (fora este, os gerados e as suas planilhas).
 
 O JEITO MAIS RAPIDO DE CONFERIR
   Gere o app (iniciar.bat ou publicar.bat) e olhe o rodape da lista de produtos.
-  Se aparecer "app v055c0", o seu template.html e identico a este.
+  Se aparecer "app v1d08b", o seu template.html e identico a este.
 
 ARQUIVO POR ARQUIVO
   O tamanho em bytes aparece no Windows em: botao direito no arquivo > Propriedades
@@ -16,14 +16,14 @@ ARQUIVO POR ARQUIVO
   Arquivo                                   Bytes   Impressao (SHA1)
   ----------------------------------------------------------------
   .gitattributes                               76   7E3F38235B
-  .gitignore                                  581   02BF403360
-  build.py                                 60.563   D3F4AF72EC
+  .gitignore                                  734   5FD1ACCA3D
+  build.py                                 64.138   F24185753E
   iniciar.bat                                 766   5CE52CE8ED
-  LEIA-ME.md                               19.594   476C543D1F
+  LEIA-ME.md                               22.284   EC2199DB2C
   publicar.bat                              3.534   67EF8E6851
   requirements.txt                            195   88192F98DC
-  servidor.py                               8.975   CD11431777
-  template.html                           107.476   055C0D330B
+  servidor.py                              15.481   E4E44A3EFB
+  template.html                           136.709   1D08B4DC8C
   verificar.bat                               184   905CEF4326
   verificar.py                              7.101   D5B1614CF7
   .vscode\extensions.json                      95   AA06405E97
@@ -37,8 +37,9 @@ SE NA SUA PASTA EXISTIR, PODE APAGAR (sao de versoes antigas e nada usa):
   enviar.bat, config.txt, vigia.log, as pastas dist e docs, jarvis_chave.txt,
   gemini_chave.txt
 
-NAO ENTRAM NA COMPARACAO (sao gerados pelo build e mudam a cada vez):
-  index.html, versao.txt, sw.js, manifest.webmanifest, icone-*.png
+NAO ENTRAM NA COMPARACAO (sao gerados ou criados pelo uso):
+  index.html, versao.txt, sw.js, manifest.webmanifest, icone-*.png,
+  e as pastas dados\_recebidos e dados\_substituidos
 
 NAO VEM NESTE PACOTE (sao seus):
   as planilhas da pasta dados.

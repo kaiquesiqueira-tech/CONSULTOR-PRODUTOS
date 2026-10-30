@@ -141,6 +141,62 @@ as listas longas são desenhadas conforme você rola.
 
 ---
 
+## Atualizar a base pelo próprio app
+
+No topo do consultor tem o botão de **enviar** (a seta para cima), ao lado do
+botão de tema. Por ele você anexa as exportações do Protheus e o app atualiza a
+base para todo mundo — sem abrir a pasta do projeto.
+
+**Como funciona:**
+
+1. Toque no botão de enviar e escolha as planilhas (.xlsx), ou arraste os
+   arquivos para a janela.
+2. Escolha por onde enviar (veja abaixo) e toque em **Conferir**.
+3. O app lê as planilhas e mostra **o que vai entrar e o que vai sair**. Nada
+   é trocado ainda.
+4. Se estiver certo, toque em **Confirmar e atualizar**. Em 1 ou 2 minutos a
+   base nova aparece em todos os aparelhos, que recarregam sozinhos.
+
+**A regra de troca:** cada planilha nova substitui a antiga **do mesmo tipo e
+das mesmas filiais** (e a que tiver o mesmo nome). Um saldo físico novo das
+filiais 02 troca só o saldo físico antigo das 02; o das 10 continua. Se a
+planilha nova cobre só uma parte das filiais da antiga, a antiga fica e o app
+avisa — para trocar de vez, exporte todas as filiais juntas. Planilha que o app
+não reconhece fica de fora.
+
+### Os dois caminhos
+
+**Computador do servidor — sem senha.** Aparece quando o app foi aberto pelo
+computador que está com o `iniciar.bat` ligado (no próprio computador ou de
+outro aparelho na rede da empresa). O computador recebe as planilhas, troca na
+pasta `dados`, monta a base e publica no GitHub sozinho. As planilhas que
+saem **não são apagadas**: vão para `dados\_substituidos\<data e hora>`, para
+você poder desfazer um engano. O computador do servidor precisa estar ligado,
+com o `iniciar.bat` aberto.
+
+**GitHub — de qualquer lugar.** Aparece quando o app foi aberto pelo site do
+GitHub. Funciona até no celular com 4G. As planilhas vão direto para o
+repositório, e o GitHub monta a base (uns 2 minutos). As que saem continuam no
+histórico do GitHub, se precisar recuperar.
+
+Para o caminho do GitHub, **cada aparelho precisa de um token, uma vez só**. O
+app explica como criar na própria janela; em resumo:
+
+1. Entre em github.com/settings/personal-access-tokens/new.
+2. Dê um nome e uma validade.
+3. Em **Repository access**, marque **Only select repositories** e escolha o
+   repositório do consultor.
+4. Em **Permissions → Contents**, escolha **Read and write**.
+5. Gere, copie e cole na janela do app. Ele fica guardado **só naquele
+   aparelho**. Não mande o token para ninguém; quando vencer, é só cadastrar
+   outro (o app avisa).
+
+**Cuidado:** qualquer pessoa na rede da empresa que abrir o app pelo computador
+do servidor consegue enviar planilhas por ele. O app confere tudo antes e
+guarda as substituídas, mas vale saber.
+
+---
+
 ## Os arquivos
 
 ```
