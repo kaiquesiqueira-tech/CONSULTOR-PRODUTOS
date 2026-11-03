@@ -197,6 +197,54 @@ guarda as substituídas, mas vale saber.
 
 ---
 
+## Última retirada (SD3)
+
+Quando a SD3 da pasta `dados` mostra que um produto saiu de um endereço, o app
+guarda **o endereço da última retirada**:
+
+- Na **ficha do produto**, no bloco "Onde está", aparece a linha **Última
+  retirada (SD3)**: o endereço, o armazém, a data e quanto saiu.
+- No **cartão da lista**, aparece uma etiqueta com contorno tracejado, "saiu
+  de …", só quando ela acrescenta algo: produto que zerou (mostra onde ele
+  ficava) ou que saiu de um endereço que não está mais no cadastro dele. A
+  etiqueta amarela cheia continua sendo o endereço de agora.
+
+Só existe para os produtos que saíram nos dias que a SD3 cobre, e que tinham
+endereço — diesel e outros que não controlam endereço saem sem endereço na
+SD3. Quanto mais dias a SD3 exportada cobrir, mais produtos têm essa
+informação.
+
+---
+
+## Etiquetas para a Zebra (100 × 50 mm)
+
+O app imprime a etiqueta do produto no mesmo modelo das etiquetas do
+almoxarifado, sem a nota fiscal e o fornecedor: a **descrição** em cima, o
+**código de barras** do código do produto no meio (Code 128, que o coletor de
+dados lê), o código escrito embaixo, e no rodapé o **nome da filial** e a
+**data**.
+
+- **Um produto:** na ficha, botão **Imprimir etiqueta**.
+- **Vários:** marque os produtos na lista e toque em **Etiquetas**, ao lado de
+  Separar. Dá para escolher quantas cópias de cada um.
+
+O nome da filial no rodapé você digita uma vez por filial (ex.: "TGMSE -
+FILIAL BARRO ALTO") e o aparelho lembra. A data vem com o dia de hoje e pode
+ser trocada antes de imprimir.
+
+### Configurar a Zebra, uma vez
+
+1. No Windows, nas **Preferências de impressão** da Zebra (driver
+   ZDesigner), deixe o tamanho da etiqueta em **100 × 50 mm**.
+2. Na janela de impressão do navegador, escolha a **Zebra** como impressora.
+3. Em **Mais configurações**: Margens **Nenhuma**, Escala **Padrão**, e
+   desmarque **Cabeçalhos e rodapés**. O navegador lembra para as próximas.
+
+Se a etiqueta sair cortada ou com uma parte em branco, quase sempre é o passo 1
+(o tamanho no driver diferente de 100 × 50) ou a escala diferente de Padrão.
+
+---
+
 ## Os arquivos
 
 ```

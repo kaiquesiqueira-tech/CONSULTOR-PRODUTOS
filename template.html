@@ -578,6 +578,11 @@ main{padding:14px 14px 92px}
 .carregando .esq i:nth-child(3){width:22%; height:20px; background:var(--loc); opacity:.35}
 .carregando p{text-align:center; color:var(--muted); font-size:13px; margin:14px 0}
 .sentinela{height:1px}
+.loc.ult{background:transparent; color:var(--ink); border:1px dashed var(--loc-edge); border-left:5px solid var(--loc);
+  box-shadow:none; font-weight:500}
+.ultrow{flex-wrap:wrap; row-gap:6px}
+.ultrot{font-size:12px; font-weight:700; color:var(--muted); margin-right:2px}
+.ultrow em{color:var(--muted); font-style:normal; font-size:12.5px}
 .semrede{background:var(--alert-soft); color:var(--alert); border:1px solid var(--alert); border-radius:10px;
   padding:9px 12px; font-size:13px; margin-bottom:10px; line-height:1.4}
 .semrede[hidden]{display:none}
@@ -695,6 +700,32 @@ main{padding:14px 14px 92px}
 .att-ok{background:var(--act-soft); border:1px solid var(--act); border-radius:10px; padding:12px 14px}
 .att-ok b{color:var(--act)}
 .att-ok p{margin:6px 0 0; font-size:13.5px; line-height:1.5}
+
+/* ---------- etiqueta 100 x 50 mm ---------- */
+.etq{width:100mm; height:50mm; box-sizing:border-box; padding:3mm 4mm 2.5mm; background:#fff; color:#000;
+  display:flex; flex-direction:column; font-family:Arial, Helvetica, sans-serif; overflow:hidden}
+.etq-desc{font-size:13pt; font-weight:700; line-height:1.15; text-transform:uppercase;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.etq-meio{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1mm; min-height:0}
+.etq-barras{display:block}
+.etq-cod{font-size:13pt; letter-spacing:.08em}
+.etq-rod{display:flex; justify-content:space-between; gap:4mm; font-size:8.5pt; font-weight:700; text-transform:uppercase}
+.etq-rod span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.etq-previa{background:#fff; border:1px dashed var(--line-2); border-radius:6px; overflow:hidden}
+.etq-campos{display:flex; flex-direction:column; gap:10px}
+.etq-campos label{display:flex; flex-direction:column; gap:4px; font-size:12.5px; font-weight:600; color:var(--muted)}
+.etq-campos input{padding:9px 11px; border:1px solid var(--line-2); border-radius:9px; background:var(--surface); color:var(--ink);
+  font:inherit; font-size:15px; font-weight:500}
+.etq-cop{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); flex:none}
+.etq-cop input{width:62px; padding:6px 8px; border:1px solid var(--line-2); border-radius:7px; background:var(--surface);
+  color:var(--ink); font:inherit; font-size:14px; text-align:right}
+.etq-ajuda{margin:8px 0 0; padding-left:18px; line-height:1.5}
+.btn.etq-botao{width:100%; margin-bottom:10px}
+@media print{
+  body.etiquetas, body.etiquetas #area-impressao{margin:0 !important; padding:0 !important}
+  body.etiquetas #area-impressao .etq{break-after:page; page-break-after:always}
+  body.etiquetas #area-impressao .etq:last-child{break-after:auto; page-break-after:auto}
+}
 </style>
 </head>
 <body>
@@ -769,6 +800,18 @@ main{padding:14px 14px 92px}
       </button>
     </div>
     <div class="att-corpo" id="att-corpo"></div>
+  </div>
+</section>
+
+<section class="att" id="etq" role="dialog" aria-modal="true" aria-labelledby="etq-titulo" hidden>
+  <div class="att-caixa">
+    <div class="att-cab">
+      <h2 id="etq-titulo">Etiquetas</h2>
+      <button class="iconbtn" id="etq-fechar" aria-label="Fechar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="att-corpo" id="etq-corpo"></div>
   </div>
 </section>
 
@@ -854,6 +897,30 @@ ITENS.forEach(function(it){
 });
 var MAPA = {};
 ITENS.forEach(function(it){ MAPA[it.f + '|' + it.c] = it; });
+
+/* Última saída de cada produto, pela SD3: o endereço de onde ele foi retirado
+   por último. Só existe para produto que saiu nos dias que a SD3 cobre e que
+   tinha endereço (diesel e outros sem controle de endereço não têm). */
+var ULT_SAIDA = {};
+(D.movimentos || []).forEach(function(m){
+  if(!m[9]) return;
+  var tm = parseInt(m[4], 10);
+  if(!isNaN(tm) && tm <= 500) return;                       // só saídas
+  var k = m[0] + '|' + m[1], u = ULT_SAIDA[k];
+  if(!u || m[7] > u.dia) u = ULT_SAIDA[k] = {dia: m[7], ends: [], arm: m[8] || '', qtd: 0, un: m[11] || ''};
+  else if(m[7] < u.dia) return;
+  if(u.ends.indexOf(m[9]) < 0) u.ends.push(m[9]);
+  u.qtd += m[3];
+});
+function ultSaida(it){ return ULT_SAIDA[it.f + '|' + it.c] || null; }
+function ultSaidaHTML(it){
+  var u = ultSaida(it);
+  if(!u) return '';
+  return '<div class="locrow ultrow"><span class="ultrot">Última retirada (SD3)</span>' +
+    u.ends.map(function(e){ return '<span class="loc ult">' + esc(e) + '</span>'; }).join('') +
+    (u.arm ? '<span class="arm">arm ' + esc(u.arm) + '</span>' : '') +
+    '<em>' + data(u.dia) + ' · saiu ' + nq(u.qtd) + (u.un ? ' ' + esc(u.un) : '') + '</em></div>';
+}
 
 /* Os ~40 mil produtos sem saldo não aparecem na tela inicial ("Só com saldo").
    São montados depois da primeira lista, em segundo plano. Quem precisar deles
@@ -984,6 +1051,13 @@ function cardHTML(it){
     loc = '<span class="loc">'+esc(it.ends[0].e)+'</span>';
     if(it.ends.length>1) loc += '<span class="flag ok">+'+(it.ends.length-1)+' '+plural(it.ends.length-1,'local','locais')+'</span>';
   }
+  var u = ultSaida(it);
+  if(u){
+    var atuais = it.ends.map(function(e){ return e.e; });
+    var outros = u.ends.filter(function(e){ return atuais.indexOf(e) < 0; });
+    if(outros.length) loc += '<span class="loc ult" title="Última retirada pela SD3, em ' + data(u.dia) + '">saiu de ' +
+                             esc(outros[0]) + (outros.length > 1 ? ' +' + (outros.length - 1) : '') + '</span>';
+  }
   var flags = '';
   if(it.div) flags += '<span class="flag">divergência</span>';
   if(it.emp>0) flags += '<span class="flag">'+nq(it.emp)+' empenhado</span>';
@@ -1015,7 +1089,8 @@ function abrir(id){
 
   h += '<div class="btnrow">'+
     '<button class="btn" id="addsep">Separar</button>'+
-    '<button class="btn ghost" id="copiar">Copiar código</button></div>';
+    '<button class="btn ghost" id="copiar">Copiar código</button></div>' +
+    '<button class="btn ghost etq-botao" id="etq-um">Imprimir etiqueta</button>';
 
   var linhaCtrl = '<div class="locrow"><span style="color:var(--muted);font-size:13px">Indicador da SBZ</span>' +
     '<span style="margin-left:auto">' + etiquetaControle(it) + '</span></div>';
@@ -1032,19 +1107,19 @@ function abrir(id){
       h += '<div class="locrow"><em>Endereços somam '+nq(it.somaEnd)+' e o saldo físico é '+nq(it.saldo)+
            ' ('+(dif>0?'+':'')+nq(dif)+'). Confira antes de separar.</em></div>';
     }
-    h += '</div>';
+    h += ultSaidaHTML(it) + '</div>';
   } else if(it.saldo>0 && it.naoCtrl){
     h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl +
          '<div class="locrow"><span class="arm">armazém</span><span class="qn">'+nq(it.saldo)+'</span></div>'+
          '<div class="locrow"><span style="font-size:12.5px;color:var(--muted)">Contr. Endereço = Nao: o produto '+
-         'fica no armazém sem posição definida. Não é pendência.</span></div></div>';
+         'fica no armazém sem posição definida. Não é pendência.</span></div>' + ultSaidaHTML(it) + '</div>';
   } else if(it.saldo>0){
     h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl + '<div class="locrow">'+
          '<span class="loc none">sem endereço cadastrado</span>'+
          '<span class="qn">'+nq(it.saldo)+'</span></div>'+
-         '<div class="locrow"><em>Tem saldo físico, mas nenhum endereço. Localize e enderece no sistema.</em></div></div>';
+         '<div class="locrow"><em>Tem saldo físico, mas nenhum endereço. ' + (ultSaida(it) ? 'A última saída foi deste endereço: comece procurando por lá.' : 'Localize e enderece no sistema.') + '</em></div>' + ultSaidaHTML(it) + '</div>';
   } else {
-    h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl + '</div>';
+    h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl + ultSaidaHTML(it) + '</div>';
   }
 
   h += '<div class="block"><h3>Por armazém</h3><dl class="kv">';
@@ -1072,6 +1147,7 @@ function abrir(id){
   document.querySelector('.col2').classList.add('on');
   if(window.innerWidth < 860) document.body.classList.add('locked');
   document.getElementById('addsep').addEventListener('click', function(){ addSep(it); });
+  document.getElementById('etq-um').addEventListener('click', function(){ abrirEtiquetas([it]); });
   document.getElementById('copiar').addEventListener('click', function(e){
     var botao = e.currentTarget;
     copiarTexto(it.c).then(function(){
@@ -1090,6 +1166,7 @@ document.querySelector('.col2').addEventListener('click', function(e){
   if(e.target===this && document.getElementById('main').classList.contains('single')) fechar();
 });
 document.addEventListener('keydown', function(e){
+  if(e.key==='Escape' && !etqJanela.hidden){ fecharEtiquetas(); return; }
   if(e.key==='Escape' && !attJanela.hidden){ attFechar(); return; }
   if(e.key==='Escape' && panel.classList.contains('open')) fechar();
   var foco = (document.activeElement || {}).tagName;
@@ -1188,6 +1265,7 @@ function barraSelecao(){
     (qtd
       ? '<span class="acoes"><span class="nsel">' + qtd + ' ' + plural(qtd,'selecionado','selecionados') + '</span>' +
         '<button class="btn ghost mini" id="sel-limpar">Limpar</button>' +
+        '<button class="btn ghost mini" id="sel-etq">Etiquetas</button>' +
         '<button class="btn mini" id="sel-separar">Separar</button></span>'
       : '<span class="dica-sel">marque os produtos para separar</span>') +
     '</div>';
@@ -1951,6 +2029,7 @@ lista.addEventListener('click', function(e){
   var ui = e.target.closest('[data-impinv]');
   if(ui){ imprimirInventario(ULTIMOS_INV.filter(function(g){ return g.k === ui.dataset.impinv; })); return; }
   if(e.target.closest('#sel-separar')){ separarSelecionados(); return; }
+  if(e.target.closest('#sel-etq')){ abrirEtiquetas(Object.keys(S.selec).map(function(id){ return ITENS[+id]; })); return; }
   if(e.target.closest('#sel-limpar')){ S.selec = {}; render(); return; }
   var ct = e.target.closest('[data-ctrl]');
   if(ct){ S.ctrl = ct.dataset.ctrl || null; render(); return; }
@@ -2024,6 +2103,149 @@ window.addEventListener('resize', medirTopo);
   var n = (D.pendentes || []).length, b = document.getElementById('pendn');
   if(b){ b.textContent = n; b.hidden = n === 0; }
 })();
+/* ======================================================================
+   ETIQUETAS 100 x 50 mm para a impressora Zebra.
+   Descrição em cima, código de barras (Code 128) do código do produto no
+   meio, o código escrito embaixo, e no rodapé o nome da filial e a data.
+   ====================================================================== */
+var C128 = ['11011001100','11001101100','11001100110','10010011000','10010001100','10001001100','10011001000','10011000100','10001100100','11001001000','11001000100','11000100100','10110011100','10011011100','10011001110','10111001100','10011101100','10011100110','11001110010','11001011100','11001001110','11011100100','11001110100','11101101110','11101001100','11100101100','11100100110','11101100100','11100110100','11100110010','11011011000','11011000110','11000110110','10100011000','10001011000','10001000110','10110001000','10001101000','10001100010','11010001000','11000101000','11000100010','10110111000','10110001110','10001101110','10111011000','10111000110','10001110110','11101110110','11010001110','11000101110','11011101000','11011100010','11011101110','11101011000','11101000110','11100010110','11101101000','11101100010','11100011010','11101111010','11001000010','11110001010','10100110000','10100001100','10010110000','10010000110','10000101100','10000100110','10110010000','10110000100','10011010000','10011000010','10000110100','10000110010','11000010010','11001010000','11110111010','11000010100','10001111010','10100111100','10010111100','10010011110','10111100100','10011110100','10011110010','11110100100','11110010100','11110010010','11011011110','11011110110','11110110110','10101111000','10100011110','10001011110','10111101000','10111100010','11110101000','11110100010','10111011110','10111101110','11101011110','11110101110','11010000100','11010010000','11010011100'];
+var ETQ = {itens: [], copias: {}};
+var etqJanela = document.getElementById('etq'), etqCorpo = document.getElementById('etq-corpo');
+
+/* Code 128: só números usa o conjunto C (dois dígitos por barra, mais compacto);
+   qualquer outra coisa usa o conjunto B. */
+function code128(texto){
+  var s = String(texto), v = [];
+  if(/^\d{2,}$/.test(s)){
+    var par = s.length % 2 ? s.slice(0, -1) : s;
+    v.push(105);                                                   // início C
+    for(var i = 0; i < par.length; i += 2) v.push(parseInt(par.substr(i, 2), 10));
+    if(par.length < s.length){ v.push(100); v.push(s.charCodeAt(s.length - 1) - 32); }   // troca para B no último
+  } else {
+    v.push(104);                                                   // início B
+    for(var j = 0; j < s.length; j++){
+      var c = s.charCodeAt(j);
+      if(c < 32 || c > 126) throw new Error('caractere que não cabe no código de barras: ' + s[j]);
+      v.push(c - 32);
+    }
+  }
+  var soma = v[0];
+  for(var k = 1; k < v.length; k++) soma += v[k] * k;
+  v.push(soma % 103);                                              // dígito de controle
+  return v.map(function(x){ return C128[x]; }).join('') + '1100011101011';   // + parada
+}
+
+/* SVG do código de barras. modulo = largura da barra mais fina, em mm.
+   Múltiplo de 0,125 mm = 1 ponto de uma Zebra de 203 dpi: barras certinhas. */
+function barrasSVG(texto, alturaMm, larguraMaxMm){
+  var bits = code128(texto), quieta = 10, total = bits.length + 2 * quieta;
+  var modulo = Math.max(0.25, Math.min(0.5, Math.floor((larguraMaxMm / total) / 0.125) * 0.125));
+  var rects = '', i = 0;
+  while(i < bits.length){
+    if(bits[i] === '1'){
+      var ini = i;
+      while(i < bits.length && bits[i] === '1') i++;
+      rects += '<rect x="' + (quieta + ini) + '" y="0" width="' + (i - ini) + '" height="1"/>';
+    } else i++;
+  }
+  return '<svg class="etq-barras" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + total + ' 1" preserveAspectRatio="none" ' +
+         'shape-rendering="crispEdges" style="width:' + (total * modulo) + 'mm;height:' + alturaMm + 'mm">' +
+         '<rect width="' + total + '" height="1" fill="#fff"/><g fill="#000">' + rects + '</g></svg>';
+}
+
+function etqNomeFilial(f){ return store('etq_filial_' + FIL[f]) || ('FILIAL ' + FIL[f]); }
+function etqData(){ var d = document.getElementById('etq-data'); return d && d.value ? d.value.split('-').reverse().join('/') : hojeTexto(); }
+function hojeTexto(){ var d = new Date(); return [d.getDate(), d.getMonth() + 1].map(function(n){ return String(n).padStart(2, '0'); }).join('/') + '/' + d.getFullYear(); }
+
+function etiquetaHTML(it, dataTxt){
+  return '<div class="etq">' +
+    '<div class="etq-desc">' + esc(it.d || '') + '</div>' +
+    '<div class="etq-meio">' + barrasSVG(it.c, 17, 88) + '<div class="etq-cod">' + esc(it.c) + '</div></div>' +
+    '<div class="etq-rod"><span>' + esc(etqNomeFilial(it.f)) + '</span><span>' + esc(dataTxt) + '</span></div>' +
+    '</div>';
+}
+
+function abrirEtiquetas(itens){
+  ETQ.itens = itens.filter(Boolean); ETQ.copias = {};
+  ETQ.itens.forEach(function(it){ ETQ.copias[it.id] = 1; });
+  etqJanela.hidden = false; document.body.classList.add('locked');
+  etqRender();
+}
+function fecharEtiquetas(){
+  etqJanela.hidden = true;
+  if(!panel.classList.contains('open')) document.body.classList.remove('locked');
+}
+
+function etqRender(){
+  var hoje = new Date(), iso = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+  var dataAtual = document.getElementById('etq-data') ? document.getElementById('etq-data').value : iso;
+  var filiais = {};
+  ETQ.itens.forEach(function(it){ filiais[it.f] = 1; });
+  var h = '<div class="etq-previa" id="etq-previa">' + etiquetaHTML(ETQ.itens[0], dataAtual.split('-').reverse().join('/')) + '</div>';
+  h += '<p class="att-intro">Etiqueta de 100 × 50 mm. O código de barras é o código do produto, para o coletor.</p>';
+  h += '<div class="etq-campos">' + Object.keys(filiais).map(function(f){
+         return '<label>Nome da filial ' + FIL[f] + ' no rodapé<input type="text" data-etq-filial="' + f + '" value="' +
+                esc(etqNomeFilial(+f)) + '" maxlength="60"></label>'; }).join('') +
+       '<label>Data<input type="date" id="etq-data" value="' + dataAtual + '"></label></div>';
+  h += '<ul class="att-lista">' + ETQ.itens.map(function(it){
+         return '<li><span class="att-nome"><b>' + esc(it.c) + '</b> ' + esc(it.d || '') + '</span>' +
+                '<label class="etq-cop">cópias<input type="number" min="0" max="500" value="' + ETQ.copias[it.id] + '" data-etq-cop="' + it.id + '"></label></li>';
+       }).join('') + '</ul>';
+  var total = ETQ.itens.reduce(function(s, it){ return s + (ETQ.copias[it.id] || 0); }, 0);
+  h += '<details class="att-atual"><summary>Configurar a Zebra (uma vez)</summary><ol class="etq-ajuda">' +
+       '<li>No Windows, nas <b>Preferências de impressão</b> da Zebra (ZDesigner), deixe a etiqueta em <b>100 × 50 mm</b>.</li>' +
+       '<li>Na janela de impressão, escolha a <b>Zebra</b> como impressora.</li>' +
+       '<li>Em <b>Mais configurações</b>: Margens <b>Nenhuma</b>, Escala <b>Padrão</b>, e desmarque <b>Cabeçalhos e rodapés</b>. O navegador lembra para as próximas.</li>' +
+       '</ol></details>';
+  h += '<div class="att-acoes"><button type="button" class="btn" id="etq-imprimir"' + (total ? '' : ' disabled') + '>Imprimir ' +
+       total + ' ' + plural(total, 'etiqueta', 'etiquetas') + '</button></div>';
+  etqCorpo.innerHTML = h;
+  etqAjustarPrevia();
+}
+function etqAjustarPrevia(){
+  var p = document.getElementById('etq-previa'); if(!p) return;
+  var e = p.firstChild, larg = p.clientWidth, real = e.getBoundingClientRect().width / (parseFloat(e.style.transform.replace(/[^\d.]/g, '')) || 1);
+  var esc_ = Math.min(1, larg / real);
+  e.style.transform = 'scale(' + esc_ + ')'; e.style.transformOrigin = 'top left';
+  p.style.height = (e.offsetHeight * esc_) + 'px';
+}
+
+function imprimirEtiquetas(){
+  var dataTxt = etqData(), h = '';
+  ETQ.itens.forEach(function(it){ for(var n = 0; n < (ETQ.copias[it.id] || 0); n++) h += etiquetaHTML(it, dataTxt); });
+  if(!h) return;
+  document.getElementById('area-impressao').innerHTML = h;
+  var pg = document.getElementById('etq-pagina');
+  if(!pg){ pg = document.createElement('style'); pg.id = 'etq-pagina'; document.head.appendChild(pg); }
+  pg.textContent = '@page{size:100mm 50mm;margin:0}';               // só durante a impressão das etiquetas
+  document.body.classList.add('imprimindo', 'etiquetas');
+  window.print();
+}
+window.addEventListener('afterprint', function(){
+  setTimeout(function(){
+    document.body.classList.remove('etiquetas');
+    var pg = document.getElementById('etq-pagina'); if(pg) pg.textContent = '';
+  }, 1500);
+});
+
+document.getElementById('etq-fechar').addEventListener('click', fecharEtiquetas);
+etqJanela.addEventListener('click', function(e){ if(e.target === etqJanela) fecharEtiquetas(); });
+etqCorpo.addEventListener('input', function(e){
+  var t = e.target;
+  if(t.dataset.etqFilial !== undefined){ store('etq_filial_' + FIL[+t.dataset.etqFilial], t.value.trim() || null); etqAtualizarPrevia(); }
+  else if(t.dataset.etqCop !== undefined){
+    ETQ.copias[+t.dataset.etqCop] = Math.max(0, Math.min(500, parseInt(t.value, 10) || 0));
+    var total = ETQ.itens.reduce(function(s, it){ return s + (ETQ.copias[it.id] || 0); }, 0), b = document.getElementById('etq-imprimir');
+    b.textContent = 'Imprimir ' + total + ' ' + plural(total, 'etiqueta', 'etiquetas'); b.disabled = !total;
+  } else if(t.id === 'etq-data') etqAtualizarPrevia();
+});
+function etqAtualizarPrevia(){
+  var p = document.getElementById('etq-previa');
+  p.innerHTML = etiquetaHTML(ETQ.itens[0], etqData());
+  etqAjustarPrevia();
+}
+etqCorpo.addEventListener('click', function(e){ if(e.target.closest('#etq-imprimir')) imprimirEtiquetas(); });
+
 /* ======================================================================
    ATUALIZAR A BASE pelo app.
    Dois caminhos: o computador do servidor (rede da empresa, sem senha) ou o

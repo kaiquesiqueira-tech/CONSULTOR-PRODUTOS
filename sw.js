@@ -1,7 +1,7 @@
 /* Gerado pelo build.py. Guarda o consultor no aparelho para funcionar sem internet.
    Com internet: busca sempre a versao nova primeiro (e guarda a copia).
    Sem internet, ou com a rede muito lenta: entrega a copia guardada. */
-const VERSAO = 'estoque-3fa3c-1d08b';
+const VERSAO = 'estoque-f08b5-01d22';
 const FONTES = 'estoque-fontes';
 const PAGINA = new URL('index.html', self.registration.scope).href;
 const ESSENCIAIS = ['index.html', 'manifest.webmanifest', 'icone-192.png', 'icone-512.png',
