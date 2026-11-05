@@ -163,6 +163,11 @@ def enviar_para_o_github():
         if _git("add", "-A").returncode != 0:
             return False, "nao consegui preparar os arquivos."
         _git("reset", "-q", "--", "gemini_chave.txt", "jarvis_chave.txt")   # chaves nunca sobem
+        # arquivos que o .gitignore manda ignorar mas que ficaram no repositorio de antes dele
+        # (o index.html de 30/10 era um): saem do repositorio e continuam na pasta
+        presos = _linhas("ls-files", "-ci", "--exclude-standard")
+        if presos:
+            _git("rm", "-q", "--cached", "--", *presos)
         if _git("diff", "--cached", "--quiet").returncode != 0:
             r = _git("commit", "-m", "Planilhas de " + time.strftime("%d/%m/%Y %H:%M"))
             if r.returncode != 0:

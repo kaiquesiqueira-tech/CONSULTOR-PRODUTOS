@@ -1,11 +1,11 @@
 CONFERENCIA DOS ARQUIVOS - Consulta de Estoque
-Gerado em 05/11/2026. Versao do app: v01d22
+Gerado em 05/11/2026. Versao do app: v73506
 
 O PROJETO TEM 17 ARQUIVOS (fora este, os gerados e as suas planilhas).
 
 O JEITO MAIS RAPIDO DE CONFERIR
   Gere o app (iniciar.bat ou publicar.bat) e olhe o rodape da lista de produtos.
-  Se aparecer "app v01d22", o seu template.html e identico a este.
+  Se aparecer "app v73506", o seu template.html e identico a este.
 
 ARQUIVO POR ARQUIVO
   O tamanho em bytes aparece no Windows em: botao direito no arquivo > Propriedades
@@ -19,11 +19,11 @@ ARQUIVO POR ARQUIVO
   .gitignore                                  734   5FD1ACCA3D
   build.py                                 64.818   0B21836805
   iniciar.bat                                 766   5CE52CE8ED
-  LEIA-ME.md                               24.990   AF77E9B730
+  LEIA-ME.md                               25.807   B6791CF02D
   publicar.bat                              3.432   93B95B85FB
   requirements.txt                            195   88192F98DC
-  servidor.py                              20.748   28AF198FD6
-  template.html                           151.600   01D229E9BE
+  servidor.py                              21.067   0BDB7875A9
+  template.html                           151.902   7350691B09
   verificar.bat                               184   905CEF4326
   verificar.py                              7.101   D5B1614CF7
   .vscode\extensions.json                      95   AA06405E97

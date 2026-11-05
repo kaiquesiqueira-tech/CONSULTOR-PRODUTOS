@@ -202,8 +202,11 @@ guarda as substituídas, mas vale saber.
 Quando a SD3 da pasta `dados` mostra que um produto saiu de um endereço, o app
 guarda **o endereço da última retirada**:
 
-- Na **ficha do produto**, no bloco "Onde está", aparece a linha **Última
-  retirada (SD3)**: o endereço, o armazém, a data e quanto saiu.
+- Na **ficha do produto**, no bloco "Movimentação e custo", logo abaixo de
+  "Última saída", aparece a linha **Último endereço (SD3)**: o endereço de onde
+  ele foi retirado por último e a data. Se a SD3 não tem retirada dele, a linha
+  diz "sem retirada na SD3"; se ele saiu mas a SD3 não traz endereço (diesel,
+  por exemplo), diz "saiu sem endereço na SD3".
 - No **cartão da lista**, aparece uma etiqueta com contorno tracejado, "saiu
   de …", só quando ela acrescenta algo: produto que zerou (mostra onde ele
   ficava) ou que saiu de um endereço que não está mais no cadastro dele. A
@@ -447,6 +450,15 @@ No seu repositório, aba **Actions**. Cada envio vira uma linha ali.
 
 **Precisa de internet?** Não. A única coisa que vem da internet é a fonte do
 texto; sem conexão o app usa a fonte do sistema e funciona igual.
+
+**O app atualiza e depois volta para uma base antiga?** O GitHub Pages está
+publicando de dois jeitos ao mesmo tempo, e o segundo publica por cima uma
+cópia velha. Corrija uma vez: no GitHub, abra o repositório → **Settings** →
+**Pages** → em **Build and deployment**, campo **Source**, escolha **GitHub
+Actions**. Depois, na aba **Actions**, abra **Gerar e publicar o app** e
+clique em **Run workflow**. Daí em diante, em **Actions** só deve aparecer
+"Gerar e publicar o app" a cada envio — se aparecer também
+"pages-build-deployment", a configuração não ficou salva.
 
 **O envio deu "rejected" ou "fetch first"?** Isso acontecia quando alguém
 tinha mandado planilhas pelo app (caminho do GitHub): o GitHub ficava com

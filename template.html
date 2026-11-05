@@ -583,6 +583,9 @@ main{padding:14px 14px 92px}
 .ultrow{flex-wrap:wrap; row-gap:6px}
 .ultrot{font-size:12px; font-weight:700; color:var(--muted); margin-right:2px}
 .ultrow em{color:var(--muted); font-style:normal; font-size:12.5px}
+.kv-mudo{color:var(--muted); font-size:12px}
+.kv-ult{display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:6px}
+.kv-ult .loc.ult{font-size:12.5px; padding:2px 8px}
 .semrede{background:var(--alert-soft); color:var(--alert); border:1px solid var(--alert); border-radius:10px;
   padding:9px 12px; font-size:13px; margin-bottom:10px; line-height:1.4}
 .semrede[hidden]{display:none}
@@ -901,11 +904,11 @@ ITENS.forEach(function(it){ MAPA[it.f + '|' + it.c] = it; });
 /* Última saída de cada produto, pela SD3: o endereço de onde ele foi retirado
    por último. Só existe para produto que saiu nos dias que a SD3 cobre e que
    tinha endereço (diesel e outros sem controle de endereço não têm). */
-var ULT_SAIDA = {};
+var ULT_SAIDA = {}, SAIU_SEM_END = {};
 (D.movimentos || []).forEach(function(m){
-  if(!m[9]) return;
   var tm = parseInt(m[4], 10);
   if(!isNaN(tm) && tm <= 500) return;                       // só saídas
+  if(!m[9]){ SAIU_SEM_END[m[0] + '|' + m[1]] = 1; return; }  // saiu, mas a SD3 não traz endereço
   var k = m[0] + '|' + m[1], u = ULT_SAIDA[k];
   if(!u || m[7] > u.dia) u = ULT_SAIDA[k] = {dia: m[7], ends: [], arm: m[8] || '', qtd: 0, un: m[11] || ''};
   else if(m[7] < u.dia) return;
@@ -913,13 +916,13 @@ var ULT_SAIDA = {};
   u.qtd += m[3];
 });
 function ultSaida(it){ return ULT_SAIDA[it.f + '|' + it.c] || null; }
-function ultSaidaHTML(it){
+function ultEnderecoKV(it){
   var u = ultSaida(it);
-  if(!u) return '';
-  return '<div class="locrow ultrow"><span class="ultrot">Última retirada (SD3)</span>' +
-    u.ends.map(function(e){ return '<span class="loc ult">' + esc(e) + '</span>'; }).join('') +
-    (u.arm ? '<span class="arm">arm ' + esc(u.arm) + '</span>' : '') +
-    '<em>' + data(u.dia) + ' · saiu ' + nq(u.qtd) + (u.un ? ' ' + esc(u.un) : '') + '</em></div>';
+  if(!u) return '<dt>Último endereço (SD3)</dt><dd><span class="kv-mudo">' +
+    (SAIU_SEM_END[it.f + '|' + it.c] ? 'saiu sem endereço na SD3' : 'sem retirada na SD3') + '</span></dd>';
+  return '<dt>Último endereço (SD3)</dt><dd class="kv-ult">' +
+    u.ends.map(function(e){ return '<span class="loc ult">' + esc(e) + '</span>'; }).join(' ') +
+    ' <span class="kv-mudo">' + data(u.dia) + '</span></dd>';
 }
 
 /* Os ~40 mil produtos sem saldo não aparecem na tela inicial ("Só com saldo").
@@ -1107,19 +1110,19 @@ function abrir(id){
       h += '<div class="locrow"><em>Endereços somam '+nq(it.somaEnd)+' e o saldo físico é '+nq(it.saldo)+
            ' ('+(dif>0?'+':'')+nq(dif)+'). Confira antes de separar.</em></div>';
     }
-    h += ultSaidaHTML(it) + '</div>';
+    h += '</div>';
   } else if(it.saldo>0 && it.naoCtrl){
     h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl +
          '<div class="locrow"><span class="arm">armazém</span><span class="qn">'+nq(it.saldo)+'</span></div>'+
          '<div class="locrow"><span style="font-size:12.5px;color:var(--muted)">Contr. Endereço = Nao: o produto '+
-         'fica no armazém sem posição definida. Não é pendência.</span></div>' + ultSaidaHTML(it) + '</div>';
+         'fica no armazém sem posição definida. Não é pendência.</span></div></div>';
   } else if(it.saldo>0){
     h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl + '<div class="locrow">'+
          '<span class="loc none">sem endereço cadastrado</span>'+
          '<span class="qn">'+nq(it.saldo)+'</span></div>'+
-         '<div class="locrow"><em>Tem saldo físico, mas nenhum endereço. ' + (ultSaida(it) ? 'A última saída foi deste endereço: comece procurando por lá.' : 'Localize e enderece no sistema.') + '</em></div>' + ultSaidaHTML(it) + '</div>';
+         '<div class="locrow"><em>Tem saldo físico, mas nenhum endereço. ' + (ultSaida(it) ? 'A última retirada pela SD3 foi de ' + esc(ultSaida(it).ends.join(', ')) + ': comece procurando por lá.' : 'Localize e enderece no sistema.') + '</em></div></div>';
   } else {
-    h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl + ultSaidaHTML(it) + '</div>';
+    h += '<div class="block"><h3>Onde está</h3>' + linhaCtrl + '</div>';
   }
 
   h += '<div class="block"><h3>Por armazém</h3><dl class="kv">';
@@ -1133,6 +1136,7 @@ function abrir(id){
   h += '<div class="block"><h3>Movimentação e custo</h3><dl class="kv">'+
     '<dt>Última saída</dt><dd'+(it.ultS && HOJE-it.ultS>365 ? ' class="warn"':'')+'>'+data(it.ultS)+
       (it.ultS?' <span style="color:var(--muted)">('+(HOJE-it.ultS)+'d)</span>':'')+'</dd>'+
+    ultEnderecoKV(it)+
     '<dt>Último movimento</dt><dd>'+data(it.ultM)+'</dd>'+
     (it.prev>0?'<dt>Previsto a receber</dt><dd>'+nq(it.prev)+'</dd>':'')+
     (it.aend>0?'<dt>A endereçar</dt><dd class="warn">'+nq(it.aend)+'</dd>':'')+
