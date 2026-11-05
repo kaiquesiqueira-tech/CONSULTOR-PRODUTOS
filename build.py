@@ -958,6 +958,15 @@ def principal(saida=None):
         else:
             print("  [ignorado]       %-34s %s" % (nome[:34], erro))
 
+    # duas planilhas do mesmo tipo com as mesmas filiais: os dados saem repetidos ou uma cobre a outra
+    for i, x in enumerate(lidos):
+        for y in lidos[i + 1:]:
+            comuns = set(x["f"]) & set(y["f"])
+            if (mesma_familia(x["t"], y["t"]) or mesma_familia(y["t"], x["t"])) and comuns:
+                AVISOS.append("Duas planilhas de %s com as mesmas filiais (%s): %s e %s.\n"
+                              "  Os dados podem sair repetidos. Deixe so a mais nova na pasta dados."
+                              % (TIPOS.get(x["t"], x["t"]), ", ".join(sorted(comuns)[:4]) + ("..." if len(comuns) > 4 else ""),
+                                 x["n"], y["n"]))
     if not partes_sb2 and not partes_sbf:
         print("\nNenhum arquivo reconhecido. Exporte de novo o SALDO FISICO e o SALDO POR ENDERECO.")
         return 1

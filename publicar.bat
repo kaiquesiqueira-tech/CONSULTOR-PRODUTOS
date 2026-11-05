@@ -41,15 +41,10 @@ if errorlevel 1 goto semrepo
 rem ---------------- enviando ----------------
 echo.
 echo  Enviando para o GitHub...
-git add -A
-rem as chaves nunca sobem, mesmo se o .gitignore estiver faltando
-git reset -q -- gemini_chave.txt jarvis_chave.txt >nul 2>&1
-git diff --cached --quiet
-if not errorlevel 1 goto semmudanca
-
-git commit -m "atualiza base"
-if errorlevel 1 goto erro
-git push -u origin HEAD
+rem Antes de enviar, traz o que estiver no GitHub (as planilhas enviadas pelo
+rem app, por exemplo) e so depois envia. As chaves nunca sobem.
+%PY% servidor.py --enviar
+if errorlevel 3 goto semmudanca
 if errorlevel 1 goto erropush
 
 set "REPO="
@@ -109,8 +104,8 @@ goto fim
 
 :erropush
 echo.
-echo  O envio falhou. Verifique a conexao e se voce esta logado no GitHub.
-echo  Se alguem enviou algo antes de voce, rode:  git pull --rebase
+echo  O envio nao foi concluido: o motivo esta logo acima.
+echo  Nada foi perdido. Quando resolver, e so clicar aqui de novo.
 goto fim
 
 :erro

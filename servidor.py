@@ -72,10 +72,15 @@ def retrato():
     return tuple(sorted(itens))
 
 
+INTERATIVO = False   # True quando chamado pelo publicar.bat: ai pode abrir a janela de login do GitHub
+
+
 def _git(*args, **kwargs):
     ambiente = dict(os.environ)
-    ambiente["GIT_TERMINAL_PROMPT"] = "0"   # falha rapido em vez de travar pedindo senha
-    ambiente["GCM_INTERACTIVE"] = "never"
+    ambiente["GIT_EDITOR"] = "true"         # nunca abre editor no meio (rebase, commit)
+    if not INTERATIVO:
+        ambiente["GIT_TERMINAL_PROMPT"] = "0"   # falha rapido em vez de travar pedindo senha
+        ambiente["GCM_INTERACTIVE"] = "never"
     return subprocess.run(["git"] + list(args), cwd=RAIZ, capture_output=True,
                           text=True, env=ambiente, timeout=kwargs.get("timeout", 120))
 
@@ -87,6 +92,62 @@ def _recado(texto):
     return ""
 
 
+def _linhas(*args):
+    r = _git(*args)
+    return [l.strip() for l in r.stdout.splitlines() if l.strip()] if r.returncode == 0 else []
+
+
+def _nomes(lista):
+    return ", ".join(a[len("dados/"):] if a.startswith("dados/") else a for a in lista)
+
+
+def _rebase_em_andamento():
+    return any(os.path.isdir(os.path.join(RAIZ, ".git", p)) for p in ("rebase-merge", "rebase-apply"))
+
+
+def trazer_do_github(acima):
+    """Traz o que chegou no GitHub por outro caminho (as planilhas enviadas pelo app,
+    por exemplo) e poe os envios daqui por cima. Se o mesmo arquivo mudou nos dois
+    lados, fica como esta aqui: publicar e a acao mais recente de quem esta no
+    computador. Devolve (ok, chegaram, sairam, mantidos_daqui, recado)."""
+    if _git("fetch", "origin", timeout=300).returncode != 0:
+        return False, [], [], [], "nao consegui buscar o que esta no GitHub (confira a internet e o login)."
+    if not _linhas("rev-list", "HEAD.." + acima):
+        return True, [], [], [], ""
+    # sem detectar renomeacao: planilha trocada por outra de nome novo e "apagou uma, chegou outra",
+    # e nao "mudou de nome" (senao o Git despeja a versao daqui dentro do arquivo novo, sem avisar)
+    situacao = {}
+    for linha in _linhas("diff", "--no-renames", "--name-status", "HEAD..." + acima):
+        partes = linha.split("\t")
+        if len(partes) >= 2:
+            situacao[partes[-1]] = partes[0][:1]
+    deles = set(situacao)
+    nossos = set(_linhas("diff", "--no-renames", "--name-only", acima + "...HEAD"))
+    ambos = sorted(deles & nossos)
+    # no rebase, "theirs" sao os envios daqui sendo reaplicados por cima do GitHub
+    r = _git("rebase", "-X", "theirs", "-X", "no-renames", acima, timeout=300)
+    voltas = 0
+    while r.returncode != 0 and _rebase_em_andamento() and voltas < 20:
+        voltas += 1
+        # o que o "-X theirs" nao resolve sozinho: apagado de um lado e mudado do outro
+        for linha in _git("status", "--porcelain").stdout.splitlines():
+            cod, arq = linha[:2], linha[3:].strip().strip('"')
+            if cod in ("UD", "DD"):                       # apagado aqui: continua apagado
+                _git("rm", "-q", "--", arq)
+            elif cod in ("DU", "UU", "AA", "AU", "UA"):   # mudado aqui: fica a versao daqui
+                if cod != "DU":
+                    _git("checkout", "--theirs", "--", arq)
+                _git("add", "--", arq)
+        r = _git("rebase", "--continue", timeout=300)
+    if r.returncode != 0 or _rebase_em_andamento():
+        _git("rebase", "--abort")
+        return False, [], [], [], ("o GitHub tem mudancas que nao consegui juntar com as daqui. Nada foi perdido: "
+                                   "o envio daqui continua guardado. Rode o verificar.bat ou me mande o print.")
+    so_deles = sorted(deles - nossos)
+    return (True, [a for a in so_deles if situacao[a] != "D"], [a for a in so_deles if situacao[a] == "D"],
+            ambos, "")
+
+
 def enviar_para_o_github():
     """Manda as planilhas novas. Devolve (enviou, recado). Nunca levanta erro."""
     try:
@@ -96,28 +157,50 @@ def enviar_para_o_github():
             return False, "nenhum repositorio do GitHub configurado."
         if _git("config", "user.name").returncode != 0:
             return False, "falta configurar seu nome no Git."
+        if _rebase_em_andamento():
+            _git("rebase", "--abort")          # sobra de uma tentativa interrompida
 
         if _git("add", "-A").returncode != 0:
             return False, "nao consegui preparar os arquivos."
         _git("reset", "-q", "--", "gemini_chave.txt", "jarvis_chave.txt")   # chaves nunca sobem
-        if _git("diff", "--cached", "--quiet").returncode == 0:
-            return False, "nada novo para enviar."
+        if _git("diff", "--cached", "--quiet").returncode != 0:
+            r = _git("commit", "-m", "Planilhas de " + time.strftime("%d/%m/%Y %H:%M"))
+            if r.returncode != 0:
+                return False, _recado(r.stderr or r.stdout)
 
-        recado = "Planilhas de " + time.strftime("%d/%m/%Y %H:%M")
-        r = _git("commit", "-m", recado)
-        if r.returncode != 0:
-            return False, _recado(r.stderr or r.stdout)
+        acima = _linhas("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+        acima = acima[0] if acima else ""
+        trazidos, sairam, mantidos = [], [], []
+        if acima:
+            ok, trazidos, sairam, mantidos, recado = trazer_do_github(acima)
+            if not ok:
+                return False, recado
+            if not _linhas("rev-list", acima + "..HEAD"):
+                extra = (" Trouxe do GitHub: %s." % _nomes(trazidos)) if trazidos else ""
+                return False, "nada novo para enviar." + extra
 
-        r = _git("push", "origin", "HEAD", timeout=300)
+        r = _git("push", "-u", "origin", "HEAD", timeout=300)
         if r.returncode != 0:
             saida = (r.stderr or "") + (r.stdout or "")
             if "Authentication" in saida or "could not read" in saida.lower():
                 return False, ("o GitHub recusou o acesso. Envie uma vez pelo VS Code "
                                "para o login ficar guardado.")
+            if "fetch first" in saida or "non-fast-forward" in saida:
+                return False, "alguem enviou ao mesmo tempo. Tente de novo em um minuto."
             return False, _recado(saida)
 
-        return True, "planilhas enviadas. O GitHub vai publicar em uns 2 minutos."
+        recado = "planilhas enviadas. O GitHub vai publicar em uns 2 minutos."
+        if trazidos:
+            recado += "\n  Vieram do GitHub (enviadas pelo app): %s." % _nomes(trazidos)
+        if sairam:
+            recado += "\n  Sairam no GitHub (substituidas pelo app): %s." % _nomes(sairam)
+        if mantidos:
+            recado += ("\n  Mudaram aqui e no GitHub; ficou como esta neste computador: %s.\n  Confira se nao "
+                       "ficaram duas planilhas do mesmo tipo (o aviso aparece ao gerar o app)." % _nomes(mantidos))
+        return True, recado
     except subprocess.TimeoutExpired:
+        if _rebase_em_andamento():
+            _git("rebase", "--abort")
         return False, "o envio demorou demais. Tenta de novo na proxima alteracao."
     except Exception as erro:
         return False, "falha inesperada: %s" % erro
@@ -408,5 +491,27 @@ def principal():
     return 0
 
 
+def enviar_uma_vez():
+    """Usado pelo publicar.bat: traz o que estiver no GitHub, envia, e se vieram
+    planilhas pelo app, gera o app deste computador de novo. Codigo de saida:
+    0 enviou, 3 nada novo, 1 erro."""
+    global INTERATIVO
+    INTERATIVO = True
+    antes = retrato()
+    foi, recado = enviar_para_o_github()
+    print("  " + recado)
+    if retrato() != antes:
+        print("\n  O GitHub tinha planilhas novas: gerando o app deste computador de novo...")
+        try:
+            build.principal()
+        except Exception as erro:
+            print("  (nao consegui gerar de novo aqui: %s)" % erro)
+    if foi:
+        return 0
+    return 3 if recado.startswith("nada novo") else 1
+
+
 if __name__ == "__main__":
+    if "--enviar" in sys.argv:
+        sys.exit(enviar_uma_vez())
     sys.exit(principal())

@@ -448,6 +448,15 @@ No seu repositório, aba **Actions**. Cada envio vira uma linha ali.
 **Precisa de internet?** Não. A única coisa que vem da internet é a fonte do
 texto; sem conexão o app usa a fonte do sistema e funciona igual.
 
+**O envio deu "rejected" ou "fetch first"?** Isso acontecia quando alguém
+tinha mandado planilhas pelo app (caminho do GitHub): o GitHub ficava com
+coisas que o computador ainda não tinha. Agora o `publicar.bat` e o servidor
+**trazem primeiro o que está no GitHub** e só depois enviam, sozinhos. Se a
+mesma planilha mudou nos dois lados, fica a deste computador, e a janela avisa
+quais foram. Se ficarem duas planilhas do mesmo tipo com as mesmas filiais, o
+build avisa ("Duas planilhas de … com as mesmas filiais"): deixe só a mais nova
+na pasta `dados`.
+
 **A janela preta parece travada e só anda quando clico nela?** É o "Modo de
 Edição Rápida" do Windows: um clique dentro da janela do Prompt de Comando pausa
 o programa até você apertar uma tecla — o título da janela muda para
