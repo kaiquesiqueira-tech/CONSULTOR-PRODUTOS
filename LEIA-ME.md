@@ -451,6 +451,15 @@ No seu repositório, aba **Actions**. Cada envio vira uma linha ali.
 **Precisa de internet?** Não. A única coisa que vem da internet é a fonte do
 texto; sem conexão o app usa a fonte do sistema e funciona igual.
 
+**Produto aparece "(sem descrição)"?** O Protheus mandou a descrição vazia
+na planilha de saldo físico. Hoje o app lê a coluna "Nome Cientif", que é um
+campo complementar do cadastro e nem sempre vem preenchido. O app já completa
+com a descrição do mesmo produto em outra filial, quando existe, e o build
+avisa quantos sobraram sem ("produto(s) com saldo sem descricao"). Para
+resolver de vez, inclua na exportação do saldo físico a coluna **Descrição**
+do produto: o app passa a usar ela primeiro, e o "Nome Cientif" vira reserva.
+Também aceita os nomes "Desc. Produto" e "Descricao do Produto".
+
 **O app atualiza e depois volta para uma base antiga?** O GitHub Pages está
 publicando de dois jeitos ao mesmo tempo, e o segundo publica por cima uma
 cópia velha. Corrija uma vez: no GitHub, abra o repositório → **Settings** →

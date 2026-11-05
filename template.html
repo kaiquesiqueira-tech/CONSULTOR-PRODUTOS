@@ -2395,7 +2395,10 @@ function attCarregarLeitor(){
 function attTipoPorColunas(c){   // a mesma regra, na mesma ordem, do build.py
   var tem = function(l){ return l.every(function(x){ return c.indexOf(x) >= 0; }); };
   if(tem(['Endereco', 'Prioridade', 'Quantidade'])) return 'SBF';
-  if(tem(['Saldo Atual', 'Nome Cientif'])) return 'SB2';
+  var simples = function(n){ return String(n).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); };
+  var temDescricao = c.some(function(n){ return ['descricao', 'descricaoproduto', 'descricaodoproduto', 'descproduto',
+                                                   'descprod', 'descrprod', 'descrproduto'].indexOf(simples(n)) >= 0; });
+  if(c.indexOf('Saldo Atual') >= 0 && (c.indexOf('Nome Cientif') >= 0 || temDescricao)) return 'SB2';
   if(tem(['Qtd Original', 'Saldo', 'Documento'])) return 'SDA';
   if(tem(['Contr.Endere', 'Codigo'])) return 'SBZ';
   if(tem(['TP Movimento', 'Endereco', 'Quantidade'])) return 'SD3';

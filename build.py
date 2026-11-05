@@ -512,7 +512,7 @@ def ler_planilha(caminho):
 
     if {"Endereco", "Prioridade", "Quantidade"} <= colunas:
         return "SBF", df, None
-    if {"Saldo Atual", "Nome Cientif"} <= colunas:
+    if "Saldo Atual" in colunas and ("Nome Cientif" in colunas or coluna_descricao(colunas)):
         return "SB2", df, None
     if {"Qtd Original", "Saldo", "Documento"} <= colunas:
         return "SDA", df, None
@@ -531,6 +531,25 @@ def ler_planilha(caminho):
 TIPOS = {"SB2": "Saldo fisico", "SBF": "Saldo por endereco", "SDA": "A enderecar",
          "SD3": "Movimentacoes (SD3)", "SD3R": "Relacao de movimentacoes", "SBZ": "Indicadores (SBZ)"}
 ARQUIVOS_LIDOS = []   # o que o ultimo build leu: [{"n": nome, "t": tipo, "f": [filiais]}]
+
+
+# nomes de coluna aceitos como descricao do produto (comparados sem acento, ponto ou espaco)
+NOMES_DESCRICAO = {"descricao", "descricaoproduto", "descricaodoproduto", "descproduto", "descprod",
+                   "descrprod", "descrproduto"}
+
+
+def _nome_simples(nome):
+    import unicodedata
+    s = unicodedata.normalize("NFD", str(nome)).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]", "", s)
+
+
+def coluna_descricao(colunas):
+    """A coluna com a descricao principal do produto, se a exportacao trouxer uma."""
+    for c in colunas:
+        if _nome_simples(c) in NOMES_DESCRICAO:
+            return c
+    return None
 
 
 def filiais_da_planilha(df):
@@ -732,10 +751,23 @@ def montar(sb2, sbf, sda=None, sd3=None, sbz=None):
 
     itens = {}
 
+    col_desc = coluna_descricao(sb2.columns) if sb2 is not None else None
+
+    def desc_da_linha(r):
+        for c in (col_desc, "Nome Cientif"):
+            if c and c in r.index and not pd.isna(r[c]):
+                v = str(r[c]).strip()
+                if v and v.lower() != "nan":
+                    return v
+        return ""
+
+    desc_produto = {}   # a melhor descricao de cada codigo, em qualquer filial
     if sb2 is not None and not sb2.empty:
         for _, r in sb2.iterrows():
             k = (r["F"], r["P"])
-            desc = "" if pd.isna(r["Nome Cientif"]) else str(r["Nome Cientif"]).strip()
+            desc = desc_da_linha(r)
+            if len(desc) > len(desc_produto.get(r["P"], "")):
+                desc_produto[r["P"]] = desc
             it = itens.setdefault(k, {"f": idx_filial[r["F"]], "c": r["P"], "d": "", "r": []})
             if len(desc) > len(it["d"]):
                 it["d"] = desc
@@ -758,6 +790,13 @@ def montar(sb2, sbf, sda=None, sd3=None, sbz=None):
         it = itens.setdefault((f, p), {"f": idx_filial[f], "c": p, "d": "", "r": []})
         it["r"].append([a, 0, 0, 0, 0, 0, 0, 0, 0,
                         [[e, round(v[0], 3), round(v[1], 3)] for e, v in sorted(ends.items())]])
+
+    # produto sem descricao nesta filial: usa a do mesmo codigo em outra filial
+    completadas = 0
+    for (f, p), it in itens.items():
+        if not it["d"] and desc_produto.get(p):
+            it["d"] = desc_produto[p]
+            completadas += 1
 
     # SBZ: indicador por filial. 1 = controla endereco, 0 = nao controla.
     # Produto fora da SBZ fica sem a chave: o indicador dele mora no SB1.
@@ -795,9 +834,16 @@ def montar(sb2, sbf, sda=None, sd3=None, sbz=None):
         exemplo = ", ".join(a["c"] for a in sem_desc[:3])
         AVISOS.append(
             "%d de %d produtos com saldo vieram SEM DESCRICAO na planilha de saldo\n"
-            "  fisico (coluna 'Nome Cientif'). Exemplos: %s.\n"
-            "  Abra a planilha e confira essa coluna antes de publicar: se ela veio\n"
-            "  vazia ou com descricao trocada, exporte de novo." % (len(sem_desc), len(com_saldo), exemplo))
+            "  fisico. Exemplos: %s.\n"
+            "  Abra a planilha e confira a descricao antes de publicar: se ela veio\n"
+            "  vazia ou trocada, exporte de novo." % (len(sem_desc), len(com_saldo), exemplo))
+    elif sem_desc:
+        AVISOS.append(
+            "%d produto(s) com saldo sem descricao: o Protheus mandou vazio%s. Exemplos: %s.\n"
+            "  Para resolver: preencha no cadastro, ou exporte o saldo fisico com a\n"
+            "  coluna 'Descricao' do produto (o app usa ela antes do 'Nome Cientif')."
+            % (len(sem_desc), " (%d completados com a descricao de outra filial)" % completadas if completadas else "",
+               ", ".join(a["c"] for a in sem_desc[:5])))
 
     ativos.sort(key=lambda x: (x["f"], x["c"]))
     zerados.sort(key=lambda x: (x[0], x[1]))
