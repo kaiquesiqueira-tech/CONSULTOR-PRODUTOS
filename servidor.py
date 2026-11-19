@@ -28,6 +28,7 @@ import urllib.parse
 import re
 import json
 import shutil
+import importlib
 
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 PASTA_DADOS = os.path.join(RAIZ, "dados")
@@ -54,10 +55,37 @@ import build  # noqa: E402
 def vigiados():
     """Tudo que, ao mudar, obriga a gerar o app de novo."""
     caminhos = list(build.achar_planilhas())
-    modelo = os.path.join(RAIZ, "template.html")
-    if os.path.exists(modelo):
-        caminhos.append(modelo)
+    for nome in ("template.html", "build.py"):
+        caminho = os.path.join(RAIZ, nome)
+        if os.path.exists(caminho):
+            caminhos.append(caminho)
     return caminhos
+
+
+_BUILD_MTIME = None
+
+
+def recarregar_build():
+    """O build.py entra na memoria quando esta janela abre. Se o arquivo mudar
+    depois disso, sem recarregar o modulo a vigia continuaria gerando o app com
+    o codigo antigo."""
+    global _BUILD_MTIME
+    try:
+        agora = os.path.getmtime(os.path.join(RAIZ, "build.py"))
+    except OSError:
+        return
+    if _BUILD_MTIME is None:
+        _BUILD_MTIME = agora
+        return
+    if agora == _BUILD_MTIME:
+        return
+    _BUILD_MTIME = agora
+    try:
+        importlib.reload(build)
+        print("  o build.py mudou: codigo novo carregado.")
+    except Exception as erro:
+        print("  o build.py mudou mas nao deu para recarregar (%s)." % erro)
+        print("  Feche esta janela e abra o iniciar.bat de novo.")
 
 
 def retrato():
@@ -227,6 +255,7 @@ def gerar(motivo, enviar=False):
 
 
 def vigiar():
+    recarregar_build()          # guarda a data do build.py que esta na memoria agora
     anterior = retrato()
     while True:
         time.sleep(INTERVALO)
@@ -241,6 +270,7 @@ def vigiar():
             estavel = estavel + 1 if novo == atual else 0
             atual = novo
         anterior = atual
+        recarregar_build()
         gerar("Mudanca detectada, gerando o app de novo...", enviar=True)
 
 

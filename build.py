@@ -812,6 +812,20 @@ def montar(sb2, sbf, sda=None, sd3=None, sbz=None):
         if (f, p) in controla:
             it["e"] = controla[(f, p)]
 
+    # SBZ: ponto de pedido e estoque de seguranca, por filial + produto.
+    # Vai num dicionario separado ("indice da filial|codigo") para nao mexer no
+    # formato das linhas de ativos e zerados. Quem nao tem nenhum dos dois fica
+    # de fora: no app, item sem chave aqui e item sem ponto de pedido cadastrado.
+    ponto = {}
+    if sbz is not None and not sbz.empty:
+        for _, r in sbz[sbz["P"] != ""].iterrows():
+            if r["F"] not in idx_filial:
+                continue
+            pp = numero(r.get("Ponto Pedido", 0))
+            seg = numero(r.get("Seguranca", 0))
+            if pp > 0 or seg > 0:
+                ponto["%d|%s" % (idx_filial[r["F"]], r["P"])] = [round(pp, 3), round(seg, 3)]
+
     ativos, zerados = [], []
     for it in itens.values():
         linhas = [r for r in it["r"] if r[1] or r[2] or r[4] or r[5] or r[9]]
@@ -944,6 +958,7 @@ def montar(sb2, sbf, sda=None, sd3=None, sbz=None):
         "zerados": zerados,
         "pendentes": pendentes,
         "movimentos": movimentos,
+        "pp": ponto,
     }
     # marca curta que muda so quando os dados mudam: serve para conferir
     # se dois aparelhos estao vendo a mesma versao
@@ -1090,6 +1105,10 @@ def principal(saida=None):
         nao = sum(1 for a in base["ativos"] if a.get("e") == 0)
         sem = sum(1 for a in base["ativos"] if "e" not in a)
         print("  controla endereco .. %d sim, %d nao, %d sem indicador (itens ativos)" % (sim, nao, sem))
+        pp = base.get("pp") or {}
+        com_pp = sum(1 for v in pp.values() if v[0] > 0)
+        com_seg = sum(1 for v in pp.values() if v[1] > 0)
+        print("  ponto de pedido .... %d cadastrados, %d com estoque de seguranca" % (com_pp, com_seg))
     print("  marca dos dados .... %s" % base["marca"])
     print("  marca do app ....... %s   (template.html de %s)" % (marca_app, quando_modelo))
     if base.get("semCustos"):

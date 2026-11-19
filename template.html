@@ -746,6 +746,9 @@ main{padding:14px 14px 92px}
       <button class="tab" role="tab" aria-selected="false" data-tab="pend">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
         Pendentes<span class="n" id="pendn" hidden>0</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="comp">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        Comprar<span class="n" id="compn" hidden>0</span></button>
       <button class="tab" role="tab" aria-selected="false" data-tab="inv">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>
         Inventário</button>
@@ -1207,6 +1210,7 @@ tabs.forEach(function(t){
     elQ.placeholder = S.tab==='end' ? 'Endereço ou produto (ex.: A03 ou filtro)'
       : S.tab==='pend' ? 'Código, descrição ou número da nota'
       : S.tab==='inv' ? 'Código, descrição, endereço ou equipamento'
+      : S.tab==='comp' ? 'Código ou descrição do que falta'
       : 'Código, descrição ou endereço';
     renderFiltros(); render();
   });
@@ -1249,6 +1253,7 @@ function render(){
   if(S.tab==='prod') renderProd();
   else if(S.tab==='end') renderEnd();
   else if(S.tab==='pend') renderPend();
+  else if(S.tab==='comp') renderComp();
   else if(S.tab==='inv') renderInv();
   else renderSep();
 }
@@ -1554,6 +1559,136 @@ function imprimirPendentes(grupos){
     });
     h += '</tbody></table></section>';
   });
+  document.getElementById('area-impressao').innerHTML = h;
+  document.body.classList.add('imprimindo');
+  window.print();
+}
+
+/* ======================================================================
+   COMPRAR: o que precisa ser reposto.
+   Junta tres coisas que ja estao na base:
+     - ponto de pedido e estoque de seguranca do SBZ  (D.pp)
+     - saldo atual do SB2                             (it.saldo)
+     - saidas do ultimo ano da SD3                    (D.movimentos)
+   Um item entra na lista por um destes motivos:
+     zerado  - saldo zero e tem ponto de pedido ou teve 3+ saidas no ano
+     abaixo  - saldo abaixo do ponto de pedido cadastrado
+     curto   - sem ponto de pedido, mas o estoque nao cobre 1 mes de consumo
+   ====================================================================== */
+var PP = D.pp || {};
+var ULTIMOS_COMP = [], CONSUMO = null;
+
+function consumo12(){
+  if(CONSUMO) return CONSUMO;
+  CONSUMO = {};
+  var limite = HOJE - 365;
+  (D.movimentos || []).forEach(function(m){
+    var tm = parseInt(m[4], 10);
+    if(!isNaN(tm) && tm <= 500) return;          // so saidas
+    if(m[7] < limite || m[7] > HOJE) return;     // ultimo ano, e sem data futura digitada errado
+    var k = m[0] + '|' + m[1], c = CONSUMO[k];
+    if(!c) c = CONSUMO[k] = {q: 0, n: 0};
+    c.q += m[3]; c.n++;
+  });
+  return CONSUMO;
+}
+
+function montarComprar(tudo){
+  garantirZerados();
+  var C = consumo12(), termos = (!tudo && S.q) ? S.q.split(/\s+/) : [], out = [];
+  for(var i = 0; i < ITENS.length; i++){
+    var it = ITENS[i];
+    if(!tudo && S.fil && FIL[it.f] !== S.fil) continue;
+    var k = it.f + '|' + it.c;
+    var p = PP[k], pp = p ? p[0] : 0, seg = p ? p[1] : 0;
+    var c = C[k] || {q: 0, n: 0};
+    var mes = c.q / 12, cob = mes > 0 ? it.saldo / mes : null;
+    var motivo, ord;
+    if(it.saldo <= 0 && (pp > 0 || c.n >= 3)){ motivo = 'zerado'; ord = 0; }
+    else if(pp > 0 && it.saldo < pp){ motivo = 'abaixo'; ord = 1; }
+    else if(pp <= 0 && c.n >= 6 && cob !== null && cob < 1){ motivo = 'curto'; ord = 2; }
+    else continue;
+    if(termos.length){
+      var ok = true;
+      for(var t = 0; t < termos.length; t++){ if(it.idx.indexOf(termos[t]) < 0){ ok = false; break; } }
+      if(!ok) continue;
+    }
+    var alvo = pp > 0 ? pp : Math.ceil(mes * 1.5);
+    out.push({it: it, pp: pp, seg: seg, q12: c.q, n12: c.n, mes: mes, cob: cob,
+              motivo: motivo, ord: ord, alvo: alvo, repor: Math.max(0, alvo - it.saldo)});
+  }
+  out.sort(function(a, b){ return a.ord - b.ord || b.q12 - a.q12 || (a.it.c < b.it.c ? -1 : 1); });
+  return out;
+}
+
+function cobTexto(l){
+  if(l.cob === null) return 'sem saída no ano';
+  if(l.cob <= 0) return 'sem estoque';
+  var d = Math.round(l.cob * 30);
+  return d < 60 ? 'cobre ' + d + ' ' + plural(d, 'dia', 'dias') : 'cobre ' + Math.round(l.cob) + ' meses';
+}
+
+function renderComp(){
+  var L = montarComprar();
+  ULTIMOS_COMP = L;
+  if(!Object.keys(PP).length && !(D.movimentos || []).length){
+    cont.innerHTML = '<span>Comprar</span>';
+    lista.innerHTML = '<p class="empty"><b>Falta o SBZ e a SD3 na base</b>' +
+      'Esta aba usa o ponto de pedido (SBZ) e as saídas do último ano (SD3). ' +
+      'Coloque as duas exportações na pasta dados e gere o app de novo.</p>';
+    return;
+  }
+  var zer = 0, ab = 0, cu = 0;
+  L.forEach(function(l){ if(l.motivo === 'zerado') zer++; else if(l.motivo === 'abaixo') ab++; else cu++; });
+  cont.innerHTML = '<span>' + L.length + ' ' + plural(L.length, 'item', 'itens') + ' para repor</span>' +
+    (zer ? '<span><b>' + zer + '</b> zerado' + (zer === 1 ? '' : 's') + '</span>' : '') +
+    (ab ? '<span>' + ab + ' abaixo do ponto</span>' : '') +
+    (cu ? '<span>' + cu + ' sem ponto cadastrado</span>' : '');
+
+  if(!L.length){
+    lista.innerHTML = '<p class="empty"><b>Nada para repor</b>' +
+      'Nenhum item zerado, abaixo do ponto de pedido ou com estoque curto neste filtro.</p>';
+    return;
+  }
+
+  var h = '<div class="btnrow"><button class="btn ghost" id="imp-comp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' +
+          'Imprimir esta lista</button></div>';
+  lista.innerHTML = h + '<div id="comprows"></div>';
+  progressivo(document.getElementById('comprows'), L, 40, 60, function(l){
+    var it = l.it;
+    var tag = l.motivo === 'zerado' ? '<span class="flag neg">ZERADO</span>'
+            : l.motivo === 'abaixo' ? '<span class="flag">abaixo do ponto</span>'
+            : '<span class="flag">sem ponto cadastrado</span>';
+    var pontoTxt = l.pp > 0 ? 'ponto ' + nq(l.pp) : 'sugerido ' + nq(l.alvo);
+    return '<button class="card" data-id="' + it.id + '">' +
+      '<div class="l1"><span class="code">' + it.c + '</span><span class="fil">' + FIL[it.f] + '</span></div>' +
+      '<p class="desc">' + esc(it.d) + '</p>' +
+      '<div class="l3">' + tag +
+      '<span class="loc">' + pontoTxt + '</span>' +
+      '<span class="loc">' + nq(l.q12) + ' no ano · ' + cobTexto(l) + '</span>' +
+      '<span class="qty"><b>' + nq(l.repor) + '</b><small>repor · tem ' + nq(it.saldo) + '</small></span>' +
+      '</div></button>';
+  });
+}
+
+function imprimirComprar(L){
+  if(!L.length) return;
+  var h = '<div class="ph"><b>Reposição de estoque</b><span>' + new Date().toLocaleString('pt-BR') + '</span></div>';
+  h += '<p class="pinfo">Filial ' + (S.fil || 'todas') + ' · ' + L.length + ' ' + plural(L.length, 'item', 'itens') +
+       (S.q ? ' · filtro “' + esc(elQ.value.trim()) + '”' : '') +
+       ' · consumo apurado na SD3 dos últimos 12 meses</p>';
+  h += '<section class="pg"><table class="t-pend"><thead><tr><th>Código</th><th>Descrição</th>' +
+       '<th class="n">Saldo</th><th class="n">Ponto</th><th class="n">Repor</th>' +
+       '<th class="n">Consumo 12m</th><th>Situação</th></tr></thead><tbody>';
+  L.forEach(function(l){
+    h += '<tr><td class="m">' + l.it.c + '</td><td>' + esc(l.it.d) + '</td>' +
+         '<td class="n m">' + nq(l.it.saldo) + '</td>' +
+         '<td class="n m">' + (l.pp > 0 ? nq(l.pp) : nq(l.alvo) + '*') + '</td>' +
+         '<td class="n m">' + nq(l.repor) + '</td>' +
+         '<td class="n m">' + nq(l.q12) + '</td>' +
+         '<td>' + (l.motivo === 'zerado' ? 'ZERADO' : l.motivo === 'abaixo' ? 'abaixo do ponto' : 'sem ponto cadastrado') + '</td></tr>';
+  });
+  h += '</tbody></table><p class="pinfo">* ponto de pedido sugerido: 1,5 mês do consumo real, para item sem cadastro no SBZ.</p></section>';
   document.getElementById('area-impressao').innerHTML = h;
   document.body.classList.add('imprimindo');
   window.print();
@@ -2013,6 +2148,7 @@ lista.addEventListener('click', function(e){
   }
   if(e.target.closest('#imp-end')){ imprimirEnderecos(ULTIMOS_GRUPOS); return; }
   if(e.target.closest('#imp-pend')){ imprimirPendentes(ULTIMOS_PEND); return; }
+  if(e.target.closest('#imp-comp')){ imprimirComprar(ULTIMOS_COMP); return; }
   if(e.target.closest('#imp-inv')){ imprimirInventario(ULTIMOS_INV); return; }
   if(e.target.closest('#imp-inv-total')){ imprimirCompleto(ULTIMO_COMPLETO); return; }
   var ic = e.target.closest('[data-impcomp]');
@@ -2106,6 +2242,20 @@ window.addEventListener('resize', medirTopo);
 (function(){
   var n = (D.pendentes || []).length, b = document.getElementById('pendn');
   if(b){ b.textContent = n; b.hidden = n === 0; }
+})();
+
+/* Contador da aba Comprar. Espera os zerados terminarem de montar em segundo
+   plano: boa parte do que falta comprar esta justamente com saldo zero. */
+(function(){
+  var b = document.getElementById('compn');
+  if(!b) return;
+  (function tentar(){
+    if(!ZER.ok){ setTimeout(tentar, 300); return; }
+    try {
+      var n = montarComprar(true).length;
+      b.textContent = n; b.hidden = n === 0;
+    } catch(e){ b.hidden = true; }
+  })();
 })();
 /* ======================================================================
    ETIQUETAS 100 x 50 mm para a impressora Zebra.
