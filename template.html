@@ -1565,6 +1565,130 @@ function imprimirPendentes(grupos){
 }
 
 /* ======================================================================
+   EXCEL: monta um .xlsx aqui mesmo, sem internet e sem biblioteca.
+   E um zip montado na mao (sem compactar) com o minimo que o Excel pede.
+   Numero sai como numero, entao da para somar e ordenar na planilha.
+   ====================================================================== */
+var XLS_CRC = null;
+function xlsCrc32(b){
+  if(!XLS_CRC){
+    XLS_CRC = new Int32Array(256);
+    for(var n = 0; n < 256; n++){
+      var c = n;
+      for(var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      XLS_CRC[n] = c;
+    }
+  }
+  var crc = -1;
+  for(var i = 0; i < b.length; i++) crc = (crc >>> 8) ^ XLS_CRC[(crc ^ b[i]) & 255];
+  return (crc ^ -1) >>> 0;
+}
+function xlsTxt(s){ return new TextEncoder().encode(s); }
+function xlsZip(arqs){
+  function u16(v){ return [v & 255, (v >>> 8) & 255]; }
+  function u32(v){ return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255]; }
+  var partes = [], central = [], pos = 0;
+  arqs.forEach(function(a){
+    var nome = xlsTxt(a.nome), crc = xlsCrc32(a.dados), tam = a.dados.length;
+    var cab = [].concat([80,75,3,4], u16(20), u16(0), u16(0), u16(0), u16(0),
+                        u32(crc), u32(tam), u32(tam), u16(nome.length), u16(0));
+    partes.push(new Uint8Array(cab), nome, a.dados);
+    central.push({nome: nome, crc: crc, tam: tam, pos: pos});
+    pos += cab.length + nome.length + tam;
+  });
+  var dirIni = pos, dir = [];
+  central.forEach(function(c){
+    var cab = [].concat([80,75,1,2], u16(20), u16(20), u16(0), u16(0), u16(0), u16(0),
+                        u32(c.crc), u32(c.tam), u32(c.tam), u16(c.nome.length),
+                        u16(0), u16(0), u16(0), u16(0), u32(0), u32(c.pos));
+    dir.push(new Uint8Array(cab), c.nome);
+    pos += cab.length + c.nome.length;
+  });
+  var fim = new Uint8Array([].concat([80,75,5,6], u16(0), u16(0), u16(central.length),
+                                     u16(central.length), u32(pos - dirIni), u32(dirIni), u16(0)));
+  return new Blob(partes.concat(dir, [fim]),
+                  {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function xlsCol(n){ var s = ''; n++; while(n > 0){ var r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = (n - r - 1) / 26; } return s; }
+function xlsCel(ref, v, est){
+  if(v === null || v === undefined || v === '') return '';
+  var s = est ? ' s="' + est + '"' : '';
+  if(typeof v === 'number' && isFinite(v)) return '<c r="' + ref + '"' + s + '><v>' + v + '</v></c>';
+  return '<c r="' + ref + '"' + s + ' t="inlineStr"><is><t xml:space="preserve">' + esc(String(v)) + '</t></is></c>';
+}
+function xlsArquivo(aba, cab, linhas, larg){
+  var ult = xlsCol(cab.length - 1);
+  var sh = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
+  if(larg && larg.length){
+    sh += '<cols>';
+    larg.forEach(function(w, i){ sh += '<col min="' + (i+1) + '" max="' + (i+1) + '" width="' + w + '" customWidth="1"/>'; });
+    sh += '</cols>';
+  }
+  sh += '<sheetData><row r="1">';
+  cab.forEach(function(t, i){ sh += xlsCel(xlsCol(i) + '1', t, 1); });
+  sh += '</row>';
+  linhas.forEach(function(l, n){
+    var r = n + 2;
+    sh += '<row r="' + r + '">';
+    l.forEach(function(v, i){ sh += xlsCel(xlsCol(i) + r, v, 0); });
+    sh += '</row>';
+  });
+  sh += '</sheetData><autoFilter ref="A1:' + ult + (linhas.length + 1) + '"/></worksheet>';
+
+  var tipos = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+  var rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  var wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<sheets><sheet name="' + esc(aba).slice(0, 31) + '" sheetId="1" r:id="rId1"/></sheets></workbook>';
+  var wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+    '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+  var est = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>' +
+    '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts>' +
+    '<fills count="3"><fill><patternFill patternType="none"/></fill>' +
+    '<fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FF1F3A5F"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+    '<borders count="1"><border/></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs>' +
+    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+
+  return xlsZip([
+    {nome: '[Content_Types].xml', dados: xlsTxt(tipos)},
+    {nome: '_rels/.rels', dados: xlsTxt(rels)},
+    {nome: 'xl/workbook.xml', dados: xlsTxt(wb)},
+    {nome: 'xl/_rels/workbook.xml.rels', dados: xlsTxt(wbRels)},
+    {nome: 'xl/styles.xml', dados: xlsTxt(est)},
+    {nome: 'xl/worksheets/sheet1.xml', dados: xlsTxt(sh)}
+  ]);
+}
+function xlsBaixar(blob, nome){
+  var a = document.createElement('a'), url = URL.createObjectURL(blob);
+  a.href = url; a.download = nome; a.style.display = 'none';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
+}
+function xlsHoje(){
+  var d = new Date(), z = function(n){ return (n < 10 ? '0' : '') + n; };
+  return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
+}
+
+/* ======================================================================
    COMPRAR: o que precisa ser reposto.
    Junta tres coisas que ja estao na base:
      - ponto de pedido e estoque de seguranca do SBZ  (D.pp)
@@ -1652,7 +1776,9 @@ function renderComp(){
   }
 
   var h = '<div class="btnrow"><button class="btn ghost" id="imp-comp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' +
-          'Imprimir esta lista</button></div>';
+          'Imprimir esta lista</button>' +
+          '<button class="btn ghost" id="xls-comp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>' +
+          'Baixar em Excel</button></div>';
   lista.innerHTML = h + '<div id="comprows"></div>';
   progressivo(document.getElementById('comprows'), L, 40, 60, function(l){
     var it = l.it;
@@ -1692,6 +1818,37 @@ function imprimirComprar(L){
   document.getElementById('area-impressao').innerHTML = h;
   document.body.classList.add('imprimindo');
   window.print();
+}
+
+function baixarComprar(L){
+  if(!L || !L.length) return;
+  var cab = ['Filial', 'Código', 'Descrição', 'Endereço', 'Saldo atual', 'Ponto de pedido',
+             'Ponto cadastrado?', 'Estoque de segurança', 'Quantidade a repor', 'Consumo 12 meses',
+             'Saídas 12 meses', 'Média por mês', 'Cobertura (meses)', 'Última saída', 'Situação'];
+  var larg = [9, 13, 46, 13, 12, 14, 16, 18, 17, 16, 15, 13, 16, 12, 20];
+  var linhas = L.map(function(l){
+    var it = l.it;
+    var r2 = function(n){ return Math.round(n * 100) / 100; };
+    return [
+      FIL[it.f],
+      it.c,
+      it.d,
+      it.ends && it.ends.length ? it.ends[0].e : '',
+      r2(it.saldo),
+      l.pp > 0 ? l.pp : l.alvo,
+      l.pp > 0 ? 'sim' : 'não (sugerido)',
+      l.seg > 0 ? l.seg : '',
+      r2(l.repor),
+      r2(l.q12),
+      l.n12,
+      r2(l.mes),
+      l.cob === null ? '' : r2(l.cob),
+      it.ultS ? data(it.ultS) : '',
+      l.motivo === 'zerado' ? 'ZERADO' : l.motivo === 'abaixo' ? 'abaixo do ponto' : 'sem ponto cadastrado'
+    ];
+  });
+  var blob = xlsArquivo('Reposição', cab, linhas, larg);
+  xlsBaixar(blob, 'reposicao-' + (S.fil || 'todas') + '-' + xlsHoje() + '.xlsx');
 }
 
 var ULTIMOS_INV = [], CHAVE_SEM = '\u0000sem';
@@ -2149,6 +2306,7 @@ lista.addEventListener('click', function(e){
   if(e.target.closest('#imp-end')){ imprimirEnderecos(ULTIMOS_GRUPOS); return; }
   if(e.target.closest('#imp-pend')){ imprimirPendentes(ULTIMOS_PEND); return; }
   if(e.target.closest('#imp-comp')){ imprimirComprar(ULTIMOS_COMP); return; }
+  if(e.target.closest('#xls-comp')){ baixarComprar(ULTIMOS_COMP); return; }
   if(e.target.closest('#imp-inv')){ imprimirInventario(ULTIMOS_INV); return; }
   if(e.target.closest('#imp-inv-total')){ imprimirCompleto(ULTIMO_COMPLETO); return; }
   var ic = e.target.closest('[data-impcomp]');
