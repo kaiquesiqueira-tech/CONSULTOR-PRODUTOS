@@ -220,7 +220,10 @@ main{padding:14px 14px 92px}
   background:transparent; color:var(--alert); border:1px dashed var(--alert);
   font-family:var(--sans); font-size:12px; font-weight:600;
 }
+.ponto.lote{background:var(--act-soft); border-color:var(--act); color:var(--act)}
 .porque{font-size:11.5px; color:var(--muted); margin:8px 0 0; line-height:1.45}
+.porque.conta{margin-top:3px; color:var(--act); font-weight:600}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .porque.conta{opacity:.95} }
 .prazobar{display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:9px}
 .prazobar b{font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em}
 .pzinfo{font-size:11.5px; color:var(--muted); flex:1 1 180px; min-width:140px}
@@ -1769,6 +1772,10 @@ var PPFIL = (function(){
 
 var PRAZOS = [7, 15, 30, 45, 60, 90];
 var PRAZO = PRAZOS.indexOf(store('prazo')) >= 0 ? store('prazo') : 30;
+var COBS = [15, 30, 45, 60, 90];
+var COB = COBS.indexOf(store('cobertura')) >= 0 ? store('cobertura') : 30;
+var MINS = [1, 2, 5, 10];
+var MINIMO = MINS.indexOf(store('minimo')) >= 0 ? store('minimo') : 2;
 var MOTFIL = '';            // '' = todos os grupos
 
 var GRUPOS = [
@@ -1806,6 +1813,31 @@ function sugerido(porDia, prazo){
   return {p: Math.ceil(porDia * prazo * 1.5), s: Math.ceil(porDia * prazo * 0.5)};
 }
 
+/* Quanto pedir de fato. A necessidade sai do CONSUMO: o que o item gasta no
+   periodo de cobertura escolhido, menos o que ja tem. Dai o numero sobe ate
+   fechar um lote de compra, para nao sair pedido de 1 em 1 nem quantidade
+   quebrada. A ordem de quem manda no arredondamento:
+     1. lote economico do SBZ, quando for maior que 1
+     2. quantidade da embalagem do SBZ, quando for maior que 1
+     3. numero redondo pelo tamanho do pedido (ate 10 inteiro, ate 100 de 5 em 5,
+        acima disso de 10 em 10)
+   O ponto cadastrado entra so como piso: o pedido nunca pode deixar o saldo
+   abaixo do ponto, senao o item voltaria para a lista no dia seguinte.
+   Por cima de tudo vem o pedido minimo escolhido na tela: item de giro baixo
+   nao vale a viagem por 1 peca. */
+function passoCompra(lote, emb){
+  if(lote > 1) return {p: lote, por: 'lote ' + nq(lote)};
+  if(emb > 1) return {p: emb, por: 'embalagem de ' + nq(emb)};
+  return {p: 0, por: 'arredondado'};
+}
+function arredondarCompra(q, passo){
+  if(q <= 0) return 0;
+  if(passo > 0) return Math.ceil(q / passo - 1e-9) * passo;
+  if(q <= 10) return Math.ceil(q);
+  if(q <= 100) return Math.ceil(q / 5) * 5;
+  return Math.ceil(q / 10) * 10;
+}
+
 function montarComprar(tudo){
   garantirZerados();
   var C = consumo12(), prazo = PRAZO,
@@ -1817,6 +1849,7 @@ function montarComprar(tudo){
     var reg = PP[k];                              // linha do SBZ DESTA filial
     var temReg = !!reg;                           // o produto existe no SBZ daqui?
     var pp = temReg ? reg[0] : 0, seg = temReg ? reg[1] : 0;
+    var lote = temReg ? (reg[2] || 0) : 0, emb = temReg ? (reg[3] || 0) : 0;
     var temPonto = pp > 0;                        // ... e tem ponto de pedido?
     var c = C[k] || {q: 0, n: 0, meses: 0};
     var porDia = c.q / 365, mes = c.q / 12;
@@ -1834,15 +1867,20 @@ function montarComprar(tudo){
       for(var t = 0; t < termos.length; t++){ if(it.idx.indexOf(termos[t]) < 0){ ok = false; break; } }
       if(!ok) continue;
     }
-    // quanto comprar: mira o ponto cadastrado quando ele existe; so quando nao
-    // existe (ou quando ele mesmo e o problema) e que a conta usa a sugestao
-    var alvo = (temPonto && motivo !== 'revisar') ? pp : sug.p;
+    // quanto comprar: consumo do periodo de cobertura menos o saldo, com o ponto
+    // cadastrado como piso, arredondado para cima ate fechar um lote de compra
+    var precisa = Math.max(porDia * COB - it.saldo, pp - it.saldo, 0);
+    var passo = passoCompra(lote, emb);
+    var repor = precisa > 0 ? arredondarCompra(Math.max(precisa, MINIMO), passo.p) : 0;
     out.push({it: it, temReg: temReg, temPonto: temPonto, pp: pp, seg: seg,
+              lote: lote, emb: emb, passo: passo.p, passoTxt: passo.por, cob: COB,
               q12: c.q, n12: c.n, meses: c.meses, mes: mes, porDia: porDia, cobDias: cobDias,
               sug: sug.p, sugSeg: sug.s, prazo: prazo,
               pontoBaixo: temPonto && c.n >= 6 && sug.p >= pp * 2,
-              motivo: motivo, ord: ORD[motivo], alvo: alvo,
-              repor: Math.max(0, alvo - it.saldo)});
+              motivo: motivo, ord: ORD[motivo],
+              minimo: MINIMO, puxouMinimo: precisa > 0 && MINIMO > precisa,
+              precisa: Math.ceil(precisa * 100) / 100, repor: repor,
+              duraDias: porDia > 0 ? Math.round((it.saldo + repor) / porDia) : null});
   }
   out.sort(function(a, b){ return a.ord - b.ord || b.q12 - a.q12 || (a.it.c < b.it.c ? -1 : 1); });
   return out;
@@ -1858,6 +1896,16 @@ function cobTexto(l){
 function textoPonto(l){
   if(l.temPonto) return '<span class="ponto">ponto ' + nq(l.pp) + '</span>';
   return '<span class="ponto semponto">sem ponto nesta filial</span>';
+}
+
+function contaTexto(l){
+  if(l.repor <= 0) return 'o saldo já cobre ' + l.cob + ' dias — nada a comprar agora, só rever o cadastro';
+  var p = ['pedido para ' + l.cob + ' ' + plural(l.cob, 'dia', 'dias')];
+  if(l.precisa > 0) p.push('precisa ' + nq(l.precisa));
+  if(l.puxouMinimo) p.push('mínimo de ' + nq(l.minimo) + ' un');
+  if(l.repor !== l.precisa) p.push(l.passoTxt + ' → ' + nq(l.repor));
+  if(l.duraDias !== null) p.push('fica com ' + nq(l.duraDias) + ' ' + plural(l.duraDias, 'dia', 'dias') + ' de estoque');
+  return p.join(' · ');
 }
 
 function porqueTexto(l){
@@ -1900,6 +1948,18 @@ function renderComp(){
   });
   h += '<span class="pzinfo">usado para calcular a sugestão de ponto e quem vai faltar</span></div>';
 
+  h += '<div class="prazobar"><b>Comprar para durar</b>';
+  COBS.forEach(function(p){
+    h += '<button class="cchip" data-cob="' + p + '" aria-pressed="' + (p === COB ? 'true' : 'false') + '">' + p + ' d</button>';
+  });
+  h += '<span class="pzinfo">a quantidade sai do consumo deste período e sobe até fechar o lote de compra</span></div>';
+
+  h += '<div class="prazobar"><b>Pedido mínimo</b>';
+  MINS.forEach(function(p){
+    h += '<button class="cchip" data-min="' + p + '" aria-pressed="' + (p === MINIMO ? 'true' : 'false') + '">' + p + ' un</button>';
+  });
+  h += '<span class="pzinfo">nenhum pedido sai abaixo disso — evita pedir 1 peça de item de giro baixo</span></div>';
+
   h += '<div class="prazobar"><b>Mostrar</b>' +
        '<button class="cchip" data-mot="" aria-pressed="' + (MOTFIL === '' ? 'true' : 'false') + '">Tudo (' + todos.length + ')</button>';
   GRUPOS.forEach(function(g){
@@ -1926,8 +1986,14 @@ function renderComp(){
        'entrada e data digitada errada (ano futuro).</li>' +
        '<li><b>Ponto sugerido</b> = consumo do prazo de entrega + 50% de folga. É só sugestão para ' +
        'corrigir o cadastro; não é usado como ponto de pedido.</li>' +
-       '<li><b>Quanto comprar</b> mira o ponto cadastrado quando ele existe. Só usa a sugestão ' +
-       'quando não há ponto cadastrado, ou no grupo de cadastro a revisar.</li>' +
+       '<li><b>Quanto comprar</b> = o que o item gasta no período escolhido em ' +
+       '<i>comprar para durar</i>, menos o saldo. O ponto cadastrado entra só como piso, ' +
+       'para o item não voltar para a lista no dia seguinte.</li>' +
+       '<li><b>Lote de compra:</b> o número sobe até fechar o <i>lote econômico</i> do SBZ. ' +
+       'Sem lote, usa a quantidade da embalagem; sem as duas, arredonda num número redondo. ' +
+       'É isso que evita quantidade quebrada.</li>' +
+       '<li><b>Pedido mínimo:</b> nenhum pedido sai abaixo do que você escolher na barra. ' +
+       'Item de giro baixo não vale a viagem por 1 peça.</li>' +
        '</ul></details>';
 
   if(!L.length){
@@ -1959,9 +2025,11 @@ function renderComp(){
       '<p class="desc">' + esc(it.d) + '</p>' +
       '<div class="l3">' + tag + textoPonto(l) +
       (l.pontoBaixo && l.motivo !== 'revisar' ? '<span class="flag rev">ponto baixo · consumo pede ' + nq(l.sug) + '</span>' : '') +
-      '<span class="qty"><b>' + nq(l.repor) + '</b><small>comprar' + (l.temPonto && l.motivo !== 'revisar' ? '' : ' (cálculo)') +
-      ' · tem ' + nq(it.saldo) + '</small></span>' +
-      '</div><p class="porque">' + porqueTexto(l) + '</p></button>';
+      (l.lote > 1 ? '<span class="ponto lote">lote ' + nq(l.lote) + '</span>' : '') +
+      '<span class="qty' + (l.repor <= 0 ? ' z' : '') + '"><b>' + (l.repor > 0 ? nq(l.repor) : '—') +
+      '</b><small>comprar · tem ' + nq(it.saldo) + '</small></span>' +
+      '</div><p class="porque">' + porqueTexto(l) + '</p>' +
+      '<p class="porque conta">' + contaTexto(l) + '</p></button>';
   });
 }
 
@@ -1977,21 +2045,26 @@ function imprimirComprar(L){
   var h = '<div class="ph"><b>Reposição de estoque</b><span>' + new Date().toLocaleString('pt-BR') + '</span></div>';
   h += '<p class="pinfo">Filial ' + (S.fil || 'todas') + ' · ' + L.length + ' ' + plural(L.length, 'item', 'itens') +
        (S.q ? ' · filtro “' + esc(elQ.value.trim()) + '”' : '') +
-       ' · prazo de entrega ' + PRAZO + ' dias · consumo apurado na SD3 dos últimos 12 meses</p>';
+       ' · prazo de entrega ' + PRAZO + ' dias · pedido para durar ' + COB + ' dias' +
+       ' · mínimo ' + MINIMO + ' un · consumo apurado na SD3 dos últimos 12 meses</p>';
   h += '<section class="pg"><table class="t-pend"><thead><tr><th>Código</th><th>Descrição</th>' +
        '<th class="n">Saldo</th><th class="n">Ponto cadastrado</th><th class="n">Ponto sugerido</th>' +
-       '<th class="n">Comprar</th><th class="n">Consumo 12m</th><th>Situação</th></tr></thead><tbody>';
+       '<th class="n">Lote</th><th class="n">Comprar</th><th class="n">Consumo 12m</th>' +
+       '<th>Situação</th></tr></thead><tbody>';
   L.forEach(function(l){
     h += '<tr><td class="m">' + l.it.c + '</td><td>' + esc(l.it.d) + '</td>' +
          '<td class="n m">' + nq(l.it.saldo) + '</td>' +
          '<td class="n m">' + (l.temPonto ? nq(l.pp) : '—') + '</td>' +
          '<td class="n m">' + (l.q12 > 0 ? nq(l.sug) : '—') + '</td>' +
-         '<td class="n m">' + nq(l.repor) + '</td>' +
+         '<td class="n m">' + (l.lote > 1 ? nq(l.lote) : l.emb > 1 ? nq(l.emb) + '*' : '—') + '</td>' +
+         '<td class="n m">' + (l.repor > 0 ? nq(l.repor) : '—') + '</td>' +
          '<td class="n m">' + nq(l.q12) + '</td>' +
          '<td>' + situacaoTexto(l) + '</td></tr>';
   });
   h += '</tbody></table><p class="pinfo">“—” em Ponto cadastrado significa que este produto não tem ponto de pedido ' +
-       'nesta filial no SBZ. O Ponto sugerido é cálculo pelo consumo (prazo de entrega + 50%), não é cadastro.</p></section>';
+       'nesta filial no SBZ. O Ponto sugerido é cálculo pelo consumo (prazo de entrega + 50%), não é cadastro. ' +
+       'A coluna Comprar já vem arredondada para cima no lote econômico do SBZ (* = quantidade da embalagem, ' +
+       'usada quando não há lote cadastrado).</p></section>';
   document.getElementById('area-impressao').innerHTML = h;
   document.body.classList.add('imprimindo');
   window.print();
@@ -2002,10 +2075,14 @@ function baixarComprar(L){
   var cab = ['Filial', 'Código', 'Descrição', 'Endereço', 'Saldo atual',
              'Ponto cadastrado (SBZ)', 'Tem ponto nesta filial?', 'Est. segurança cadastrado',
              'Ponto sugerido (consumo)', 'Est. segurança sugerido', 'Diferença (sugerido - cadastrado)',
-             'Rever cadastro?', 'Quantidade a comprar', 'Consumo 12 meses', 'Saídas 12 meses',
-             'Meses com saída', 'Média por mês', 'Consumo por dia', 'Cobertura (dias)',
+             'Rever cadastro?', 'Lote econômico (SBZ)', 'Qtd. embalagem (SBZ)',
+             'Necessidade pelo consumo', 'QUANTIDADE A COMPRAR', 'Arredondado por',
+             'Pedido mínimo usado', 'Pedido cobre (dias)', 'Comprar para durar (dias)',
+             'Consumo 12 meses', 'Saídas 12 meses',
+             'Meses com saída', 'Média por mês', 'Consumo por dia', 'Cobertura hoje (dias)',
              'Prazo usado (dias)', 'Última saída', 'Situação'];
-  var larg = [9, 13, 46, 13, 12, 22, 22, 24, 24, 24, 28, 16, 20, 16, 15, 16, 13, 16, 17, 18, 12, 32];
+  var larg = [9, 13, 46, 13, 12, 22, 22, 24, 24, 24, 28, 16, 20, 20, 24, 22, 18, 20, 18, 24,
+              16, 15, 16, 13, 16, 20, 18, 12, 32];
   var linhas = L.map(function(l){
     var it = l.it;
     var r2 = function(n){ return Math.round(n * 100) / 100; };
@@ -2022,7 +2099,14 @@ function baixarComprar(L){
       l.q12 > 0 ? l.sugSeg : '',
       l.q12 > 0 && l.temPonto ? r2(l.sug - l.pp) : '',
       l.pontoBaixo ? 'SIM' : '',
+      l.lote > 0 ? l.lote : '',
+      l.emb > 0 ? l.emb : '',
+      r2(l.precisa),
       r2(l.repor),
+      l.repor <= 0 ? '' : (l.repor === l.precisa ? 'não precisou' : l.passoTxt),
+      l.minimo,
+      l.duraDias === null ? '' : l.duraDias,
+      l.cob,
       r2(l.q12),
       l.n12,
       l.meses,
@@ -2035,7 +2119,7 @@ function baixarComprar(L){
     ];
   });
   var blob = xlsArquivo('Reposição', cab, linhas, larg);
-  xlsBaixar(blob, 'reposicao-' + (S.fil || 'todas') + '-prazo' + PRAZO + 'd-' + xlsHoje() + '.xlsx');
+  xlsBaixar(blob, 'reposicao-' + (S.fil || 'todas') + '-prazo' + PRAZO + 'd-durar' + COB + 'd-' + xlsHoje() + '.xlsx');
 }
 
 var ULTIMOS_INV = [], CHAVE_SEM = '\u0000sem';
@@ -2496,6 +2580,10 @@ lista.addEventListener('click', function(e){
   if(e.target.closest('#xls-comp')){ baixarComprar(ULTIMOS_COMP); return; }
   var pz = e.target.closest('[data-prazo]');
   if(pz){ PRAZO = parseInt(pz.dataset.prazo, 10); store('prazo', PRAZO); render(); return; }
+  var cb = e.target.closest('[data-cob]');
+  if(cb){ COB = parseInt(cb.dataset.cob, 10); store('cobertura', COB); render(); return; }
+  var mn = e.target.closest('[data-min]');
+  if(mn){ MINIMO = parseInt(mn.dataset.min, 10); store('minimo', MINIMO); render(); return; }
   var mt = e.target.closest('[data-mot]');
   if(mt){ MOTFIL = mt.dataset.mot; render(); return; }
   if(e.target.closest('#imp-inv')){ imprimirInventario(ULTIMOS_INV); return; }

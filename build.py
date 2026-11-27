@@ -824,6 +824,10 @@ def montar(sb2, sbf, sda=None, sd3=None, sbz=None):
     #   chave existe e ponto = 0 .... cadastrado no SBZ, porem sem ponto
     #   chave nao existe ........... o produto nem esta no SBZ desta filial
     # Assim a aba Comprar nunca mostra numero de ponto onde nao ha cadastro.
+    #
+    # Cada linha e [ponto, seguranca, lote economico, qtd. da embalagem]. O lote e a
+    # embalagem servem para a aba Comprar arredondar o pedido para cima, em vez de
+    # pedir quantidade quebrada ou de 1 em 1.
     ponto = {}
     if sbz is not None and not sbz.empty:
         for _, r in sbz[sbz["P"] != ""].iterrows():
@@ -831,7 +835,10 @@ def montar(sb2, sbf, sda=None, sd3=None, sbz=None):
                 continue
             pp = numero(r.get("Ponto Pedido", 0))
             seg = numero(r.get("Seguranca", 0))
-            ponto["%d|%s" % (idx_filial[r["F"]], r["P"])] = [round(pp, 3), round(seg, 3)]
+            lote = numero(r.get("Lote Econom.", 0))
+            emb = numero(r.get("Qtd.Embalag.", 0))
+            ponto["%d|%s" % (idx_filial[r["F"]], r["P"])] = [
+                round(pp, 3), round(seg, 3), round(lote, 3), round(emb, 3)]
 
     ativos, zerados = [], []
     for it in itens.values():
@@ -1115,8 +1122,12 @@ def principal(saida=None):
         pp = base.get("pp") or {}
         com_pp = sum(1 for v in pp.values() if v[0] > 0)
         com_seg = sum(1 for v in pp.values() if v[1] > 0)
+        com_lote = sum(1 for v in pp.values() if v[2] > 1)
+        com_emb = sum(1 for v in pp.values() if v[3] > 1)
         print("  ponto de pedido .... %d com ponto, %d sem ponto, %d com estoque de seguranca"
               % (com_pp, len(pp) - com_pp, com_seg))
+        print("  lote de compra ..... %d com lote economico > 1, %d com embalagem > 1"
+              % (com_lote, com_emb))
         por_filial = {}
         for chave_pp, v in pp.items():
             i = int(chave_pp.split("|")[0])
