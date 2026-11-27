@@ -814,8 +814,16 @@ def montar(sb2, sbf, sda=None, sd3=None, sbz=None):
 
     # SBZ: ponto de pedido e estoque de seguranca, por filial + produto.
     # Vai num dicionario separado ("indice da filial|codigo") para nao mexer no
-    # formato das linhas de ativos e zerados. Quem nao tem nenhum dos dois fica
-    # de fora: no app, item sem chave aqui e item sem ponto de pedido cadastrado.
+    # formato das linhas de ativos e zerados.
+    #
+    # Entra TODA linha do SBZ daquela filial, inclusive a que tem ponto zero.
+    # E de proposito: o ponto de pedido e por filial, e o mesmo produto pode ter
+    # ponto cadastrado numa filial e nenhum na outra. Guardando tambem os zeros,
+    # o app distingue tres situacoes em vez de duas:
+    #   chave existe e ponto > 0 .... tem ponto cadastrado nesta filial
+    #   chave existe e ponto = 0 .... cadastrado no SBZ, porem sem ponto
+    #   chave nao existe ........... o produto nem esta no SBZ desta filial
+    # Assim a aba Comprar nunca mostra numero de ponto onde nao ha cadastro.
     ponto = {}
     if sbz is not None and not sbz.empty:
         for _, r in sbz[sbz["P"] != ""].iterrows():
@@ -823,8 +831,7 @@ def montar(sb2, sbf, sda=None, sd3=None, sbz=None):
                 continue
             pp = numero(r.get("Ponto Pedido", 0))
             seg = numero(r.get("Seguranca", 0))
-            if pp > 0 or seg > 0:
-                ponto["%d|%s" % (idx_filial[r["F"]], r["P"])] = [round(pp, 3), round(seg, 3)]
+            ponto["%d|%s" % (idx_filial[r["F"]], r["P"])] = [round(pp, 3), round(seg, 3)]
 
     ativos, zerados = [], []
     for it in itens.values():
@@ -1108,7 +1115,20 @@ def principal(saida=None):
         pp = base.get("pp") or {}
         com_pp = sum(1 for v in pp.values() if v[0] > 0)
         com_seg = sum(1 for v in pp.values() if v[1] > 0)
-        print("  ponto de pedido .... %d cadastrados, %d com estoque de seguranca" % (com_pp, com_seg))
+        print("  ponto de pedido .... %d com ponto, %d sem ponto, %d com estoque de seguranca"
+              % (com_pp, len(pp) - com_pp, com_seg))
+        por_filial = {}
+        for chave_pp, v in pp.items():
+            i = int(chave_pp.split("|")[0])
+            linha = por_filial.setdefault(i, [0, 0])
+            linha[0] += 1
+            if v[0] > 0:
+                linha[1] += 1
+        for i, nome in enumerate(base["filiais"]):
+            linha = por_filial.get(i)
+            if linha:
+                print("    filial %s ....... %d de %d itens do SBZ com ponto cadastrado"
+                      % (nome, linha[1], linha[0]))
     print("  marca dos dados .... %s" % base["marca"])
     print("  marca do app ....... %s   (template.html de %s)" % (marca_app, quando_modelo))
     if base.get("semCustos"):

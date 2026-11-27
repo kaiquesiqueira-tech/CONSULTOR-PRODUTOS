@@ -3,7 +3,7 @@
 # Roda sozinho toda vez que voce envia algo para o branch main.
 # Para ligar, uma vez so: Settings > Pages > Source: GitHub Actions.
 #
-# Se quiser rodar na mao, vá na aba Actions e clique em "Run workflow".
+# Se quiser rodar na mao, va na aba Actions e clique em "Run workflow".
 
 name: Gerar e publicar o app
 
@@ -19,21 +19,25 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # NAO cancelar o que ja esta rodando: se um envio corta a publicacao do
+  # envio anterior no meio, o GitHub fica com uma publicacao pela metade e
+  # o proximo passo nao acha o arquivo. Os envios entram na fila, um apos
+  # o outro. E o que a propria documentacao do GitHub Pages recomenda.
+  cancel-in-progress: false
 
 jobs:
   gerar-e-publicar:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.publicar.outputs.page_url }}
+      url: ${{ steps.publicar.outputs.page_url || steps.republicar.outputs.page_url }}
 
     steps:
       - name: Baixar o repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Preparar o Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
@@ -52,17 +56,35 @@ jobs:
           ls -la dados/ || echo "  A PASTA dados ESTA VAZIA no repositorio!"
 
       - name: Preparar o GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           # tenta ligar o Pages no modo "GitHub Actions" sozinho, caso
           # ele esteja desligado ou apontando para uma branch
           enablement: true
 
       - name: Enviar so a pasta site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
+      # O GitHub leva alguns segundos para registrar o arquivo que acabou de
+      # subir. Sem esta pausa a publicacao as vezes procura cedo demais e
+      # devolve "No artifacts named github-pages were found".
+      - name: Dar tempo do GitHub registrar o arquivo
+        run: sleep 15
+
       - name: Publicar
         id: publicar
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+
+      # Rede de seguranca: se mesmo assim nao achou o arquivo, espera mais um
+      # pouco e tenta de novo, em vez de mandar e-mail de falha.
+      - name: Esperar mais antes de tentar de novo
+        if: steps.publicar.outcome == 'failure'
+        run: sleep 30
+
+      - name: Publicar de novo
+        id: republicar
+        if: steps.publicar.outcome == 'failure'
+        uses: actions/deploy-pages@v5

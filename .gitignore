@@ -28,3 +28,16 @@ gemini_chave.txt
 # substituidas: ficam so neste computador
 dados/_recebidos/
 dados/_substituidos/
+
+# DA PASTA 'dados' SO SOBEM PLANILHAS. Qualquer outro arquivo que caia ali
+# (instalador, zip, pdf, video) trava o envio: o 'git add -A' demora demais
+# nele e o GitHub recusa arquivo acima de 100 MB. Com estas linhas ele fica
+# no computador e o publicar.bat continua funcionando.
+dados/*
+!dados/*.xlsx
+!dados/*.xlsm
+!dados/*.xls
+!dados/*.XLSX
+!dados/*.XLSM
+!dados/*.XLS
+!dados/LEIA-ME.txt

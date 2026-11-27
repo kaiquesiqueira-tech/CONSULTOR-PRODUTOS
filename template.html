@@ -198,6 +198,49 @@ main{padding:14px 14px 92px}
   background:var(--alert-soft); color:var(--alert);
 }
 .flag.ok{background:var(--act-soft); color:var(--act)}
+.flag.rev{background:var(--surface-2); color:var(--muted); border:1px solid var(--line-2)}
+
+/* ============ aba comprar ============ */
+.cgrp{
+  margin:14px 0 2px; display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+  background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--alert);
+  border-radius:0 7px 7px 0; padding:9px 12px; font-size:13.5px; font-weight:700;
+}
+.cgrp:first-child{margin-top:0}
+.cgrp small{font-weight:500; font-size:11px; color:var(--muted); text-align:right; line-height:1.35; max-width:52%}
+.cgrp.g1{border-left-color:var(--loc-edge)}
+.cgrp.g2{border-left-color:var(--act)}
+.cgrp.g3{border-left-color:var(--line-2)}
+.ponto{
+  font-family:var(--mono); font-size:12.5px; font-weight:600; letter-spacing:.02em;
+  background:var(--surface-2); border:1px solid var(--line-2); border-radius:4px;
+  padding:3px 8px; color:var(--ink);
+}
+.ponto.semponto{
+  background:transparent; color:var(--alert); border:1px dashed var(--alert);
+  font-family:var(--sans); font-size:12px; font-weight:600;
+}
+.porque{font-size:11.5px; color:var(--muted); margin:8px 0 0; line-height:1.45}
+.prazobar{display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:9px}
+.prazobar b{font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em}
+.pzinfo{font-size:11.5px; color:var(--muted); flex:1 1 180px; min-width:140px}
+.cchip{
+  font-size:12.5px; font-weight:600; padding:5px 11px; border-radius:999px;
+  border:1px solid var(--line-2); background:var(--surface); color:var(--muted);
+  cursor:pointer; font-family:var(--sans); transition:background .12s, color .12s, border-color .12s;
+}
+.cchip:hover{border-color:var(--act); color:var(--act)}
+.cchip[aria-pressed="true"]{background:var(--act); border-color:var(--act); color:var(--act-ink)}
+.avisofil{
+  font-size:12.5px; line-height:1.5; margin:0 0 10px; padding:10px 12px;
+  background:var(--alert-soft); color:var(--alert); border-radius:8px;
+  border-left:3px solid var(--alert);
+}
+.comoe{margin:0 0 12px; font-size:12.5px; color:var(--muted)}
+.comoe summary{cursor:pointer; font-weight:600; padding:4px 0; color:var(--act)}
+.comoe ul{margin:6px 0 0; padding-left:18px; line-height:1.55}
+.comoe li{margin-bottom:4px}
+.comoe b{color:var(--ink)}
 .flag.ctrl{background:transparent; color:var(--act); border:1px solid var(--act); padding:2px 6px}
 .flag.nctrl{background:var(--surface-2); color:var(--muted); border:1px solid var(--line-2); padding:2px 6px}
 .flag.sctrl{background:transparent; color:var(--muted); border:1px dashed var(--line-2); padding:2px 6px; font-weight:500}
@@ -1691,16 +1734,50 @@ function xlsHoje(){
 /* ======================================================================
    COMPRAR: o que precisa ser reposto.
    Junta tres coisas que ja estao na base:
-     - ponto de pedido e estoque de seguranca do SBZ  (D.pp)
-     - saldo atual do SB2                             (it.saldo)
-     - saidas do ultimo ano da SD3                    (D.movimentos)
-   Um item entra na lista por um destes motivos:
-     zerado  - saldo zero e tem ponto de pedido ou teve 3+ saidas no ano
-     abaixo  - saldo abaixo do ponto de pedido cadastrado
-     curto   - sem ponto de pedido, mas o estoque nao cobre 1 mes de consumo
+     - cadastro do SBZ, por FILIAL + produto                (D.pp)
+     - saldo atual do SB2                                   (it.saldo)
+     - saidas dos ultimos 12 meses da SD3                   (D.movimentos)
+
+   REGRA DE OURO desta aba: ponto de pedido e por filial. O mesmo produto
+   pode ter ponto cadastrado numa filial e nenhum na outra. Onde nao ha
+   cadastro, a tela NAO mostra numero de ponto nenhum - mostra o selo
+   "sem ponto cadastrado nesta filial". O calculo pelo consumo aparece
+   sempre em separado e sempre escrito como sugestao, nunca no lugar do
+   ponto cadastrado.
+
+   Grupos da lista:
+     zerado   saldo zero, e o item tem ponto cadastrado ou teve 3+ saidas
+     abaixo   saldo abaixo do ponto cadastrado no SBZ desta filial
+     curto    sem ponto cadastrado: o saldo nao cobre o prazo de entrega
+     revisar  tem ponto cadastrado, o saldo esta acima dele, mas o ponto e
+              baixo demais perto do consumo real (cadastro a corrigir)
    ====================================================================== */
 var PP = D.pp || {};
 var ULTIMOS_COMP = [], CONSUMO = null;
+
+/* Quantos itens do SBZ de cada filial realmente tem ponto cadastrado.
+   Serve para avisar quando a filial escolhida quase nao tem cadastro. */
+var PPFIL = (function(){
+  var o = {};
+  Object.keys(PP).forEach(function(k){
+    var f = k.split('|')[0], r = o[f] || (o[f] = [0, 0]);
+    r[0]++;
+    if(PP[k][0] > 0) r[1]++;
+  });
+  return o;
+})();
+
+var PRAZOS = [7, 15, 30, 45, 60, 90];
+var PRAZO = PRAZOS.indexOf(store('prazo')) >= 0 ? store('prazo') : 30;
+var MOTFIL = '';            // '' = todos os grupos
+
+var GRUPOS = [
+  {k:'zerado',  t:'Zerado — comprar agora',            d:'saldo zero, com consumo no ano ou ponto cadastrado'},
+  {k:'abaixo',  t:'Abaixo do ponto cadastrado',        d:'saldo menor que o ponto de pedido do SBZ desta filial'},
+  {k:'curto',   t:'Sem ponto — vai faltar',            d:'sem ponto cadastrado nesta filial e o saldo não cobre o prazo de entrega'},
+  {k:'revisar', t:'Cadastro a revisar — ponto baixo',  d:'tem saldo acima do ponto, mas o ponto cadastrado é baixo demais para o consumo'}
+];
+var ORD = {zerado:0, abaixo:1, curto:2, revisar:3};
 
 function consumo12(){
   if(CONSUMO) return CONSUMO;
@@ -1711,45 +1788,87 @@ function consumo12(){
     if(!isNaN(tm) && tm <= 500) return;          // so saidas
     if(m[7] < limite || m[7] > HOJE) return;     // ultimo ano, e sem data futura digitada errado
     var k = m[0] + '|' + m[1], c = CONSUMO[k];
-    if(!c) c = CONSUMO[k] = {q: 0, n: 0};
+    if(!c) c = CONSUMO[k] = {q: 0, n: 0, mb: 0};
     c.q += m[3]; c.n++;
+    c.mb |= 1 << Math.min(11, Math.floor((HOJE - m[7]) / 30.44));   // em que mes caiu
   });
+  for(var k in CONSUMO){
+    var c = CONSUMO[k], b = c.mb, meses = 0;
+    while(b){ meses += b & 1; b >>>= 1; }
+    c.meses = meses;
+  }
   return CONSUMO;
+}
+
+/* Ponto que o consumo real pede: o que sai durante o prazo de entrega, mais
+   50% de folga. O estoque de seguranca sugerido e meio prazo. */
+function sugerido(porDia, prazo){
+  return {p: Math.ceil(porDia * prazo * 1.5), s: Math.ceil(porDia * prazo * 0.5)};
 }
 
 function montarComprar(tudo){
   garantirZerados();
-  var C = consumo12(), termos = (!tudo && S.q) ? S.q.split(/\s+/) : [], out = [];
+  var C = consumo12(), prazo = PRAZO,
+      termos = (!tudo && S.q) ? S.q.split(/\s+/) : [], out = [];
   for(var i = 0; i < ITENS.length; i++){
     var it = ITENS[i];
     if(!tudo && S.fil && FIL[it.f] !== S.fil) continue;
     var k = it.f + '|' + it.c;
-    var p = PP[k], pp = p ? p[0] : 0, seg = p ? p[1] : 0;
-    var c = C[k] || {q: 0, n: 0};
-    var mes = c.q / 12, cob = mes > 0 ? it.saldo / mes : null;
-    var motivo, ord;
-    if(it.saldo <= 0 && (pp > 0 || c.n >= 3)){ motivo = 'zerado'; ord = 0; }
-    else if(pp > 0 && it.saldo < pp){ motivo = 'abaixo'; ord = 1; }
-    else if(pp <= 0 && c.n >= 6 && cob !== null && cob < 1){ motivo = 'curto'; ord = 2; }
+    var reg = PP[k];                              // linha do SBZ DESTA filial
+    var temReg = !!reg;                           // o produto existe no SBZ daqui?
+    var pp = temReg ? reg[0] : 0, seg = temReg ? reg[1] : 0;
+    var temPonto = pp > 0;                        // ... e tem ponto de pedido?
+    var c = C[k] || {q: 0, n: 0, meses: 0};
+    var porDia = c.q / 365, mes = c.q / 12;
+    var cobDias = porDia > 0 ? Math.max(0, it.saldo) / porDia : null;
+    var sug = sugerido(porDia, prazo);
+    var motivo;
+    if(it.saldo <= 0 && (temPonto || c.n >= 3)) motivo = 'zerado';
+    else if(temPonto && it.saldo < pp) motivo = 'abaixo';
+    else if(!temPonto && c.n >= 6 && cobDias !== null && cobDias < prazo) motivo = 'curto';
+    else if(temPonto && c.n >= 6 && sug.p >= pp * 2 && it.saldo < sug.p) motivo = 'revisar';
     else continue;
+    if(!tudo && MOTFIL && motivo !== MOTFIL) continue;
     if(termos.length){
       var ok = true;
       for(var t = 0; t < termos.length; t++){ if(it.idx.indexOf(termos[t]) < 0){ ok = false; break; } }
       if(!ok) continue;
     }
-    var alvo = pp > 0 ? pp : Math.ceil(mes * 1.5);
-    out.push({it: it, pp: pp, seg: seg, q12: c.q, n12: c.n, mes: mes, cob: cob,
-              motivo: motivo, ord: ord, alvo: alvo, repor: Math.max(0, alvo - it.saldo)});
+    // quanto comprar: mira o ponto cadastrado quando ele existe; so quando nao
+    // existe (ou quando ele mesmo e o problema) e que a conta usa a sugestao
+    var alvo = (temPonto && motivo !== 'revisar') ? pp : sug.p;
+    out.push({it: it, temReg: temReg, temPonto: temPonto, pp: pp, seg: seg,
+              q12: c.q, n12: c.n, meses: c.meses, mes: mes, porDia: porDia, cobDias: cobDias,
+              sug: sug.p, sugSeg: sug.s, prazo: prazo,
+              pontoBaixo: temPonto && c.n >= 6 && sug.p >= pp * 2,
+              motivo: motivo, ord: ORD[motivo], alvo: alvo,
+              repor: Math.max(0, alvo - it.saldo)});
   }
   out.sort(function(a, b){ return a.ord - b.ord || b.q12 - a.q12 || (a.it.c < b.it.c ? -1 : 1); });
   return out;
 }
 
 function cobTexto(l){
-  if(l.cob === null) return 'sem saída no ano';
-  if(l.cob <= 0) return 'sem estoque';
-  var d = Math.round(l.cob * 30);
-  return d < 60 ? 'cobre ' + d + ' ' + plural(d, 'dia', 'dias') : 'cobre ' + Math.round(l.cob) + ' meses';
+  if(l.cobDias === null) return 'sem saída no ano';
+  if(l.cobDias <= 0) return 'estoque zerado';
+  var d = Math.round(l.cobDias);
+  return d < 60 ? 'cobre ' + d + ' ' + plural(d, 'dia', 'dias') : 'cobre ' + Math.round(d / 30) + ' meses';
+}
+
+function textoPonto(l){
+  if(l.temPonto) return '<span class="ponto">ponto ' + nq(l.pp) + '</span>';
+  return '<span class="ponto semponto">sem ponto nesta filial</span>';
+}
+
+function porqueTexto(l){
+  var p = [];
+  if(l.n12) p.push('saiu ' + nq(l.q12) + ' no ano, em ' + l.meses + ' ' + plural(l.meses, 'mês', 'meses'));
+  else p.push('nenhuma saída nos últimos 12 meses');
+  p.push(cobTexto(l));
+  if(l.q12 > 0) p.push('consumo sugere ponto ' + nq(l.sug) + ' (prazo ' + l.prazo + ' d)');
+  if(!l.temReg) p.push('produto não está no SBZ desta filial');
+  else if(!l.temPonto) p.push('cadastrado no SBZ, porém com ponto zero');
+  return p.join(' · ');
 }
 
 function renderComp(){
@@ -1762,39 +1881,95 @@ function renderComp(){
       'Coloque as duas exportações na pasta dados e gere o app de novo.</p>';
     return;
   }
-  var zer = 0, ab = 0, cu = 0;
-  L.forEach(function(l){ if(l.motivo === 'zerado') zer++; else if(l.motivo === 'abaixo') ab++; else cu++; });
-  cont.innerHTML = '<span>' + L.length + ' ' + plural(L.length, 'item', 'itens') + ' para repor</span>' +
-    (zer ? '<span><b>' + zer + '</b> zerado' + (zer === 1 ? '' : 's') + '</span>' : '') +
-    (ab ? '<span>' + ab + ' abaixo do ponto</span>' : '') +
-    (cu ? '<span>' + cu + ' sem ponto cadastrado</span>' : '');
+
+  // contagem por grupo, sempre sobre a lista inteira (sem o filtro de grupo),
+  // para os botoes mostrarem quantos itens cada grupo tem
+  var guarda = MOTFIL; MOTFIL = '';
+  var todos = montarComprar();
+  MOTFIL = guarda;
+  var n = {zerado:0, abaixo:0, curto:0, revisar:0};
+  todos.forEach(function(l){ n[l.motivo]++; });
+  var comprar = n.zerado + n.abaixo + n.curto;
+
+  cont.innerHTML = '<span>' + comprar + ' ' + plural(comprar, 'item', 'itens') + ' para comprar</span>' +
+    (n.revisar ? '<span>' + n.revisar + ' cadastro' + (n.revisar === 1 ? '' : 's') + ' a revisar</span>' : '');
+
+  var h = '<div class="prazobar"><b>Prazo de entrega</b>';
+  PRAZOS.forEach(function(p){
+    h += '<button class="cchip" data-prazo="' + p + '" aria-pressed="' + (p === PRAZO ? 'true' : 'false') + '">' + p + ' d</button>';
+  });
+  h += '<span class="pzinfo">usado para calcular a sugestão de ponto e quem vai faltar</span></div>';
+
+  h += '<div class="prazobar"><b>Mostrar</b>' +
+       '<button class="cchip" data-mot="" aria-pressed="' + (MOTFIL === '' ? 'true' : 'false') + '">Tudo (' + todos.length + ')</button>';
+  GRUPOS.forEach(function(g){
+    if(!n[g.k]) return;
+    h += '<button class="cchip" data-mot="' + g.k + '" aria-pressed="' + (MOTFIL === g.k ? 'true' : 'false') + '">' +
+         g.t.split(' — ')[0] + ' (' + n[g.k] + ')</button>';
+  });
+  h += '</div>';
+
+  if(S.fil && PPFIL[FIL.indexOf(S.fil)]){
+    var r = PPFIL[FIL.indexOf(S.fil)];
+    if(r[1] < r[0] * 0.25){
+      h += '<p class="avisofil"><b>Atenção na filial ' + S.fil + ':</b> só ' + r[1] + ' de ' + r[0] +
+           ' produtos do SBZ têm ponto de pedido cadastrado aqui. Quase tudo nesta filial aparece ' +
+           'como “sem ponto nesta filial” — é o cadastro do Protheus que está vazio, não o app.</p>';
+    }
+  }
+
+  h += '<details class="comoe"><summary>Como esta lista é montada</summary>' +
+       '<ul>' +
+       '<li><b>Ponto de pedido é por filial.</b> O app só mostra o ponto que existe no SBZ ' +
+       'daquela filial. Se não houver, aparece <i>sem ponto nesta filial</i> — nunca um número inventado.</li>' +
+       '<li><b>Consumo</b> é a soma das saídas da SD3 nos últimos 12 meses, ignorando movimento de ' +
+       'entrada e data digitada errada (ano futuro).</li>' +
+       '<li><b>Ponto sugerido</b> = consumo do prazo de entrega + 50% de folga. É só sugestão para ' +
+       'corrigir o cadastro; não é usado como ponto de pedido.</li>' +
+       '<li><b>Quanto comprar</b> mira o ponto cadastrado quando ele existe. Só usa a sugestão ' +
+       'quando não há ponto cadastrado, ou no grupo de cadastro a revisar.</li>' +
+       '</ul></details>';
 
   if(!L.length){
-    lista.innerHTML = '<p class="empty"><b>Nada para repor</b>' +
-      'Nenhum item zerado, abaixo do ponto de pedido ou com estoque curto neste filtro.</p>';
+    lista.innerHTML = h + '<p class="empty"><b>Nada nesta seleção</b>' +
+      'Nenhum item neste filtro. Tente “Tudo” ou outra filial.</p>';
     return;
   }
 
-  var h = '<div class="btnrow"><button class="btn ghost" id="imp-comp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' +
-          'Imprimir esta lista</button>' +
-          '<button class="btn ghost" id="xls-comp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>' +
-          'Baixar em Excel</button></div>';
-  lista.innerHTML = h + '<div id="comprows"></div>';
+  h += '<div class="btnrow"><button class="btn ghost" id="imp-comp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' +
+       'Imprimir esta lista</button>' +
+       '<button class="btn ghost" id="xls-comp"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>' +
+       'Baixar em Excel</button></div>';
+  lista.innerHTML = h + '<div id="comprows" class="list"></div>';
+
+  var ordAtual = -1;
   progressivo(document.getElementById('comprows'), L, 40, 60, function(l){
-    var it = l.it;
-    var tag = l.motivo === 'zerado' ? '<span class="flag neg">ZERADO</span>'
-            : l.motivo === 'abaixo' ? '<span class="flag">abaixo do ponto</span>'
-            : '<span class="flag">sem ponto cadastrado</span>';
-    var pontoTxt = l.pp > 0 ? 'ponto ' + nq(l.pp) : 'sugerido ' + nq(l.alvo);
-    return '<button class="card" data-id="' + it.id + '">' +
+    var it = l.it, cab = '';
+    if(l.ord !== ordAtual){
+      ordAtual = l.ord;
+      var g = GRUPOS[l.ord];
+      cab = '<h3 class="cgrp g' + l.ord + '"><span>' + g.t + ' · ' + n[g.k] + '</span><small>' + g.d + '</small></h3>';
+    }
+    var tag = l.motivo === 'zerado'  ? '<span class="flag neg">ZERADO</span>'
+            : l.motivo === 'abaixo'  ? '<span class="flag">abaixo do ponto</span>'
+            : l.motivo === 'curto'   ? '<span class="flag">vai faltar</span>'
+            :                          '<span class="flag rev">rever cadastro</span>';
+    return cab + '<button class="card" data-id="' + it.id + '">' +
       '<div class="l1"><span class="code">' + it.c + '</span><span class="fil">' + FIL[it.f] + '</span></div>' +
       '<p class="desc">' + esc(it.d) + '</p>' +
-      '<div class="l3">' + tag +
-      '<span class="loc">' + pontoTxt + '</span>' +
-      '<span class="loc">' + nq(l.q12) + ' no ano · ' + cobTexto(l) + '</span>' +
-      '<span class="qty"><b>' + nq(l.repor) + '</b><small>repor · tem ' + nq(it.saldo) + '</small></span>' +
-      '</div></button>';
+      '<div class="l3">' + tag + textoPonto(l) +
+      (l.pontoBaixo && l.motivo !== 'revisar' ? '<span class="flag rev">ponto baixo · consumo pede ' + nq(l.sug) + '</span>' : '') +
+      '<span class="qty"><b>' + nq(l.repor) + '</b><small>comprar' + (l.temPonto && l.motivo !== 'revisar' ? '' : ' (cálculo)') +
+      ' · tem ' + nq(it.saldo) + '</small></span>' +
+      '</div><p class="porque">' + porqueTexto(l) + '</p></button>';
   });
+}
+
+function situacaoTexto(l){
+  return l.motivo === 'zerado' ? 'ZERADO'
+       : l.motivo === 'abaixo' ? 'abaixo do ponto cadastrado'
+       : l.motivo === 'curto'  ? 'sem ponto cadastrado nesta filial'
+       :                         'cadastro a revisar (ponto baixo)';
 }
 
 function imprimirComprar(L){
@@ -1802,19 +1977,21 @@ function imprimirComprar(L){
   var h = '<div class="ph"><b>Reposição de estoque</b><span>' + new Date().toLocaleString('pt-BR') + '</span></div>';
   h += '<p class="pinfo">Filial ' + (S.fil || 'todas') + ' · ' + L.length + ' ' + plural(L.length, 'item', 'itens') +
        (S.q ? ' · filtro “' + esc(elQ.value.trim()) + '”' : '') +
-       ' · consumo apurado na SD3 dos últimos 12 meses</p>';
+       ' · prazo de entrega ' + PRAZO + ' dias · consumo apurado na SD3 dos últimos 12 meses</p>';
   h += '<section class="pg"><table class="t-pend"><thead><tr><th>Código</th><th>Descrição</th>' +
-       '<th class="n">Saldo</th><th class="n">Ponto</th><th class="n">Repor</th>' +
-       '<th class="n">Consumo 12m</th><th>Situação</th></tr></thead><tbody>';
+       '<th class="n">Saldo</th><th class="n">Ponto cadastrado</th><th class="n">Ponto sugerido</th>' +
+       '<th class="n">Comprar</th><th class="n">Consumo 12m</th><th>Situação</th></tr></thead><tbody>';
   L.forEach(function(l){
     h += '<tr><td class="m">' + l.it.c + '</td><td>' + esc(l.it.d) + '</td>' +
          '<td class="n m">' + nq(l.it.saldo) + '</td>' +
-         '<td class="n m">' + (l.pp > 0 ? nq(l.pp) : nq(l.alvo) + '*') + '</td>' +
+         '<td class="n m">' + (l.temPonto ? nq(l.pp) : '—') + '</td>' +
+         '<td class="n m">' + (l.q12 > 0 ? nq(l.sug) : '—') + '</td>' +
          '<td class="n m">' + nq(l.repor) + '</td>' +
          '<td class="n m">' + nq(l.q12) + '</td>' +
-         '<td>' + (l.motivo === 'zerado' ? 'ZERADO' : l.motivo === 'abaixo' ? 'abaixo do ponto' : 'sem ponto cadastrado') + '</td></tr>';
+         '<td>' + situacaoTexto(l) + '</td></tr>';
   });
-  h += '</tbody></table><p class="pinfo">* ponto de pedido sugerido: 1,5 mês do consumo real, para item sem cadastro no SBZ.</p></section>';
+  h += '</tbody></table><p class="pinfo">“—” em Ponto cadastrado significa que este produto não tem ponto de pedido ' +
+       'nesta filial no SBZ. O Ponto sugerido é cálculo pelo consumo (prazo de entrega + 50%), não é cadastro.</p></section>';
   document.getElementById('area-impressao').innerHTML = h;
   document.body.classList.add('imprimindo');
   window.print();
@@ -1822,10 +1999,13 @@ function imprimirComprar(L){
 
 function baixarComprar(L){
   if(!L || !L.length) return;
-  var cab = ['Filial', 'Código', 'Descrição', 'Endereço', 'Saldo atual', 'Ponto de pedido',
-             'Ponto cadastrado?', 'Estoque de segurança', 'Quantidade a repor', 'Consumo 12 meses',
-             'Saídas 12 meses', 'Média por mês', 'Cobertura (meses)', 'Última saída', 'Situação'];
-  var larg = [9, 13, 46, 13, 12, 14, 16, 18, 17, 16, 15, 13, 16, 12, 20];
+  var cab = ['Filial', 'Código', 'Descrição', 'Endereço', 'Saldo atual',
+             'Ponto cadastrado (SBZ)', 'Tem ponto nesta filial?', 'Est. segurança cadastrado',
+             'Ponto sugerido (consumo)', 'Est. segurança sugerido', 'Diferença (sugerido - cadastrado)',
+             'Rever cadastro?', 'Quantidade a comprar', 'Consumo 12 meses', 'Saídas 12 meses',
+             'Meses com saída', 'Média por mês', 'Consumo por dia', 'Cobertura (dias)',
+             'Prazo usado (dias)', 'Última saída', 'Situação'];
+  var larg = [9, 13, 46, 13, 12, 22, 22, 24, 24, 24, 28, 16, 20, 16, 15, 16, 13, 16, 17, 18, 12, 32];
   var linhas = L.map(function(l){
     var it = l.it;
     var r2 = function(n){ return Math.round(n * 100) / 100; };
@@ -1835,20 +2015,27 @@ function baixarComprar(L){
       it.d,
       it.ends && it.ends.length ? it.ends[0].e : '',
       r2(it.saldo),
-      l.pp > 0 ? l.pp : l.alvo,
-      l.pp > 0 ? 'sim' : 'não (sugerido)',
+      l.temPonto ? l.pp : '',
+      l.temPonto ? 'sim' : (l.temReg ? 'não (cadastrado com ponto zero)' : 'não (não está no SBZ desta filial)'),
       l.seg > 0 ? l.seg : '',
+      l.q12 > 0 ? l.sug : '',
+      l.q12 > 0 ? l.sugSeg : '',
+      l.q12 > 0 && l.temPonto ? r2(l.sug - l.pp) : '',
+      l.pontoBaixo ? 'SIM' : '',
       r2(l.repor),
       r2(l.q12),
       l.n12,
+      l.meses,
       r2(l.mes),
-      l.cob === null ? '' : r2(l.cob),
+      Math.round(l.porDia * 100) / 100,
+      l.cobDias === null ? '' : Math.round(l.cobDias),
+      l.prazo,
       it.ultS ? data(it.ultS) : '',
-      l.motivo === 'zerado' ? 'ZERADO' : l.motivo === 'abaixo' ? 'abaixo do ponto' : 'sem ponto cadastrado'
+      situacaoTexto(l)
     ];
   });
   var blob = xlsArquivo('Reposição', cab, linhas, larg);
-  xlsBaixar(blob, 'reposicao-' + (S.fil || 'todas') + '-' + xlsHoje() + '.xlsx');
+  xlsBaixar(blob, 'reposicao-' + (S.fil || 'todas') + '-prazo' + PRAZO + 'd-' + xlsHoje() + '.xlsx');
 }
 
 var ULTIMOS_INV = [], CHAVE_SEM = '\u0000sem';
@@ -2307,6 +2494,10 @@ lista.addEventListener('click', function(e){
   if(e.target.closest('#imp-pend')){ imprimirPendentes(ULTIMOS_PEND); return; }
   if(e.target.closest('#imp-comp')){ imprimirComprar(ULTIMOS_COMP); return; }
   if(e.target.closest('#xls-comp')){ baixarComprar(ULTIMOS_COMP); return; }
+  var pz = e.target.closest('[data-prazo]');
+  if(pz){ PRAZO = parseInt(pz.dataset.prazo, 10); store('prazo', PRAZO); render(); return; }
+  var mt = e.target.closest('[data-mot]');
+  if(mt){ MOTFIL = mt.dataset.mot; render(); return; }
   if(e.target.closest('#imp-inv')){ imprimirInventario(ULTIMOS_INV); return; }
   if(e.target.closest('#imp-inv-total')){ imprimirCompleto(ULTIMO_COMPLETO); return; }
   var ic = e.target.closest('[data-impcomp]');
@@ -2410,7 +2601,9 @@ window.addEventListener('resize', medirTopo);
   (function tentar(){
     if(!ZER.ok){ setTimeout(tentar, 300); return; }
     try {
-      var n = montarComprar(true).length;
+      // o contador da aba conta so o que e para comprar; "cadastro a revisar"
+      // nao e compra, entao nao infla o numero em cima da aba
+      var n = montarComprar(true).filter(function(l){ return l.ord <= 2; }).length;
       b.textContent = n; b.hidden = n === 0;
     } catch(e){ b.hidden = true; }
   })();
